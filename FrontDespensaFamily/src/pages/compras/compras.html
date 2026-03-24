@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compras | DespensaFamily</title>
+
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./compras.css" />
+</head>
+<body>
+
+  <div id="navbar-container"></div>
+
+  <main class="content">
+    <div class="compras-container">
+
+      <h1>Gestión de Compras</h1>
+
+      <!-- ================= COMPRAS REGISTRADAS ================= -->
+      <section>
+  <h2>Compras registradas</h2>
+
+  <div class="tabla-scroll">
+    <table id="tabla-compras">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Proveedor</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+
+      <section>
+        <h2>Registrar Compra</h2>
+
+        <form id="form-compra">
+
+          <label>
+            Proveedor
+            <input type="text" id="proveedor" required />
+          </label>
+
+          <div class="detalle-compra">
+
+            <select id="producto">
+              <option value="">Seleccione producto</option>
+            </select>
+
+            <input
+              type="number"
+              id="cantidad"
+              placeholder="Cantidad"
+              min="1"
+            />
+
+            <input
+              type="number"
+              id="precioCosto"
+              placeholder="Precio costo"
+              min="0"
+              step="0.01"
+            />
+
+            <button type="button" id="btn-agregar">
+              Agregar
+            </button>
+          </div>
+
+          <!-- TABLA DE DETALLES DE LA NUEVA COMPRA -->
+           <div class="tabla-scroll" style="max-height: 250px;">
+          <table id="tabla-detalles">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio costo</th>
+                <th>Subtotal</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          </div>
+
+          <button type="submit" class="btn-guardar">
+            Registrar Compra
+          </button>
+
+        </form>
+      </section>
+
+    </div>
+  </main>
+<!-- Modal Detalle de Compra -->
+<div id="modal-detalle-compra" class="modal hidden">
+  <div class="modal-content">
+    <h2>Detalle de Compra <span id="detalle-compra-id"></span></h2>
+    <p><strong>Proveedor:</strong> <span id="detalle-compra-proveedor"></span></p>
+    <p><strong>Fecha:</strong> <span id="detalle-compra-fecha"></span></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Precio Costo</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-detalle-compra"></tbody>
+    </table>
+    <h3>Total: $<span id="detalle-compra-total"></span></h3>
+    <button id="btn-cerrar-detalle-compra">Cerrar</button>
+  </div>
+</div>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script type="module">
+    fetch("../../components/navbar/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        const container = document.getElementById("navbar-container");
+        if (container) container.innerHTML = html;
+      });
+  </script>
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./compras.ts"></script>
+
+</body>
+</html>

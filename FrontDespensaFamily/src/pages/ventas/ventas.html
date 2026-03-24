@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ventas | DespensaFamily</title>
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./ventas.css" />
+</head>
+
+<body>
+  <div id="navbar-container"></div>
+  <main class="content">
+    <div class="ventas-container">
+
+  <!-- HEADER -->
+  <div class="ventas-header">
+    <div id="fecha"></div>
+    <div>
+  Cliente:
+  <select id="select-cliente">
+    <option value="consumidor_final">Consumidor final</option>
+  </select>
+</div>
+    <a href="#ventas-registradas">Ir a ventas registro</a>
+  </div>
+
+  <hr />
+
+  <!-- ZONA PRINCIPAL -->
+  <div class="ventas-main">
+
+    <!-- REGISTRAR -->
+    <div class="registrar">
+      <h1>Registrar Venta</h1>
+
+      <div class="producto-buscar-container">
+        <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." />
+      </div>
+
+      <input type="number" id="input-cantidad" placeholder="Cantidad" min="1" />
+
+      <button id="btn-agregar">Agregar al Carrito</button>
+
+      <div id="productos-section">
+        <h2>Productos Disponibles</h2>
+        <div class="productos-grid-wrapper">
+          <div id="productos-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARRITO -->
+    <div class="carrito">
+      <h2>Carrito</h2>
+
+      <div class="tabla-scroll" style="max-height: 420px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio</th>
+              <th>Subtotal</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-detalle"></tbody>
+        </table>
+      </div>
+
+      <h3>Total: $<span id="total">0</span></h3>
+
+      <button id="btn-confirmar">Confirmar Venta</button>
+    </div>
+
+  </div>
+
+  <!-- ABAJO -->
+  <h1 id="ventas-registradas">Ventas Registradas</h1>
+
+  <div class="tabla-scroll">
+    <table id="tabla-ventas-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Total</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-ventas"></tbody>
+    </table>
+  </div>
+
+</div>
+
+  </main>
+
+  <!-- Modal Detalle de Venta -->
+  <div id="modal-detalle" class="modal hidden">
+    <div class="modal-content">
+      <h2>Detalle de Venta <span id="detalle-venta-id"></span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-detalle-venta"></tbody>
+      </table>
+      <h3>Total: $<span id="detalle-total"></span></h3>
+      <button id="btn-cerrar-detalle">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- modal de cámara -->
+  <div id="modal-scan" class="modal hidden">
+    <div class="modal-content">
+      <h3 style="color: #00bfff;">Escanear código de barras</h3>
+      <div id="scanner-container">
+        <div id="reader"></div>
+        <div class="scanner-overlay">
+          <div class="scanner-hole">
+            <div class="scanner-line"></div>
+          </div>
+        </div>
+      </div>
+      <button id="btn-cerrar-scan" type="button">Cerrar</button>
+    </div>
+  </div>
+
+  <script type="module">
+    fetch("../../components/navbar/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        const container = document.getElementById("navbar-container");
+        if (container) container.innerHTML = html;
+      });
+  </script>
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./ventas.ts"></script>
+</body>
+
+</html>

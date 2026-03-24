@@ -1,0 +1,672 @@
+/* nav */
+.navbar-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #ffffff; /* ← Agregá esta línea */
+}
+
+/*  */
+
+.compras-container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+h1, h2 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+
+
+
+/* formulario */
+form {
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+label {
+  display: block;
+  margin-bottom: 15px;
+}
+
+label input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+
+/* detalle compra */
+.detalle-compra {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.detalle-compra select,
+.detalle-compra input {
+  flex: 1;
+  padding: 8px;
+}
+
+.detalle-compra button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+/* botones */
+button {
+  cursor: pointer;
+}
+
+.btn-guardar {
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.btn-guardar:hover {
+  background-color: #45a049;
+}
+
+.btn-quitar {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+
+.btn-quitar:hover {
+  background-color: #d32f2f;
+}
+/* Modal general */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Contenido del modal */
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 600px;
+  width: 90%;
+}
+
+/* Oculto por defecto */
+.hidden {
+  display: none;
+}
+#tabla-compras tbody tr {
+    cursor: pointer;
+}
+
+#tabla-compras tbody tr:hover {
+    background-color: #f0f0f0;
+}
+#modal-detalle-compra .modal-content h3 {
+    text-align: right;
+    font-weight: bold;
+    font-size: 18px;
+    margin-top: 10px;
+}
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.compras-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* TÍTULOS */
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.content h1::before {
+  content: '💰';
+  font-size: 36px;
+}
+
+
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+section:first-of-type h2::before {
+  content: '📋';
+  font-size: 26px;
+}
+
+section:last-of-type h2::before {
+  content: '➕';
+  font-size: 26px;
+}
+
+/* SECCIONES */
+section {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* TABLAS */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 25px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+thead {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+}
+
+th {
+  padding: 16px;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+td {
+  padding: 14px 16px;
+  text-align: center;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  font-size: 14px;
+  border-left: none;
+  border-right: none;
+}
+
+tbody tr {
+  transition: all 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.005);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Filas clickeables */
+#tabla-compras tbody tr {
+  cursor: pointer;
+}
+
+#tabla-compras tbody tr:hover {
+  background-color: #e3f2fd;
+}
+
+/* FORMULARIO */
+form {
+  border: 2px solid #e9ecef;
+  padding: 28px;
+  border-radius: 16px;
+  background: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+label {
+  display: block;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+label input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 8px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+}
+
+label input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+/* DETALLE DE COMPRA */
+.detalle-compra {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.detalle-compra select,
+.detalle-compra input {
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.detalle-compra select:focus,
+.detalle-compra input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+.detalle-compra select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+
+.detalle-compra input::placeholder {
+  color: #adb5bd;
+}
+
+/* BOTONES */
+button:not(.menu-toggle) {
+  cursor: pointer;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+button:not(.menu-toggle):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:not(.menu-toggle):active {
+  transform: translateY(0);
+}
+
+#btn-agregar {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+}
+
+#btn-agregar:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
+.btn-guardar {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  font-size: 16px;
+  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
+}
+
+.btn-guardar:hover {
+  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+}
+
+.btn-quitar {
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  color: white;
+  padding: 8px 16px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+}
+
+.btn-quitar:hover {
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+}
+
+/* TABLA DE DETALLES (dentro del form) */
+#tabla-detalles {
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-content h2::before {
+  content: '📄';
+  font-size: 26px;
+}
+
+.modal-content p {
+  margin-bottom: 12px;
+  color: #495057;
+  font-size: 15px;
+}
+
+.modal-content p strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.modal-content h3 {
+  text-align: right;
+  font-weight: 700;
+  font-size: 20px;
+  margin-top: 20px;
+  color: #43a047;
+}
+
+.modal-content table {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#btn-cerrar-detalle-compra {
+  width: 100%;
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+  color: white;
+  padding: 14px;
+  margin-top: 20px;
+  box-shadow: 0 4px 12px rgba(120, 144, 156, 0.3);
+}
+
+#btn-cerrar-detalle-compra:hover {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+}
+
+/* Scrollbar del modal */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #868e96;
+}
+@media (max-width: 1300px) {
+.detalle-compra input{
+  width: 80%;
+}
+}
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .compras-container {
+    padding: 0;
+  }
+
+  section {
+    padding: 20px;
+  }
+
+ .detalle-compra {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  #btn-agregar {
+    width: 100%;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 10px 8px;
+  }
+
+  form {
+    padding: 20px;
+  }
+
+  .modal-content {
+    padding: 24px;
+    width: 95%;
+  }
+  
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 20px;
+  }
+
+  h1::before {
+    font-size: 24px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 8px 6px;
+  }
+
+  button {
+    font-size: 13px;
+  }
+
+  .btn-guardar,
+  #btn-cerrar-detalle-compra {
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+table {
+    width: 100%;          /* ocupar todo el ancho disponible */
+    table-layout: auto;    /* columnas ajustables según contenido */
+    font-size: 12px;       /* tamaño de fuente legible */
+  }
+
+  th, td {
+    padding: 6px 8px;
+    word-wrap: break-word; /* permite que el texto se divida en varias líneas */
+    white-space: normal;   /* evita que el texto se quede en una sola línea */
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  /* Opcional: limitar ancho de columnas muy largas */
+  td:nth-child(2), td:nth-child(3) {
+    max-width: 80px;
+  }
+  
+}
+
+/* Permitir sticky en compras registradas */
+.tabla-scroll table {
+  overflow: visible;
+}
+.tabla-scroll {
+  max-height: 350px;   /* ajustá a gusto */
+  overflow-y: auto;
+  position: relative;
+  border-radius: 12px;
+}
+
+/* Header fijo */
+.tabla-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+}

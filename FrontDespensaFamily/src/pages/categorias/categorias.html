@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categorias | DespensaFamily</title>
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./categorias.css" />
+</head>
+
+<body>
+  <div id="navbar-container"></div>
+  <main class="content">
+    <div class="categorias-container">
+
+      <h1>Gestión de Categorías</h1>
+
+      <!-- TABLA -->
+      <table id="tabla-categorias">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <!-- FORM CREAR -->
+      <form id="form-crear-categoria">
+        <h2>Crear Categoría</h2>
+
+        <input type="text" name="nombre" placeholder="Nombre" required />
+        <input type="text" name="descripcion" placeholder="Descripción" />
+
+        <button type="submit">Crear</button>
+      </form>
+
+      <!-- MODAL EDITAR -->
+      <div id="modal-editar" class="modal hidden">
+        <div class="modal-content">
+          <h2>Editar Categoría</h2>
+
+          <form id="form-editar-categoria">
+            <label>
+              Nombre
+              <input type="text" name="nombre" required />
+            </label>
+
+            <label>
+              Descripción
+              <input type="text" name="descripcion" />
+            </label>
+            <label>
+              Porcentaje de ganancia (%)
+              <input type="number" name="porcentajeGanancia" min="0" step="0.01" placeholder="Ej: 30" />
+            </label>
+
+            <button type="submit">Guardar</button>
+            <button type="button" id="btn-cancelar">Cancelar</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <script type="module">
+    fetch("../../components/navbar/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        const container = document.getElementById("navbar-container");
+        if (container) container.innerHTML = html;
+      });
+  </script>
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./categorias.ts"></script>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+@echo off
+echo ==============================
+echo Iniciando proyecto DespensaFamily (minimizado)
+echo ==============================
+echo.
+
+REM 1. Arrancar backend (Spring Boot jar) minimizado
+echo Iniciando backend...
+start "" /min "C:\Program Files\Java\jdk-17\bin\java.exe" -jar "DespensaFamily\target\DespensaFamily-0.0.1-SNAPSHOT.jar"
+
+REM 2. Esperar 15 segundos a que el backend se inicialice
+echo Esperando 15 segundos a que el backend se inicie...
+timeout /t 15
+
+REM 3. Arrancar frontend (Vite) minimizado
+echo Iniciando frontend...
+cd FrontDespensaFamily
+start "" /min npm run dev
+cd ..
+
+REM 4. Abrir navegador al login
+echo.
+echo Todo iniciado. Backend en 8080, frontend en 5173
+timeout /t 5
+start "" http://localhost:5173/src/pages/login/login.html

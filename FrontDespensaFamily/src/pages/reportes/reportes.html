@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes | DespensaFamily</title>
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./reportes.css" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+
+  <main class="content">
+    <h1>Reportes</h1>
+    <button id="btn-imprimir">🖨️ Imprimir Reporte</button>
+
+    <!-- Productos bajo stock -->
+    <section>
+      <h2>Productos con Bajo Stock</h2>
+      <table id="tabla-bajo-stock">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Productos más vendidos -->
+    <section>
+      <h2>Productos Más Vendidos</h2>
+      <label>
+        Desde: <input type="date" id="fecha-desde" />
+        Hasta: <input type="date" id="fecha-hasta" />
+      </label>
+      <button id="btn-mas-vendidos">Buscar</button>
+      <table id="tabla-mas-vendidos">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Cantidad Vendida</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Movimientos por fecha -->
+ <section id="seccion-movimientos">
+  <h2>Movimientos</h2>
+
+  <div class="filtros">
+      <label>
+    Desde: <input type="date" id="mov-desde" />
+    Hasta: <input type="date" id="mov-hasta" />
+    <button id="btn-movimientos">Buscar</button>
+  <button id="btn-imprimir-movimientos">🖨️ Imprimir Movimientos</button>
+  </label>
+  </div>
+
+
+  <div class="tabla-scroll">
+    <table id="tabla-movimientos">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+
+    <!-- Resumen -->
+    <section>
+      <h2>Resumen</h2>
+      <select id="select-periodo">
+        <option value="dia">Diario</option>
+        <option value="semana">Semanal</option>
+        <option value="mes">Mensual</option>
+      </select>
+      <button id="btn-resumen">Ver Resumen</button>
+      <div id="resumen-container"></div>
+    </section>
+
+  </main>
+  <script type="module">
+fetch("../../components/navbar/navbar.html")
+  .then(res => res.text())
+  .then(html => {
+    const container = document.getElementById("navbar-container");
+    if(container) container.innerHTML = html;
+  });
+</script>
+<script type="module" src="../../components/navbar/navbar.ts"></script>
+<script type="module" src="./reportes.ts"></script>
+</body>
+</html>

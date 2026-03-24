@@ -1,0 +1,258 @@
+:root {
+  --color-principal: #4fc3f7;
+  --color-principal-dark: #0288d1;
+  --color-blanco: #ffffff;
+  --color-hover: #81d4fa;
+  --color-active: rgba(255,255,255,0.25);
+  --color-logout-hover: #ef5350;
+  --navbar-width: 260px;
+  --transition-speed: 0.3s;
+  --shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* ===============================
+   OVERLAY (para móvil)
+================================ */
+.navbar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity var(--transition-speed);
+}
+
+.navbar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ===============================
+   BOTÓN HAMBURGUESA
+================================ */
+.menu-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 44px;
+  height: 44px;
+  background: var(--color-principal);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+  background: var(--color-principal-dark);
+  transform: scale(1.05);
+}
+
+.menu-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Icono hamburguesa animado */
+.hamburger {
+  position: relative;
+  width: 24px;
+  height: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Distribuye las rayas uniformemente */
+}
+
+.hamburger span {
+  display: block; /* Cambiado de position: absolute a block */
+  width: 100%;
+  height: 3px;
+  background: var(--color-blanco);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.hamburger span:nth-child(1) { top: 0; }
+.hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+.hamburger span:nth-child(3) { bottom: 0; }
+
+/* Animación cuando está abierto */
+.menu-toggle.active .hamburger span:nth-child(1) {
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.menu-toggle.active .hamburger span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle.active .hamburger span:nth-child(3) {
+  bottom: 50%;
+  transform: translateY(50%) rotate(-45deg);
+}
+
+/* ===============================
+   SIDEBAR
+================================ */
+.navbar {
+  width: var(--navbar-width);
+  background: linear-gradient(180deg, var(--color-principal) 0%, var(--color-principal-dark) 100%);
+  color: var(--color-blanco);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  transition: transform var(--transition-speed) ease;
+}
+
+/* Header del navbar */
+.navbar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.navbar-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-left: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Links */
+.nav-links {
+  list-style: none;
+  padding: 20px 12px;
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.nav-links::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nav-links::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+
+.nav-links li {
+  margin-bottom: 8px;
+}
+
+.nav-links li a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--color-blanco);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-links li a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-blanco);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.nav-links li a:hover {
+  background: var(--color-hover);
+  transform: translateX(4px);
+}
+
+.nav-links li a:hover::before {
+  transform: scaleY(1);
+}
+
+.nav-links li a.active {
+  background: var(--color-active);
+  font-weight: 600;
+}
+
+.nav-links li a.active::before {
+  transform: scaleY(1);
+}
+
+/* Logout especial */
+.nav-links .logout {
+  margin-top: auto;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 12px;
+}
+
+.nav-links .logout a:hover {
+  background: var(--color-logout-hover);
+}
+
+/* Footer del navbar */
+.navbar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* ===============================
+   RESPONSIVE
+================================ */
+@media (max-width: 1023px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  .navbar {
+    transform: translateX(-100%);
+  }
+
+  .navbar.open {
+    transform: translateX(0);
+  }
+  /* Mover el texto a la derecha en móvil */
+  .navbar-header {
+    padding-top: 60px; /* Ajustá este valor según cuánto querés moverlo */
+  }
+  
+  /* O si querés mover solo el h1 */
+  .navbar-header h1 {
+    margin-left: 0px; /* Ajustá este valor */
+  }
+}
+
+@media (min-width: 769px) {
+  .navbar-overlay {
+    display: none !important;
+  }
+}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil | DespensaFamily</title>
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./perfil.css" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+  <script type="module">
+fetch("../../components/navbar/navbar.html")
+  .then(res => res.text())
+  .then(html => {
+    const container = document.getElementById("navbar-container");
+    if(container) container.innerHTML = html;
+  });
+</script>
+<script type="module" src="../../components/navbar/navbar.ts"></script>
+<script type="module" src="./perfil.ts"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inicio | Despensa Family</title>
+
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./home.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <div id="navbar-container"></div>
+
+  <!-- CONTENIDO -->
+  <main class="content">
+    <!-- Título -->
+  <h1>Inicio</h1>
+
+  <!-- 🟢 KPIs -->
+  <div class="kpi-container">
+    <div class="kpi-card">
+      <h3>Ventas Hoy</h3>
+      <p id="kpi-ventas">$0</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Compras Hoy</h3>
+      <p id="kpi-compras">$0</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Stock Bajo</h3>
+      <p id="kpi-stock-bajo">0</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Productos Totales</h3>
+      <p id="kpi-productos">0</p>
+    </div>
+  </div>
+
+  <!-- 📊 Gráfico de ventas por día -->
+  <section>
+    <h2>Ventas últimos 7 días</h2>
+    <canvas id="ventas-chart" width="400" height="200"></canvas>
+  </section>
+
+  <!-- 🛒 Últimas ventas y compras -->
+  <section class="ultimas">
+    <div class="ultimas-ventas">
+      <h2>Últimas Ventas</h2>
+      <table id="tabla-ultimas-ventas">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="ultimas-compras">
+      <h2>Últimas Compras</h2>
+      <table id="tabla-ultimas-compras">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proveedor</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+  </main>
+
+  <!-- CARGA NAVBAR -->
+  <script type="module">
+  fetch("../../components/navbar/navbar.html")
+    .then(res => res.text())
+    .then(html => {
+      const container = document.getElementById("navbar-container");
+      if (container) {
+        container.innerHTML = html;
+      }
+    });
+</script>
+
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./home.ts"></script>
+</body>
+</html>

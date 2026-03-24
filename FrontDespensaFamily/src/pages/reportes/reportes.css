@@ -1,0 +1,510 @@
+/* nav */
+.navbar-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #ffffff; /* ← Agregá esta línea */
+}
+
+
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+  max-width: 1400px;
+  margin-right: auto;
+}
+
+/* TÍTULOS */
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.content h1::before {
+  content: '💰';
+  font-size: 36px;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Iconos específicos para cada sección */
+section:nth-of-type(1) h2::before {
+  content: '⚠️';
+  font-size: 24px;
+}
+
+section:nth-of-type(2) h2::before {
+  content: '🏆';
+  font-size: 24px;
+}
+
+section:nth-of-type(3) h2::before {
+  content: '📦';
+  font-size: 24px;
+}
+
+section:nth-of-type(4) h2::before {
+  content: '📈';
+  font-size: 24px;
+}
+
+/* SECCIONES */
+section {
+  margin-bottom: 32px;
+  border: 2px solid #e9ecef;
+  padding: 32px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease;
+}
+
+section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* LABELS Y FILTROS */
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 20px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 15px;
+}
+
+input[type="date"],
+select {
+  padding: 10px 14px;
+  margin-right: 8px;
+  font-size: 14px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  cursor: pointer;
+}
+
+input[type="date"]:focus,
+select:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+
+/* BOTONES */
+button:not(.menu-toggle) {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin-bottom: 16px;
+}
+
+button:not(.menu-toggle):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:not(.menu-toggle):active {
+  transform: translateY(0);
+}
+
+#btn-mas-vendidos,
+#btn-movimientos {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+}
+
+#btn-mas-vendidos:hover,
+#btn-movimientos:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
+#btn-resumen {
+  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 187, 106, 0.3);
+}
+
+#btn-resumen:hover {
+  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+}
+
+/* TABLAS */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+/* Header general de tablas */
+table thead th {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px;
+  text-align: left;
+}
+
+/* Header sticky solo para tablas con scroll */
+.tabla-scroll thead th,
+#tabla-movimientos thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+
+th {
+  padding: 16px;
+  text-align: left;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  font-size: 14px;
+  border-left: none;
+  border-right: none;
+}
+
+tbody tr {
+  transition: all 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.005);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Resaltar filas con bajo stock */
+#tabla-bajo-stock tbody tr {
+  background-color: #fff3cd;
+}
+
+#tabla-bajo-stock tbody tr:hover {
+  background-color: #ffe8a1;
+}
+
+/* Resaltar top 3 productos más vendidos */
+#tabla-mas-vendidos tbody tr:nth-child(1) {
+  background-color: #fff9c4;
+  font-weight: 600;
+}
+
+#tabla-mas-vendidos tbody tr:nth-child(2) {
+  background-color: #fff9c4;
+  opacity: 0.9;
+}
+
+#tabla-mas-vendidos tbody tr:nth-child(3) {
+  background-color: #fff9c4;
+  opacity: 0.8;
+}
+
+#tabla-mas-vendidos tbody tr:nth-child(1):hover,
+#tabla-mas-vendidos tbody tr:nth-child(2):hover,
+#tabla-mas-vendidos tbody tr:nth-child(3):hover {
+  background-color: #fff59d;
+}
+
+/* Destacar tipos de movimiento */
+#tabla-movimientos tbody tr td:last-child {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+/* CONTENEDOR DE RESUMEN */
+#resumen-container {
+  margin-top: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-radius: 12px;
+  border: 2px solid #90caf9;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #0d47a1;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+#resumen-container:empty::before {
+  content: 'Seleccione un período y haga clic en "Ver Resumen"';
+  color: #64b5f6;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* Cuando tiene contenido */
+#resumen-container:not(:empty) {
+  display: block;
+}
+
+/* ESTADOS VACÍOS DE TABLAS */
+tbody:empty::after {
+  content: 'No hay datos disponibles';
+  display: table-cell;
+  text-align: center;
+  padding: 40px;
+  color: #adb5bd;
+  font-style: italic;
+  font-size: 15px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  section {
+    padding: 20px;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  input[type="date"],
+  select {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+
+  button {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 10px 8px;
+  }
+
+  #resumen-container {
+    padding: 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 20px;
+  }
+
+  h1::before {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 16px;
+  }
+
+  section {
+    padding: 16px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 8px 6px;
+  }
+
+  button {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  #resumen-container {
+    font-size: 13px;
+  }
+}/* Scroll solo para movimientos */
+
+
+/* Header fijo */
+.tabla-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  /* fondo obligatorio en th */
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+}
+/* CONTENEDOR CON SCROLL REAL */
+.tabla-scroll {
+  max-height: 300px;     /* ajustá si querés */
+  overflow-y: auto;
+  position: relative;
+}
+
+/* STICKY REAL EN LOS TH */
+#tabla-movimientos thead th {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+}
+/* ======================================
+   IMPRESIÓN LIMPIA - REPORTES
+====================================== */
+@media print {
+
+  /* NAVBAR Y BOTONES */
+  #navbar-container,
+  nav,
+  .navbar,
+  button,
+  #btn-imprimir,
+  #btn-imprimir-movimientos,
+  #btn-mas-vendidos,
+  #btn-movimientos,
+  #btn-resumen {
+    display: none !important;
+  }
+
+  /* FILTROS E INPUTS */
+  .filtros,
+  input,
+  select,
+  label {
+    display: none !important;
+  }
+
+  /* AJUSTES GENERALES */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main.content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  h1, h2 {
+    margin-top: 20px;
+  }
+
+  /* TABLAS */
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 6px;
+    text-align: left;
+  }
+
+  thead {
+    background-color: #f0f0f0 !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* SCROLL OFF */
+  .tabla-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}

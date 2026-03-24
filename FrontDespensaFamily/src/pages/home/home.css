@@ -1,0 +1,279 @@
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px; /* Espacio para el navbar */
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Título principal */
+.content h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.content h1::before {
+  content: '📊';
+  font-size: 36px;
+}
+
+/* KPIs en grid */
+.kpi-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+/* Tarjetas KPI */
+.kpi-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(79, 195, 247, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #4fc3f7 0%, #0288d1 100%);
+}
+
+.kpi-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(79, 195, 247, 0.2);
+  border-color: rgba(79, 195, 247, 0.3);
+}
+
+.kpi-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.kpi-card p {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Secciones */
+section {
+  margin-bottom: 32px;
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Iconos para títulos de secciones */
+section h2::before {
+  font-size: 24px;
+}
+
+section:has(#ventas-chart) h2::before {
+  content: '📈';
+}
+
+.ultimas-ventas h2::before {
+  content: '💰';
+}
+
+.ultimas-compras h2::before {
+  content: '🛒';
+}
+
+/* Canvas del gráfico */
+canvas {
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 8px;
+}
+
+/* Sección últimas transacciones */
+.ultimas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 32px;
+}
+
+.ultimas > div {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Tablas */
+.ultimas table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ultimas th {
+  padding: 16px;
+  text-align: left;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ultimas th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+.ultimas th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+.ultimas td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  font-size: 14px;
+}
+
+.ultimas tbody tr {
+  transition: all 0.2s ease;
+}
+
+.ultimas tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.01);
+  cursor: pointer;
+}
+
+.ultimas tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Estado vacío */
+.ultimas tbody:empty::after {
+  content: 'No hay datos disponibles';
+  display: block;
+  text-align: center;
+  padding: 40px;
+  color: #adb5bd;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+    padding: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px; /* Espacio para el botón hamburguesa */
+  }
+
+  .content h1 {
+    font-size: 24px;
+  }
+
+  .kpi-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .kpi-card {
+    padding: 20px;
+  }
+
+  .kpi-card p {
+    font-size: 24px;
+  }
+
+  section {
+    padding: 20px;
+  }
+
+  section h2 {
+    font-size: 18px;
+  }
+
+  .ultimas {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .ultimas > div {
+    padding: 20px;
+  }
+
+  .ultimas th,
+  .ultimas td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-container {
+    grid-template-columns: 1fr;
+  }
+
+  .content h1 {
+    font-size: 20px;
+  }
+
+  .ultimas table {
+    font-size: 12px;
+  }
+
+  .ultimas th,
+  .ultimas td {
+    padding: 8px;
+  }
+}

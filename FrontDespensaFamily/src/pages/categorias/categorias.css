@@ -1,0 +1,424 @@
+/* nav */
+.navbar-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #ffffff; /* ← Agregá esta línea */
+}
+
+
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.categorias-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* TÍTULOS */
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.content h1::before {
+  content: '💰';
+  font-size: 36px;
+}
+
+
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#form-crear-categoria h2::before {
+  content: '➕';
+  font-size: 26px;
+}
+
+.modal-content h2::before {
+  content: '✏️';
+  font-size: 26px;
+}
+
+/* TABLA */
+#tabla-categorias {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 40px;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#tabla-categorias thead {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+}
+
+#tabla-categorias th {
+  padding: 16px;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+#tabla-categorias th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+#tabla-categorias th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+#tabla-categorias td {
+  padding: 14px 16px;
+  text-align: center;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  font-size: 14px;
+  border-left: none;
+  border-right: none;
+}
+
+#tabla-categorias tbody tr {
+  transition: all 0.2s ease;
+}
+
+#tabla-categorias tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.005);
+}
+
+#tabla-categorias tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* BOTONES EN TABLA */
+button:not(.menu-toggle) {
+  padding: 8px 16px;
+  margin: 2px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+button:not(.menu-toggle):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:not(.menu-toggle):active {
+  transform: translateY(0);
+}
+
+button.editar {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+}
+
+button.editar:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
+button.eliminar {
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+}
+
+button.eliminar:hover {
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+}
+
+/* FORMULARIO CREAR */
+form {
+  border: 2px solid #e9ecef;
+  padding: 28px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  margin-bottom: 40px;
+}
+
+form label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+form input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+}
+
+form input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+form input::placeholder {
+  color: #adb5bd;
+}
+
+form button[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
+  transition: all 0.3s ease;
+}
+
+form button[type="submit"]:hover {
+  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
+}
+
+form button[type="submit"]:active {
+  transform: translateY(0);
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #ffffff;
+  padding: 32px;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.modal-content form {
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+.modal-content label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.modal-content label input {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.modal-content button[type="submit"] {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  margin-bottom: 8px;
+}
+
+.modal-content button[type="submit"]:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
+#btn-cancelar {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(120, 144, 156, 0.3);
+  font-size: 16px;
+}
+
+#btn-cancelar:hover {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .categorias-container {
+    padding: 0;
+  }
+
+  #tabla-categorias {
+    font-size: 13px;
+  }
+
+  #tabla-categorias th,
+  #tabla-categorias td {
+    padding: 10px 8px;
+  }
+
+  form {
+    padding: 20px;
+  }
+
+  .modal-content {
+    padding: 24px;
+    width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 20px;
+  }
+
+  h1::before {
+    font-size: 24px;
+  }
+
+  #tabla-categorias {
+    font-size: 12px;
+  }
+
+  #tabla-categorias th,
+  #tabla-categorias td {
+    padding: 8px 6px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  form input {
+    font-size: 14px;
+  }
+
+  form button[type="submit"],
+  #btn-cancelar {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+.navbar-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #ffffff; /* ← Agregá esta línea */
+}
+button.eliminar {
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+  transition: all 0.2s ease; /* 🔹 clave */
+}
+
+button.eliminar:hover {
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  box-shadow: 0 6px 14px rgba(211, 47, 47, 0.5);
+  transform: translateY(-2px);
+}

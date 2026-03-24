@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>frontdespensafamily</title>
+
+  </head>
+   <body>
+
+    <script>
+      // router simple
+      const isLogged = localStorage.getItem("auth");
+
+      if (isLogged) {
+        window.location.href = "/src/pages/home/home.html";
+      } else {
+        window.location.href = "/src/pages/login/login.html";
+      }
+    </script>
+
+  </body>
+  
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos | DespensaFamily</title>
+  <!-- estilos globales -->
+  <link rel="stylesheet" href="../../style.css" />
+  <!-- estilos del navbar -->
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <!-- estilos propios -->
+  <link rel="stylesheet" href="./productos.css" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+<main class="content">
+  <div class="productos-container">
+
+  <h1>Gestión de Productos</h1>
+
+  <!-- Buscador -->
+  <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
+
+  <!-- Grid de productos con scroll -->
+  <div class="productos-grid-wrapper">
+    <div id="productos-grid">
+      <!-- Tarjetas de productos se generarán dinámicamente -->
+    </div>
+  </div>
+
+  <!-- Formulario Crear Producto -->
+  <form id="form-crear">
+  <h2>Crear Producto</h2>
+
+  <label>
+    Nombre
+    <input type="text" name="nombre" required />
+  </label>
+
+  <label>
+    Precio de Costo
+    <input type="number" name="precioCosto" />
+  </label>
+
+  <label>
+    % Ganancia
+    <input type="number" name="porcentajeGanancia" value="30" min="0" />
+  </label>
+
+  <p class="info-ganancia">
+    💡 El precio de venta se calcula sumando un
+    <strong><span class="valor-ganancia">30</span>%</strong> de ganancia
+  </p>
+
+  <label>
+    Precio de Venta
+    <input type="number" name="precioVenta" required />
+  </label>
+
+  <label>
+    Stock
+    <input type="number" name="stock" required />
+  </label>
+
+  <label>
+    Código de Barras
+    <input type="text" name="codigoBarras" />
+  </label>
+
+  <label>
+    Proveedor
+    <input type="text" name="proveedor" />
+  </label>
+
+  <label>
+    Categoría
+    <select name="categoriaId" required>
+      <option value="">Seleccione categoría</option>
+    </select>
+  </label>
+  <label>
+  Imagen (opcional)
+  <input type="file" name="imagen" accept="image/*" />
+</label>
+
+
+  <button type="submit">Crear</button>
+</form>
+
+<!-- MODAL EDITAR PRODUCTO -->
+<div id="modal-editar" class="modal hidden">
+  <div class="modal-content">
+    <h2>Editar Producto</h2>
+
+    <form id="form-editar">
+
+      <label>
+        Nombre
+        <input type="text" name="nombre" required />
+      </label>
+
+      <label>
+  Precio de Costo
+  <input type="number" name="precioCosto" />
+</label>
+
+<label>
+  % Ganancia
+  <input type="number" name="porcentajeGanancia" min="0" />
+</label>
+
+<p class="info-ganancia">
+  💡 El precio de venta se calcula sumando un
+  <strong><span class="valor-ganancia">30</span>%</strong> de ganancia
+</p>
+
+<label>
+  Precio de Venta
+  <input type="number" name="precioVenta" required />
+</label>
+
+      <label>
+        Stock
+        <input type="number" name="stock" required />
+      </label>
+
+      <label>
+        Código de Barras
+        <input type="text" name="codigoBarras" />
+      </label>
+
+      <label>
+        Proveedor
+        <input type="text" name="proveedor" />
+      </label>
+
+      <label>
+        Categoría
+        <select name="categoriaId" required></select>
+      </label>
+      <label>
+  Cambiar imagen (opcional)
+  <input type="file" name="imagen" accept="image/*" />
+</label>
+
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="btn-cancelar">Cancelar</button>
+
+    </form>
+  </div>
+</div>
+
+</div>
+
+</main>
+
+<script type="module">
+fetch("../../components/navbar/navbar.html")
+  .then(res => res.text())
+  .then(html => {
+    const container = document.getElementById("navbar-container");
+    if(container) container.innerHTML = html;
+  });
+</script>
+<script type="module" src="../../components/navbar/navbar.ts"></script>
+<script type="module" src="./productos.ts"></script>
+</body>
+</html>
