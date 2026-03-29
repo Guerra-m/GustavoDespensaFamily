@@ -404,7 +404,7 @@ async function imprimirTicket(venta: Venta) {
       }
 
       body {
-        width: 60mm;
+        width: 65mm;
         margin: 0;
         padding: 2mm;
         font-family: monospace;
@@ -450,41 +450,42 @@ async function imprimirTicket(venta: Venta) {
         border-bottom: 1px dashed #000;
       }
 
-      td:first-child {
-  max-width: 30mm;
-  white-space: normal;
+      /* Producto (más chico) */
+th:nth-child(1),
+td:nth-child(1) {
+  width: 45%;
   word-break: break-word;
 }
 
+/* Cant (más pegado al producto) */
 th:nth-child(2),
 td:nth-child(2) {
-  width: 8mm; /* cantidad */
+  width: 10%;
+  text-align: left;
 }
 
+/* Precio */
 th:nth-child(3),
 td:nth-child(3) {
-  width: 10mm; /* precio */
+  width: 20%;
+  text-align: right;
+  padding-left: 4px;
 }
 
+/* Subtotal (más separado) */
 th:nth-child(4),
 td:nth-child(4) {
-  width: 10mm; /* subtotal */
-}
-
-td:nth-child(2) {
-  text-align: center;
-}
-
-td:nth-child(3),
-td:nth-child(4) {
+  width: 25%;
   text-align: right;
+  padding-left: 6px;
 }
 
-td:nth-child(2),
-td:nth-child(3),
-td:nth-child(4) {
-  font-size: 9px;
-}
+      /* Números más legibles */
+      td:nth-child(2),
+      td:nth-child(3),
+      td:nth-child(4) {
+        font-size: 10px;
+      }
 
       .total {
         font-size: 12px;
@@ -517,9 +518,9 @@ td:nth-child(4) {
       <thead>
         <tr>
           <th style="text-align:left">Prod</th>
-          <th style="text-align:center">Cant</th>
-          <th style="text-align:right">Precio</th>
-          <th style="text-align:right">Subt</th>
+          <th>Cant</th>
+          <th>Precio</th>
+          <th>Subt</th>
         </tr>
       </thead>
       <tbody>
