@@ -404,7 +404,7 @@ async function imprimirTicket(venta: Venta) {
       }
 
       body {
-        width: 45mm;
+        width: 60mm;
         margin: 0;
         padding: 2mm;
         font-family: monospace;
