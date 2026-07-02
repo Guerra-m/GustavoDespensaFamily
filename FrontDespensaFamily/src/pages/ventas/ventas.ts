@@ -35,6 +35,7 @@ const btnCerrarScan = document.getElementById("btn-cerrar-scan") as HTMLButtonEl
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const categoriasSection = document.getElementById("categorias-section") as HTMLDivElement;
+const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
 
 const toast = document.getElementById("toast") as HTMLDivElement;
 const selectCliente = document.getElementById("select-cliente") as HTMLSelectElement;
@@ -48,6 +49,7 @@ let html5QrCode: Html5Qrcode;
 let escaneando = false;
 let ultimoCodigoEscaneado: string | null = null;
 let productoSeleccionado: Producto | null = null;
+let categoriaActivaId: number | null = null;
 
 function esProductoPesable(producto: Producto): boolean {
   return producto.tipoCantidad === "PESO";
@@ -85,6 +87,7 @@ async function cargarProductos() {
   [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
   productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  renderFiltrosCategorias();
   renderProductosGrid();
   renderCategoriasSection();
 }
@@ -152,16 +155,55 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
   return card;
 }
 
+function renderFiltrosCategorias() {
+  filtrosCategorias.innerHTML = "";
+
+  const btnTodos = document.createElement("button");
+  btnTodos.className = "filtro-cat-btn" + (categoriaActivaId === null ? " activo" : "");
+  btnTodos.textContent = "Todos";
+  btnTodos.addEventListener("click", () => {
+    categoriaActivaId = null;
+    actualizarActivoCat();
+    renderProductosGrid(inputBuscarProducto.value);
+  });
+  filtrosCategorias.appendChild(btnTodos);
+
+  categorias.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "filtro-cat-btn" + (categoriaActivaId === cat.id ? " activo" : "");
+    btn.dataset.catId = String(cat.id);
+    btn.textContent = cat.nombre;
+    btn.addEventListener("click", () => {
+      categoriaActivaId = cat.id ?? null;
+      actualizarActivoCat();
+      renderProductosGrid(inputBuscarProducto.value);
+    });
+    filtrosCategorias.appendChild(btn);
+  });
+}
+
+function actualizarActivoCat() {
+  filtrosCategorias.querySelectorAll<HTMLButtonElement>(".filtro-cat-btn").forEach(btn => {
+    const catId = btn.dataset.catId ? Number(btn.dataset.catId) : null;
+    btn.classList.toggle("activo", catId === categoriaActivaId);
+  });
+}
+
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
 
   const textoFiltro = filtro.toLowerCase().trim();
-  const productosFiltrados = textoFiltro
+
+  let productosFiltrados = textoFiltro
     ? productos.filter(p =>
         p.nombre.toLowerCase().includes(textoFiltro) ||
         p.codigoBarras?.toLowerCase().includes(textoFiltro)
       )
-    : productos;
+    : [...productos];
+
+  if (categoriaActivaId !== null) {
+    productosFiltrados = productosFiltrados.filter(p => p.categoriaId === categoriaActivaId);
+  }
 
   if (productosFiltrados.length === 0) {
     productosGrid.innerHTML = `<div class="sin-resultados">No se encontraron productos</div>`;

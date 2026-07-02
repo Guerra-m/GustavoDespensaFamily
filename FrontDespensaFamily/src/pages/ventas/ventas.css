@@ -190,6 +190,43 @@ button.btn-imprimir:hover {
   background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
 }
 
+/* FILTROS DE CATEGORÍA */
+#filtros-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filtro-cat-btn {
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  border: 2px solid #e9ecef !important;
+  background: #f8f9fa !important;
+  color: #495057 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: all 0.18s ease !important;
+  white-space: nowrap;
+  margin-bottom: 0 !important;
+}
+
+.filtro-cat-btn:hover {
+  border-color: #4fc3f7 !important;
+  color: #0288d1 !important;
+  background: #e3f2fd !important;
+  transform: none !important;
+}
+
+.filtro-cat-btn.activo {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(2,136,209,0.3) !important;
+}
+
 /* GRID DE PRODUCTOS */
 #productos-section {
   margin: 30px 0;
