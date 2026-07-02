@@ -206,6 +206,7 @@ public class Mapper {
                 .id(usuario.getId())
                 .username(usuario.getUsername())
                 .nombre(usuario.getNombre())
+                .rol(usuario.getRol())
                 .build();
     }
     public static Usuario toEntity(UsuarioDTO dto) {

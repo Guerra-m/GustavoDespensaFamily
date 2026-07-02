@@ -1,6 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
 import com.guerram.DespensaFamily.dto.CambiarPasswordDTO;
+import com.guerram.DespensaFamily.dto.CrearUsuarioRequestDTO;
 import com.guerram.DespensaFamily.dto.LoginResponseDTO;
 import com.guerram.DespensaFamily.dto.UsuarioDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +51,33 @@ public class UsuarioService  {
         String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
         String token = jwtService.generateToken(username, rol);
         return new LoginResponseDTO("Login exitoso", token, rol);
+    }
+
+    public List<UsuarioDTO> listarUsuarios() {
+        return usuarioRepository.findAll()
+                .stream()
+                .map(Mapper::toDTO)
+                .toList();
+    }
+
+    public UsuarioDTO crearUsuario(CrearUsuarioRequestDTO dto) {
+        if (usuarioRepository.findByUsername(dto.getUsername()).isPresent()) {
+            throw new RuntimeException("El nombre de usuario ya existe");
+        }
+        String rol = dto.getRol() != null ? dto.getRol() : "EMPLEADO";
+        Usuario usuario = Usuario.builder()
+                .username(dto.getUsername())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .nombre(dto.getNombre())
+                .rol(rol)
+                .build();
+        return Mapper.toDTO(usuarioRepository.save(usuario));
+    }
+
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        usuarioRepository.delete(usuario);
     }
 
 }

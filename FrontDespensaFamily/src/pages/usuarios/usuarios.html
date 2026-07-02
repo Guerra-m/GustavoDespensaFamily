@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuarios | DespensaFamily</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <link rel="stylesheet" href="./usuarios.css" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <main class="content">
+    <div class="usuarios-container">
+
+      <h1>Gestión de Usuarios</h1>
+
+      <!-- Formulario crear usuario -->
+      <form id="form-crear-usuario">
+        <h2>Crear Usuario</h2>
+
+        <label>
+          Nombre completo
+          <input type="text" name="nombre" placeholder="Ej: Juan García" required />
+        </label>
+
+        <label>
+          Nombre de usuario
+          <input type="text" name="username" placeholder="Ej: juan" required />
+        </label>
+
+        <label>
+          Contraseña
+          <input type="password" name="password" placeholder="Mínimo 6 caracteres" required />
+        </label>
+
+        <label>
+          Rol
+          <select name="rol" required>
+            <option value="EMPLEADO">Empleado</option>
+            <option value="ADMIN">Administrador</option>
+          </select>
+        </label>
+
+        <button type="submit">Crear usuario</button>
+      </form>
+
+      <!-- Lista de usuarios -->
+      <div class="usuarios-lista">
+        <h2>Usuarios registrados</h2>
+        <table id="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-usuarios"></tbody>
+        </table>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    fetch("../../components/navbar/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        const container = document.getElementById("navbar-container");
+        if (container) container.innerHTML = html;
+      });
+  </script>
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./usuarios.ts"></script>
+</body>
+</html>

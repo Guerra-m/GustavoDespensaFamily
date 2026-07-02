@@ -25,7 +25,7 @@ public class UsuarioController {
     @PatchMapping("/{id}/password")
     public LoginResponseDTO cambiarPassword(@PathVariable Long id, @RequestBody CambiarPasswordDTO request) {
         usuarioService.cambiarPassword(id, request.getPasswordActual(), request.getPasswordNueva());
-        return new LoginResponseDTO("Contraseña cambiada correctamente");
+        return new LoginResponseDTO("Contraseña cambiada correctamente", null, null);
     }
 
     @PostMapping("/login")
