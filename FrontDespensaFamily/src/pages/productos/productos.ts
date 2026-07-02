@@ -206,7 +206,14 @@ function renderProductos(lista: Producto[], esBusqueda = false) {
       grupos.get(key)!.prods.push(prod);
     });
 
-    grupos.forEach(({ nombre, prods }) => {
+    const gruposOrdenados = [...grupos.entries()]
+      .sort(([, a], [, b]) => {
+        if (a.nombre === "Sin categoría") return 1;
+        if (b.nombre === "Sin categoría") return -1;
+        return a.nombre.localeCompare(b.nombre, "es");
+      });
+
+    gruposOrdenados.forEach(([, { nombre, prods }]) => {
       const seccion = document.createElement("div");
       seccion.className = "prod-cat-seccion";
 

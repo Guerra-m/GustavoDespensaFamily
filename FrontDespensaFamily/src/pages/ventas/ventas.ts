@@ -83,7 +83,8 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
 ======================= */
 async function cargarProductos() {
   [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
-  productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   renderProductosGrid();
   renderCategoriasSection();
 }
