@@ -15,6 +15,7 @@ form.addEventListener("submit", async (e) => {
     localStorage.setItem("auth", "true");
     localStorage.setItem("token", data.token);
     localStorage.setItem("rol", data.rol);
+    localStorage.setItem("username", username);
 
     window.location.href = "../home/home.html";
   } catch (err) {

@@ -28,9 +28,14 @@ export function checkAdmin(): void {
   }
 }
 
+export function getUsername(): string | null {
+  return localStorage.getItem("username");
+}
+
 export function clearAuth(): void {
   localStorage.removeItem("token");
   localStorage.removeItem("rol");
   localStorage.removeItem("auth");
   localStorage.removeItem("usuario");
+  localStorage.removeItem("username");
 }

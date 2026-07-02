@@ -229,38 +229,58 @@ button.btn-imprimir:hover {
 }
 
 #productos-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* Secciones por categoría */
-.categoria-seccion {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.categoria-titulo {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0288d1;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 6px 0 6px 12px;
-  border-left: 4px solid #4fc3f7;
-}
-
-.categoria-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
 }
 
 .sin-resultados {
+  grid-column: 1 / -1;
   text-align: center;
   padding: 40px;
   color: #6c757d;
+}
+
+/* ── BLOQUES DE CATEGORÍA (fuera del registrar) ── */
+#categorias-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 32px 0;
+}
+
+.categoria-bloque {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.categoria-bloque-titulo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0288d1;
+  margin: 0 0 16px 0;
+  padding: 0 0 12px 0;
+  border-bottom: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.categoria-bloque-titulo::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, #4fc3f7 0%, #0288d1 100%);
+  border-radius: 2px;
+}
+
+.categoria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 /* TARJETA DE PRODUCTO - ESTILO MERCADO LIBRE */
@@ -734,6 +754,7 @@ hr {
     margin-left: 0;
   }
 
+  #productos-grid,
   .categoria-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
@@ -745,6 +766,7 @@ hr {
     padding-top: 80px;
   }
 
+  #productos-grid,
   .categoria-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
@@ -776,6 +798,7 @@ hr {
     width: 100%;
   }
   
+  #productos-grid,
   .categoria-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;

@@ -71,6 +71,24 @@
     </div>
   </main>
 
+  <!-- Modal confirmar eliminación -->
+  <div id="modal-eliminar" class="modal-eliminar hidden">
+    <div class="modal-eliminar-content">
+      <h2>Eliminar usuario</h2>
+      <p id="modal-eliminar-texto">¿Estás seguro de que querés eliminar a <strong id="modal-usuario-nombre"></strong>?</p>
+      <p class="modal-eliminar-aviso">Esta acción no se puede deshacer. Ingresá tu contraseña de administrador para confirmar.</p>
+      <label>
+        Contraseña
+        <input type="password" id="modal-password" placeholder="Tu contraseña" />
+      </label>
+      <p id="modal-error" class="modal-error hidden">Contraseña incorrecta. Intentá de nuevo.</p>
+      <div class="modal-eliminar-acciones">
+        <button id="btn-modal-cancelar" type="button" class="btn-modal-cancelar">Cancelar</button>
+        <button id="btn-modal-confirmar" type="button" class="btn-modal-confirmar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     fetch("../../components/navbar/navbar.html")
       .then(res => res.text())

@@ -34,6 +34,7 @@ const btnCerrarScan = document.getElementById("btn-cerrar-scan") as HTMLButtonEl
 
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
+const categoriasSection = document.getElementById("categorias-section") as HTMLDivElement;
 
 const toast = document.getElementById("toast") as HTMLDivElement;
 const selectCliente = document.getElementById("select-cliente") as HTMLSelectElement;
@@ -84,6 +85,7 @@ async function cargarProductos() {
   [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
   productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
   renderProductosGrid();
+  renderCategoriasSection();
 }
 
 async function cargarVentas() {
@@ -131,6 +133,7 @@ async function cargarVentas() {
 function crearProductoCard(prod: Producto): HTMLDivElement {
   const card = document.createElement("div");
   card.className = "producto-card";
+  card.dataset.productoId = String(prod.id);
   if (prod.stock < 10) card.classList.add("stock-bajo");
   if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
 
@@ -164,42 +167,46 @@ function renderProductosGrid(filtro: string = "") {
     return;
   }
 
-  // Agrupar por categoría
-  const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
+  productosFiltrados.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+}
 
-  productosFiltrados.forEach(prod => {
-    const cat = categorias.find(c => c.id === prod.categoriaId);
-    const key = cat ? String(cat.id) : "__sin_categoria__";
-    const nombre = cat ? cat.nombre : "Sin categoría";
-    if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
-    grupos.get(key)!.prods.push(prod);
+function renderCategoriasSection() {
+  categoriasSection.innerHTML = "";
+
+  categorias.forEach(cat => {
+    const prods = productos.filter(p => p.categoriaId === cat.id);
+    if (prods.length === 0) return;
+
+    const bloque = document.createElement("div");
+    bloque.className = "categoria-bloque";
+
+    const titulo = document.createElement("h2");
+    titulo.className = "categoria-bloque-titulo";
+    titulo.textContent = cat.nombre;
+    bloque.appendChild(titulo);
+
+    const grid = document.createElement("div");
+    grid.className = "categoria-grid";
+    prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+    bloque.appendChild(grid);
+
+    categoriasSection.appendChild(bloque);
   });
 
-  // Si hay filtro y queda solo una categoría, o todos sin categoría, no mostrar secciones
-  const usarSecciones = grupos.size > 1 || textoFiltro === "";
-
-  grupos.forEach(({ nombre, prods }) => {
-    if (usarSecciones) {
-      const seccion = document.createElement("div");
-      seccion.className = "categoria-seccion";
-
-      const titulo = document.createElement("div");
-      titulo.className = "categoria-titulo";
-      titulo.textContent = nombre;
-      seccion.appendChild(titulo);
-
-      const grid = document.createElement("div");
-      grid.className = "categoria-grid";
-      prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
-      seccion.appendChild(grid);
-      productosGrid.appendChild(seccion);
-    } else {
-      const grid = document.createElement("div");
-      grid.className = "categoria-grid";
-      prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
-      productosGrid.appendChild(grid);
-    }
-  });
+  const sinCat = productos.filter(p => !categorias.some(c => c.id === p.categoriaId));
+  if (sinCat.length > 0) {
+    const bloque = document.createElement("div");
+    bloque.className = "categoria-bloque";
+    const titulo = document.createElement("h2");
+    titulo.className = "categoria-bloque-titulo";
+    titulo.textContent = "Sin categoría";
+    bloque.appendChild(titulo);
+    const grid = document.createElement("div");
+    grid.className = "categoria-grid";
+    sinCat.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+    bloque.appendChild(grid);
+    categoriasSection.appendChild(bloque);
+  }
 }
 
 function seleccionarProducto(producto: Producto) {
@@ -208,11 +215,11 @@ function seleccionarProducto(producto: Producto) {
   inputBuscarProducto.dataset.id = producto.id!.toString();
   configurarInputCantidad(producto);
   inputCantidad.focus();
-  
-  // Actualizar visualización
-  const textoActual = inputBuscarProducto.value;
-  renderProductosGrid(textoActual);
-  
+
+  document.querySelectorAll<HTMLDivElement>(".producto-card").forEach(card => {
+    card.classList.toggle("seleccionado", card.dataset.productoId === String(producto.id));
+  });
+
   mostrarToast(`Producto seleccionado: ${producto.nombre}`);
 }
 
