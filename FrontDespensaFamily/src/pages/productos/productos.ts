@@ -180,7 +180,7 @@ function crearCard(prod: Producto): HTMLDivElement {
 }
 
 // ---------- RENDER GRID CON SECCIONES POR CATEGORÍA ----------
-function renderProductos(lista: Producto[], esBusqueda = false) {
+function renderProductos(lista: Producto[]) {
   productosGrid.innerHTML = "";
 
   if (lista.length === 0) {
@@ -188,48 +188,39 @@ function renderProductos(lista: Producto[], esBusqueda = false) {
     return;
   }
 
-  if (esBusqueda) {
-    // Búsqueda: grid plano sin secciones
+  const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
+
+  lista.forEach(prod => {
+    const cat = categorias.find(c => c.id === prod.categoriaId);
+    const key = cat ? String(cat.id) : "__sin__";
+    const nombre = cat ? cat.nombre : "Sin categoría";
+    if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
+    grupos.get(key)!.prods.push(prod);
+  });
+
+  const gruposOrdenados = [...grupos.entries()]
+    .sort(([, a], [, b]) => {
+      if (a.nombre === "Sin categoría") return 1;
+      if (b.nombre === "Sin categoría") return -1;
+      return a.nombre.localeCompare(b.nombre, "es");
+    });
+
+  gruposOrdenados.forEach(([, { nombre, prods }]) => {
+    const seccion = document.createElement("div");
+    seccion.className = "prod-cat-seccion";
+
+    const titulo = document.createElement("div");
+    titulo.className = "prod-cat-titulo";
+    titulo.textContent = nombre;
+    seccion.appendChild(titulo);
+
     const grid = document.createElement("div");
     grid.className = "prod-cat-grid";
-    lista.forEach(prod => grid.appendChild(crearCard(prod)));
-    productosGrid.appendChild(grid);
-  } else {
-    // Vista normal: agrupar por categoría
-    const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
+    prods.forEach(prod => grid.appendChild(crearCard(prod)));
+    seccion.appendChild(grid);
 
-    lista.forEach(prod => {
-      const cat = categorias.find(c => c.id === prod.categoriaId);
-      const key = cat ? String(cat.id) : "__sin__";
-      const nombre = cat ? cat.nombre : "Sin categoría";
-      if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
-      grupos.get(key)!.prods.push(prod);
-    });
-
-    const gruposOrdenados = [...grupos.entries()]
-      .sort(([, a], [, b]) => {
-        if (a.nombre === "Sin categoría") return 1;
-        if (b.nombre === "Sin categoría") return -1;
-        return a.nombre.localeCompare(b.nombre, "es");
-      });
-
-    gruposOrdenados.forEach(([, { nombre, prods }]) => {
-      const seccion = document.createElement("div");
-      seccion.className = "prod-cat-seccion";
-
-      const titulo = document.createElement("div");
-      titulo.className = "prod-cat-titulo";
-      titulo.textContent = nombre;
-      seccion.appendChild(titulo);
-
-      const grid = document.createElement("div");
-      grid.className = "prod-cat-grid";
-      prods.forEach(prod => grid.appendChild(crearCard(prod)));
-      seccion.appendChild(grid);
-
-      productosGrid.appendChild(seccion);
-    });
-  }
+    productosGrid.appendChild(seccion);
+  });
 
   // Crear overlay si no existe
   if (!document.querySelector('.producto-menu-overlay')) {
@@ -536,8 +527,7 @@ inputBuscar.addEventListener("input", () => {
       p.nombre.toLowerCase().includes(q) ||
       p.codigoBarras?.includes(q) ||
       categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
-    ),
-    true
+    )
   );
 });
 
