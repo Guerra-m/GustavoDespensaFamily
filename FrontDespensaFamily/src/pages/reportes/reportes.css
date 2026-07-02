@@ -444,6 +444,22 @@ tbody:empty::after {
   display: none;
 }
 
+/* Logo CSS para el encabezado de impresión */
+.print-header-logo {
+  width: 52px;
+  height: 52px;
+  background: #0288d1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+
 /* ── BARRA TOP (h1 + botón juntos en pantalla) ── */
 .page-top-bar {
   display: flex;
@@ -476,29 +492,31 @@ tbody:empty::after {
    IMPRESIÓN PROFESIONAL - REPORTES
 ====================================== */
 @media print {
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
 
-  /* ── Ocultar elementos de pantalla ── */
+  /* ── Activar colores en impresión ── */
+  html, body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── Ocultar todo lo que no debe imprimirse ── */
   #navbar-container,
   .navbar,
   .menu-toggle,
-  .page-top-bar button,
+  .page-top-bar,
+  .filtros,
   #btn-imprimir-movimientos,
   #btn-mas-vendidos,
   #btn-movimientos,
   #btn-resumen,
-  .filtros,
   input[type="date"],
-  select,
-  section:nth-of-type(3) label,
-  section:nth-of-type(4) select {
+  section label {
     display: none !important;
   }
 
   /* ── Mostrar encabezado de impresión ── */
   .print-header {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 16px;
     padding: 0 0 16px 0;
@@ -508,15 +526,24 @@ tbody:empty::after {
   }
 
   .print-header-logo {
-    font-size: 48px;
-    line-height: 1;
+    width: 52px;
+    height: 52px;
+    background: #0288d1 !important;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff !important;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    flex-shrink: 0;
   }
 
   .print-header-empresa {
     font-size: 22px;
     font-weight: 800;
-    color: #0288d1;
-    letter-spacing: -0.5px;
+    color: #0288d1 !important;
   }
 
   .print-header-subtitulo {
@@ -532,7 +559,7 @@ tbody:empty::after {
     margin-top: 4px;
   }
 
-  /* ── Layout general ── */
+  /* ── Layout ── */
   body {
     margin: 0 !important;
     padding: 0 !important;
@@ -550,10 +577,6 @@ tbody:empty::after {
     max-width: none !important;
   }
 
-  .page-top-bar {
-    display: none;
-  }
-
   /* ── Secciones ── */
   section {
     border: 1px solid #cfd8dc !important;
@@ -566,13 +589,8 @@ tbody:empty::after {
     transform: none !important;
   }
 
-  section:hover {
-    transform: none !important;
-    box-shadow: none !important;
-  }
-
   h2 {
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     color: #0288d1 !important;
     margin: 0 0 12px 0 !important;
@@ -599,17 +617,14 @@ tbody:empty::after {
     font-size: 10px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.4px !important;
     padding: 8px 10px !important;
     border: 1px solid #b0bec5 !important;
-    border-radius: 0 !important;
     text-align: left !important;
   }
 
   td {
     padding: 7px 10px !important;
-    border: 1px solid #eceff1 !important;
-    border-bottom: 1px solid #cfd8dc !important;
+    border: 1px solid #e0e0e0 !important;
     color: #37474f !important;
     font-size: 11px !important;
     text-align: left !important;
@@ -619,16 +634,6 @@ tbody:empty::after {
     background-color: #f9fbfc !important;
   }
 
-  tbody tr:hover {
-    transform: none !important;
-    background-color: inherit !important;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: 1px solid #b0bec5 !important;
-  }
-
-  /* ── Bajo stock: fondo ámbar ── */
   #tabla-bajo-stock tbody tr td {
     background-color: #fff8e1 !important;
   }
@@ -638,23 +643,11 @@ tbody:empty::after {
     font-weight: 700 !important;
   }
 
-  /* ── Más vendidos: medalla top 3 ── */
   #tabla-mas-vendidos tbody tr:nth-child(1) td { background-color: #fffde7 !important; }
-  #tabla-mas-vendidos tbody tr:nth-child(2) td { background-color: #fafafa !important; }
-  #tabla-mas-vendidos tbody tr:nth-child(3) td { background-color: #fafafa !important; }
 
-  /* ── Movimientos: color por tipo ── */
-  #tabla-movimientos td:last-child {
-    font-weight: 700 !important;
-    font-size: 10px !important;
-    text-transform: uppercase !important;
-  }
-
-  /* ── Scroll off ── */
   .tabla-scroll {
     overflow: visible !important;
     max-height: none !important;
-    border-radius: 0 !important;
   }
 
   /* ── Resumen ── */
@@ -667,6 +660,7 @@ tbody:empty::after {
     color: #01579b !important;
     box-shadow: none !important;
     display: block !important;
+    min-height: auto !important;
   }
 
   #resumen-container p {
@@ -674,15 +668,8 @@ tbody:empty::after {
     font-weight: 600 !important;
   }
 
-  /* ── Pie de página ── */
   @page {
     margin: 15mm 12mm;
     size: A4 portrait;
-
-    @bottom-center {
-      content: "DespensaFamily — Página " counter(page) " de " counter(pages);
-      font-size: 9px;
-      color: #90a4ae;
-    }
   }
 }

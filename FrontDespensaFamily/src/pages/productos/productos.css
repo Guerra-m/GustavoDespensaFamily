@@ -109,11 +109,42 @@ h2 {
   background: #868e96;
 }
 
-/* GRID DE PRODUCTOS - RESPONSIVE */
+/* GRID DE PRODUCTOS - CONTENEDOR DE SECCIONES */
 #productos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Secciones por categoría ── */
+.prod-cat-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.prod-cat-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0288d1;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 6px 0 6px 14px;
+  border-left: 4px solid #4fc3f7;
+  background: #f0f8ff;
+  border-radius: 0 6px 6px 0;
+}
+
+.prod-cat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
+}
+
+.prod-sin-resultados {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
 }
 
 /* TARJETA DE PRODUCTO - ESTILO MERCADO LIBRE */
@@ -608,8 +639,8 @@ form input[type="file"]::file-selector-button:hover {
   .content {
     margin-left: 0;
   }
-  
-  #productos-grid {
+
+  .prod-cat-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
   }
@@ -637,7 +668,7 @@ form input[type="file"]::file-selector-button:hover {
     max-height: 600px;
   }
 
-  #productos-grid {
+  .prod-cat-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
@@ -670,7 +701,7 @@ form input[type="file"]::file-selector-button:hover {
     padding-left: 44px;
   }
 
-  #productos-grid {
+  .prod-cat-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }

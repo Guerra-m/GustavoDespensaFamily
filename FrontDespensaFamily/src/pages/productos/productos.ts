@@ -153,50 +153,76 @@ inputPorcentajeEditar.addEventListener("input", () =>
   )
 );
 
-// ---------- RENDER GRID ----------
-// ---------- RENDER GRID CON MENÚ DE TRES PUNTOS ----------
-function renderProductos(lista: Producto[]) {
+// ---------- CREAR CARD ----------
+function crearCard(prod: Producto): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "producto-card";
+  if (prod.stock < 10) card.classList.add("stock-bajo");
+
+  card.innerHTML = `
+    <div class="producto-menu-container">
+      <button class="btn-menu" data-id="${prod.id}"></button>
+      <div class="producto-menu-dropdown">
+        <button class="btn-editar-menu" data-id="${prod.id}">Editar</button>
+        <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+      </div>
+    </div>
+    <div class="producto-imagen">
+      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
+    </div>
+    <div class="producto-info">
+      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
+      <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
+    </div>
+  `;
+  return card;
+}
+
+// ---------- RENDER GRID CON SECCIONES POR CATEGORÍA ----------
+function renderProductos(lista: Producto[], esBusqueda = false) {
   productosGrid.innerHTML = "";
 
   if (lista.length === 0) {
-    productosGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">
-        No se encontraron productos
-      </div>
-    `;
+    productosGrid.innerHTML = `<div class="prod-sin-resultados">No se encontraron productos</div>`;
     return;
   }
 
-  lista.forEach(prod => {
-    const nombreCategoria =
-      categorias.find(c => c.id === prod.categoriaId)?.nombre || "Sin categoría";
+  if (esBusqueda) {
+    // Búsqueda: grid plano sin secciones
+    const grid = document.createElement("div");
+    grid.className = "prod-cat-grid";
+    lista.forEach(prod => grid.appendChild(crearCard(prod)));
+    productosGrid.appendChild(grid);
+  } else {
+    // Vista normal: agrupar por categoría
+    const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
 
-    const card = document.createElement("div");
-    card.className = "producto-card";
+    lista.forEach(prod => {
+      const cat = categorias.find(c => c.id === prod.categoriaId);
+      const key = cat ? String(cat.id) : "__sin__";
+      const nombre = cat ? cat.nombre : "Sin categoría";
+      if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
+      grupos.get(key)!.prods.push(prod);
+    });
 
-    if (prod.stock < 10) card.classList.add("stock-bajo");
+    grupos.forEach(({ nombre, prods }) => {
+      const seccion = document.createElement("div");
+      seccion.className = "prod-cat-seccion";
 
-    card.innerHTML = `
-      <div class="producto-menu-container">
-        <button class="btn-menu" data-id="${prod.id}"></button>
-        <div class="producto-menu-dropdown">
-          <button class="btn-editar-menu" data-id="${prod.id}">Editar</button>
-          <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
-        </div>
-      </div>
-      <div class="producto-imagen">
-        ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
-      </div>
-      <div class="producto-info">
-        <div class="producto-nombre">${prod.nombre}</div>
-        <span class="producto-categoria">${nombreCategoria}</span>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
-        <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
-      </div>
-    `;
+      const titulo = document.createElement("div");
+      titulo.className = "prod-cat-titulo";
+      titulo.textContent = nombre;
+      seccion.appendChild(titulo);
 
-    productosGrid.appendChild(card);
-  });
+      const grid = document.createElement("div");
+      grid.className = "prod-cat-grid";
+      prods.forEach(prod => grid.appendChild(crearCard(prod)));
+      seccion.appendChild(grid);
+
+      productosGrid.appendChild(seccion);
+    });
+  }
 
   // Crear overlay si no existe
   if (!document.querySelector('.producto-menu-overlay')) {
@@ -491,14 +517,20 @@ async function eliminarProducto(id: number) {
 
 // ---------- BUSCAR ----------
 inputBuscar.addEventListener("input", () => {
-  const q = inputBuscar.value.toLowerCase();
+  const q = inputBuscar.value.toLowerCase().trim();
+
+  if (!q) {
+    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    return;
+  }
 
   renderProductos(
     productos.filter(p =>
       p.nombre.toLowerCase().includes(q) ||
       p.codigoBarras?.includes(q) ||
       categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
-    )
+    ),
+    true
   );
 });
 
