@@ -1,3 +1,6 @@
+import { checkAdmin } from "../../services/auth.service";
+checkAdmin();
+
 import { getVentas } from "../../services/ventas.service";
 import { getCompras, getCompraDetalle } from "../../services/compras.service";
 import { getProductos } from "../../services/productos.service";

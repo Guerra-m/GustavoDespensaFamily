@@ -17,14 +17,21 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
 
         if (usuarioRepository.count() == 0) {
-
             Usuario usuario = Usuario.builder()
                     .username("admin")
                     .password(passwordEncoder.encode("admin123"))
                     .nombre("Administrador")
+                    .rol("ADMIN")
                     .build();
-
             usuarioRepository.save(usuario);
+        } else {
+            // Migración: usuarios existentes sin rol quedan como ADMIN
+            usuarioRepository.findAll().forEach(u -> {
+                if (u.getRol() == null) {
+                    u.setRol("ADMIN");
+                    usuarioRepository.save(u);
+                }
+            });
         }
     }
 }

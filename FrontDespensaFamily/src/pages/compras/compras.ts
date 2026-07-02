@@ -1,3 +1,6 @@
+import { checkAuth } from "../../services/auth.service";
+checkAuth();
+
 import type { Compra } from "../../models/Compra";
 import type { CompraRequest, DetalleCompraRequest } from "../../models/CompraRequest";
 import type { Producto } from "../../models/Producto";

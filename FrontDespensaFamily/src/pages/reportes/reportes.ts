@@ -1,3 +1,6 @@
+import { checkAdmin } from "../../services/auth.service";
+checkAdmin();
+
 import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas } from "../../models/Reportes";
 import {
   getProductosBajoStock,

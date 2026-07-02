@@ -20,4 +20,5 @@ public class Usuario {
 
     private String password;
     private String nombre;
+    private String rol; // ADMIN | EMPLEADO
 }

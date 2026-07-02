@@ -8,11 +8,15 @@
    <body>
 
     <script>
-      // router simple
-      const isLogged = localStorage.getItem("auth");
+      const token = localStorage.getItem("token");
+      const rol = localStorage.getItem("rol");
 
-      if (isLogged) {
-        window.location.href = "/src/pages/home/home.html";
+      if (token) {
+        if (rol === "ADMIN") {
+          window.location.href = "/src/pages/home/home.html";
+        } else {
+          window.location.href = "/src/pages/ventas/ventas.html";
+        }
       } else {
         window.location.href = "/src/pages/login/login.html";
       }

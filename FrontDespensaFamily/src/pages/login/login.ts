@@ -12,13 +12,9 @@ form.addEventListener("submit", async (e) => {
   try {
     const data = await login(username, password);
 
-    console.log("Usuario recibido:", data);
-
-    // ✅ guardamos sesión (simple y estable)
     localStorage.setItem("auth", "true");
-
-    // (opcional, si el backend devuelve info del usuario)
-    // localStorage.setItem("usuario", JSON.stringify(data.usuario));
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("rol", data.rol);
 
     window.location.href = "../home/home.html";
   } catch (err) {

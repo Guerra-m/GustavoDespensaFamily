@@ -17,6 +17,7 @@ public class UsuarioService  {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
 
     public UsuarioDTO obtenerPerfil() {
@@ -44,7 +45,9 @@ public class UsuarioService  {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
-        return new LoginResponseDTO("Login exitoso");
+        String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
+        String token = jwtService.generateToken(username, rol);
+        return new LoginResponseDTO("Login exitoso", token, rol);
     }
 
 }

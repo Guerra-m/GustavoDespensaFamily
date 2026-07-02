@@ -1,3 +1,6 @@
+import { checkAuth } from "../../services/auth.service";
+checkAuth();
+
 import { getProductos } from "../../services/productos.service";
 import { getVentas, createVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
 import type { Producto } from "../../models/Producto";
