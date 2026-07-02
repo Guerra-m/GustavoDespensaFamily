@@ -20,30 +20,34 @@
       <form id="form-crear-usuario">
         <h2>Crear Usuario</h2>
 
-        <label>
-          Nombre completo
-          <input type="text" name="nombre" placeholder="Ej: Juan García" required />
-        </label>
+        <div class="form-grid">
+          <label>
+            Nombre completo
+            <input type="text" name="nombre" placeholder="Ej: Juan García" required />
+          </label>
 
-        <label>
-          Nombre de usuario
-          <input type="text" name="username" placeholder="Ej: juan" required />
-        </label>
+          <label>
+            Nombre de usuario
+            <input type="text" name="username" placeholder="Ej: juan" required />
+          </label>
 
-        <label>
-          Contraseña
-          <input type="password" name="password" placeholder="Mínimo 6 caracteres" required />
-        </label>
+          <label>
+            Contraseña
+            <input type="password" name="password" placeholder="Mínimo 6 caracteres" required />
+          </label>
 
-        <label>
-          Rol
-          <select name="rol" required>
-            <option value="EMPLEADO">Empleado</option>
-            <option value="ADMIN">Administrador</option>
-          </select>
-        </label>
+          <label>
+            Rol
+            <select name="rol" required>
+              <option value="EMPLEADO">Empleado</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </label>
+        </div>
 
-        <button type="submit">Crear usuario</button>
+        <div class="form-footer">
+          <button type="submit">Crear usuario</button>
+        </div>
       </form>
 
       <!-- Lista de usuarios -->

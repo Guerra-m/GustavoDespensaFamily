@@ -3,6 +3,8 @@ checkAuth();
 
 import { getProductos } from "../../services/productos.service";
 import { getVentas, createVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
+import { getCategorias } from "../../services/categorias.service";
+import type { Categoria } from "../../models/Categoria";
 import type { Producto } from "../../models/Producto";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
@@ -39,6 +41,7 @@ const selectCliente = document.getElementById("select-cliente") as HTMLSelectEle
    ESTADO
 ======================= */
 let productos: Producto[] = [];
+let categorias: Categoria[] = [];
 let carrito: DetalleVentaRequest[] = [];
 let html5QrCode: Html5Qrcode;
 let escaneando = false;
@@ -78,7 +81,7 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
    CARGA DE DATOS
 ======================= */
 async function cargarProductos() {
-  productos = await getProductos();
+  [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
   productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
   renderProductosGrid();
 }
@@ -125,58 +128,77 @@ async function cargarVentas() {
 /* =======================
    RENDER GRID DE PRODUCTOS
 ======================= */
+function crearProductoCard(prod: Producto): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "producto-card";
+  if (prod.stock < 10) card.classList.add("stock-bajo");
+  if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
+
+  card.innerHTML = `
+    <div class="producto-imagen">
+      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">` : ""}
+    </div>
+    <div class="producto-info">
+      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
+      <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
+    </div>
+  `;
+  card.addEventListener("click", () => seleccionarProducto(prod));
+  return card;
+}
+
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
-  
+
   const textoFiltro = filtro.toLowerCase().trim();
-  const productosFiltrados = textoFiltro 
-    ? productos.filter(p => 
+  const productosFiltrados = textoFiltro
+    ? productos.filter(p =>
         p.nombre.toLowerCase().includes(textoFiltro) ||
         p.codigoBarras?.toLowerCase().includes(textoFiltro)
       )
     : productos;
 
   if (productosFiltrados.length === 0) {
-    productosGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">
-        No se encontraron productos
-      </div>
-    `;
+    productosGrid.innerHTML = `<div class="sin-resultados">No se encontraron productos</div>`;
     return;
   }
 
+  // Agrupar por categoría
+  const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
+
   productosFiltrados.forEach(prod => {
-    const card = document.createElement("div");
-    card.className = "producto-card";
-    
-    if (prod.stock < 10) {
-      card.classList.add("stock-bajo");
+    const cat = categorias.find(c => c.id === prod.categoriaId);
+    const key = cat ? String(cat.id) : "__sin_categoria__";
+    const nombre = cat ? cat.nombre : "Sin categoría";
+    if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
+    grupos.get(key)!.prods.push(prod);
+  });
+
+  // Si hay filtro y queda solo una categoría, o todos sin categoría, no mostrar secciones
+  const usarSecciones = grupos.size > 1 || textoFiltro === "";
+
+  grupos.forEach(({ nombre, prods }) => {
+    if (usarSecciones) {
+      const seccion = document.createElement("div");
+      seccion.className = "categoria-seccion";
+
+      const titulo = document.createElement("div");
+      titulo.className = "categoria-titulo";
+      titulo.textContent = nombre;
+      seccion.appendChild(titulo);
+
+      const grid = document.createElement("div");
+      grid.className = "categoria-grid";
+      prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+      seccion.appendChild(grid);
+      productosGrid.appendChild(seccion);
+    } else {
+      const grid = document.createElement("div");
+      grid.className = "categoria-grid";
+      prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+      productosGrid.appendChild(grid);
     }
-
-    if (productoSeleccionado?.id === prod.id) {
-      card.classList.add("seleccionado");
-    }
-
-    card.innerHTML = `
-      <div class="producto-imagen">
-  ${
-    prod.imagenUrl
-      ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">`
-      : "📦"
-  }
-</div>
-      <div class="producto-info">
-        <div class="producto-nombre">${prod.nombre}</div>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
-        <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
-      </div>
-    `;
-
-    card.addEventListener("click", () => {
-      seleccionarProducto(prod);
-    });
-
-    productosGrid.appendChild(card);
   });
 }
 

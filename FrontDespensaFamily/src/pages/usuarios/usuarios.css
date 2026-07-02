@@ -1,98 +1,166 @@
 .usuarios-container {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 0 8px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .usuarios-container h1 {
-  margin-bottom: 24px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Formulario */
+.usuarios-container h1::before {
+  content: '👥';
+  font-size: 32px;
+}
+
+/* ── FORMULARIO ── */
 #form-crear-usuario {
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border, #e0e0e0);
-  border-radius: 12px;
-  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 32px;
   margin-bottom: 32px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 
 #form-crear-usuario h2 {
-  margin-bottom: 16px;
-  font-size: 1.1rem;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+#form-crear-usuario h2::before { content: none; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 #form-crear-usuario label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 14px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-#form-crear-usuario input,
-#form-crear-usuario select {
-  padding: 8px 12px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-#form-crear-usuario button[type="submit"] {
-  margin-top: 8px;
-  padding: 10px 24px;
-  background: var(--primary, #1976d2);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-#form-crear-usuario button[type="submit"]:hover {
-  opacity: 0.9;
-}
-
-/* Tabla */
-.usuarios-lista h2 {
-  margin-bottom: 14px;
-  font-size: 1.1rem;
-}
-
-#tabla-usuarios {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--card-bg, #fff);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border, #e0e0e0);
-}
-
-#tabla-usuarios th,
-#tabla-usuarios td {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 0.9rem;
-}
-
-#tabla-usuarios th {
-  background: var(--bg, #f5f5f5);
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
   color: #555;
 }
 
-#tabla-usuarios tr:not(:last-child) td {
-  border-bottom: 1px solid var(--border, #eee);
+#form-crear-usuario input,
+#form-crear-usuario select {
+  padding: 11px 14px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
+  color: #2c3e50;
 }
 
-/* Badges de rol */
+#form-crear-usuario input:focus,
+#form-crear-usuario select:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15);
+}
+
+#form-crear-usuario input::placeholder {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+.form-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+#form-crear-usuario button[type="submit"] {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.3);
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+#form-crear-usuario button[type="submit"]:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 136, 209, 0.4);
+}
+
+/* ── TABLA ── */
+.usuarios-lista h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usuarios-lista h2::before { content: none; }
+
+#tabla-usuarios {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+#tabla-usuarios th {
+  padding: 14px 18px;
+  text-align: left;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#tabla-usuarios th:first-child { border-radius: 0; }
+#tabla-usuarios th:last-child  { border-radius: 0; }
+
+#tabla-usuarios td {
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #495057;
+  border-bottom: 1px solid #f1f3f5;
+  text-align: left;
+}
+
+#tabla-usuarios tbody tr:last-child td { border-bottom: none; }
+#tabla-usuarios tbody tr:hover { background: #f8f9fa; }
+
+/* ── BADGES ── */
 .badge {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .badge-admin {
@@ -105,39 +173,51 @@
   color: #2e7d32;
 }
 
-/* Botón eliminar */
+/* ── BOTÓN ELIMINAR ── */
 .btn-eliminar {
-  padding: 5px 14px;
-  border: 1px solid #e53935;
+  padding: 6px 16px;
+  border: 2px solid #ef5350;
   background: transparent;
-  color: #e53935;
-  border-radius: 6px;
+  color: #ef5350;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s ease;
 }
 
 .btn-eliminar:hover {
-  background: #e53935;
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
   color: #fff;
+  transform: translateY(-1px);
 }
 
-/* Toast */
+/* ── TOAST ── */
 .toast {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: #323232;
+  bottom: 28px;
+  right: 28px;
+  background: #43a047;
   color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   z-index: 999;
+  animation: slideInToast 0.3s ease;
 }
 
-.toast.error {
-  background: #c62828;
+.toast.error { background: #e53935; }
+.toast.hidden { display: none; }
+
+@keyframes slideInToast {
+  from { transform: translateX(120px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
 }
 
-.toast.hidden {
-  display: none;
+@media (max-width: 680px) {
+  .form-grid { grid-template-columns: 1fr; }
+  #form-crear-usuario { padding: 20px; }
 }

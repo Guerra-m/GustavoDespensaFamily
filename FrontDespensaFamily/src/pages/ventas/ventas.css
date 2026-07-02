@@ -229,9 +229,38 @@ button.btn-imprimir:hover {
 }
 
 #productos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Secciones por categoría */
+.categoria-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.categoria-titulo {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0288d1;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 6px 0 6px 12px;
+  border-left: 4px solid #4fc3f7;
+}
+
+.categoria-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
+}
+
+.sin-resultados {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
 }
 
 /* TARJETA DE PRODUCTO - ESTILO MERCADO LIBRE */
@@ -700,23 +729,23 @@ hr {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1024px) { 
-  .content { 
-    margin-left: 0; 
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
   }
-  
-  #productos-grid {
+
+  .categoria-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
-@media (max-width: 768px) { 
-  .content { 
-    padding: 20px; 
-    padding-top: 80px; 
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
   }
-  
-  #productos-grid {
+
+  .categoria-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
@@ -747,7 +776,7 @@ hr {
     width: 100%;
   }
   
-  #productos-grid {
+  .categoria-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
