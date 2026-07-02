@@ -24,10 +24,10 @@ public class ReportesService {
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final DetalleCompraRepository detalleCompraRepository;
-    public List<ProductoBajoStockDTO> productosConBajoStock(Integer limite) {
+    public List<ProductoBajoStockDTO> productosConBajoStock(Double limite) {
 
         if (limite == null || limite <= 0) {
-            limite = 5; // valor por defecto
+            limite = 5.0;
         }
 
         return productoRepository.findByStockLessThanAndActivoTrue(limite)

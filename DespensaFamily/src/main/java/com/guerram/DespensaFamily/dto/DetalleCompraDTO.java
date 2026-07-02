@@ -15,7 +15,7 @@ public class DetalleCompraDTO {
 
     @NotNull(message = "La cantidad es obligatoria")
     @Positive(message = "La cantidad debe ser mayor a 0")
-    private int cantidad;
+    private double cantidad;
 
     @NotNull(message = "El precio de costo es obligatorio")
     @PositiveOrZero(message = "El precio de costo no puede ser negativo")

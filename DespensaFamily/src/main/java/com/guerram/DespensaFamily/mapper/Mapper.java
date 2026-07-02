@@ -21,6 +21,9 @@ public class Mapper {
                 .proveedor(p.getProveedor())
                 .imagenUrl(p.getImagenUrl() != null ?"http://localhost:8080/imagenes/" + p.getImagenUrl()
                         : null )
+                .tipoCantidad(p.getTipoCantidad())
+                .unidadMedida(p.getUnidadMedida())
+                .fraccionMinima(p.getFraccionMinima())
                 .build();
     }
 
@@ -113,6 +116,9 @@ public class Mapper {
                 .codigoBarras(dto.getCodigoBarras())
                 .proveedor(dto.getProveedor())
                 .imagenUrl(dto.getImagenUrl())
+                .tipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD")
+                .unidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u")
+                .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0)
                 .build();
 
         return p;

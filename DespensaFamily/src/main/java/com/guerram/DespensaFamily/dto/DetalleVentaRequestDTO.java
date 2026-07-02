@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -15,6 +16,6 @@ public class DetalleVentaRequestDTO {
     @NotNull
     private Long productoId;
 
-    @Min(1)
-    private int cantidad;
+    @DecimalMin(value = "0.001", message = "La cantidad debe ser mayor a 0")
+    private double cantidad;
 }

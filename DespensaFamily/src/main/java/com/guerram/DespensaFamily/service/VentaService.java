@@ -1,6 +1,5 @@
 package com.guerram.DespensaFamily.service;
 
-import com.guerram.DespensaFamily.dto.DetalleVentaDTO;
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.dto.VentaDetalleResponseDTO;
@@ -32,7 +31,6 @@ public class VentaService {
         venta.setEstado(EstadoVenta.ACTIVA);
 
         double total = 0;
-
         List<DetalleVenta> detalles = new ArrayList<>();
 
         for (DetalleVentaRequestDTO dto : detallesDTO) {
@@ -40,20 +38,33 @@ public class VentaService {
             Producto producto = productoRepository.findById(dto.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            if (producto.getStock() < dto.getCantidad()) {
+
+            double cantidad = Math.round(dto.getCantidad() * 1000.0) / 1000.0;
+
+            // 🔒 VALIDACIONES
+            if (cantidad <= 0) {
+                throw new RuntimeException("Cantidad inválida");
+            }
+
+            if ("UNIDAD".equals(producto.getTipoCantidad())) {
+                if (cantidad % 1 != 0) {
+                    throw new RuntimeException("Este producto no permite decimales");
+                }
+            }
+
+            if (producto.getStock() < cantidad) {
                 throw new RuntimeException("Stock insuficiente");
             }
 
-            producto.setStock(producto.getStock() - dto.getCantidad());
+
+            producto.setStock(producto.getStock() - cantidad);
 
             DetalleVenta dv = new DetalleVenta();
             dv.setProducto(producto);
-            dv.setCantidad(dto.getCantidad());
-
+            dv.setCantidad(cantidad);
             dv.setPrecioUnitario(producto.getPrecioVenta());
             dv.setPrecioCosto(producto.getPrecioCosto());
-
-            dv.setSubtotal(producto.getPrecioVenta() * dto.getCantidad());
+            dv.setSubtotal(producto.getPrecioVenta() * cantidad);
             dv.setVenta(venta);
 
             total += dv.getSubtotal();
@@ -81,12 +92,14 @@ public class VentaService {
 
         return Mapper.toDTO(venta);
     }
+
     public VentaDetalleResponseDTO buscarDetallePorId(Long id) {
         Venta venta = ventaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
 
         return Mapper.toVentaDetalleResponse(venta);
     }
+
     public void anularVenta(Long id) {
 
         Venta venta = ventaRepository.findById(id)
@@ -96,7 +109,7 @@ public class VentaService {
             throw new RuntimeException("La venta ya está anulada");
         }
 
-        // devolver stock
+
         for (DetalleVenta detalle : venta.getDetalles()) {
             Producto producto = detalle.getProducto();
             producto.setStock(
@@ -107,5 +120,4 @@ public class VentaService {
         venta.setEstado(EstadoVenta.ANULADA);
         ventaRepository.save(venta);
     }
-
 }

@@ -10,5 +10,5 @@ import lombok.*;
 public class ProductoMasVendidoDTO {
     private Long productoId;
     private String nombre;
-    private Long cantidadVendida;
+    private Double cantidadVendida;
 }

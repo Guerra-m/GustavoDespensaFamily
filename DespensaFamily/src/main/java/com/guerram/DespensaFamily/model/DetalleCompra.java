@@ -12,7 +12,7 @@ public class DetalleCompra {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private int cantidad;
+    private double cantidad;
     private double precioCosto;
     private double subtotal;
 

@@ -17,7 +17,7 @@ public class MovimientoDTO {
     private Long productoId;
     private String productoNombre;
 
-    private Integer cantidad;
+    private double cantidad;
     private Double precio;
     private Double subtotal;
 

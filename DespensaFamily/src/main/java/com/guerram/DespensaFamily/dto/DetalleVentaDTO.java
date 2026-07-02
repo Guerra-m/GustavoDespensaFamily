@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class DetalleVentaDTO {
     private Long id;
-    private int cantidad;
+    private double cantidad;
     private double precioUnitario;
     private double precioCosto;
     private double subtotal;

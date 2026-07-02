@@ -23,7 +23,7 @@ public class ReportesController {
 
     @GetMapping("/productos-bajo-stock")
     public List<ProductoBajoStockDTO> productosBajoStock(
-            @RequestParam(required = false) Integer limite
+            @RequestParam(required = false) Double limite
     ) {
         return reportesService.productosConBajoStock(limite);
     }

@@ -20,10 +20,15 @@ public class Producto {
 
     private double porcentajeGanancia;
 
-    private int stock;
     private String codigoBarras;
     private String proveedor;
 
+    private double stock; // antes int
+
+    // NUEVO 👇
+    private String tipoCantidad; // "UNIDAD" | "PESO"
+    private String unidadMedida; // "u" | "kg"
+    private Double fraccionMinima; // 1 o 0.001
     @ManyToOne
     @JoinColumn(name= "categoria_id")
     private Categoria categoria;

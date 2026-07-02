@@ -23,48 +23,63 @@ public class CompraService {
 
     public CompraDTO registrarCompra(CompraRequestDTO request) {
 
-        // 1. Crear la compra
         Compra compra = new Compra();
         compra.setFechaHora(LocalDate.now());
         compra.setProveedor(request.getProveedor());
 
         List<DetalleCompra> detalles = new ArrayList<>();
 
-        // 2. Recorrer los detalles del request
         for (DetalleCompraRequestDTO dto : request.getDetalles()) {
 
             Producto producto = productoRepository.findById(dto.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            // 3. Sumar stock
-            producto.setStock(producto.getStock() + dto.getCantidad());
-            //4. actualizar precio de costo
+            // REDONDEO
+            double cantidad = Math.round(dto.getCantidad() * 1000.0) / 1000.0;
+
+            //  VALIDACIONES
+            if (cantidad <= 0) {
+                throw new RuntimeException("Cantidad inválida");
+            }
+
+            if ("UNIDAD".equals(producto.getTipoCantidad())) {
+                if (cantidad % 1 != 0) {
+                    throw new RuntimeException("Este producto no permite decimales");
+                }
+            }
+
+            if (dto.getPrecioCosto() <= 0) {
+                throw new RuntimeException("Precio de costo inválido");
+            }
+
+            // STOCK
+            producto.setStock(producto.getStock() + cantidad);
+
+            //  COSTO Y PRECIO
             producto.setPrecioCosto(dto.getPrecioCosto());
-            //5. Recalcular precio de venta manteniendo porcentaje
+
             double porcentaje = producto.getPorcentajeGanancia();
             double nuevoPrecioVenta =
                     dto.getPrecioCosto() + (dto.getPrecioCosto() * porcentaje / 100);
 
             producto.setPrecioVenta(nuevoPrecioVenta);
-            // 6. Crear detalle de compra
+
+            // DETALLE
             DetalleCompra dc = new DetalleCompra();
             dc.setProducto(producto);
-            dc.setCantidad(dto.getCantidad());
+            dc.setCantidad(cantidad);
             dc.setPrecioCosto(dto.getPrecioCosto());
-            dc.setSubtotal(dto.getCantidad() * dto.getPrecioCosto());
+            dc.setSubtotal(cantidad * dto.getPrecioCosto());
             dc.setCompra(compra);
 
             detalles.add(dc);
         }
 
-        // 5. Asociar detalles y guardar
         compra.setDetalles(detalles);
         compraRepository.save(compra);
 
-        // 6. Devolver DTO
         return Mapper.toDTO(compra);
     }
-
 
     public List<CompraDTO> listarCompras() {
         return compraRepository.findAll()
@@ -72,17 +87,18 @@ public class CompraService {
                 .map(Mapper::toDTO)
                 .toList();
     }
+
     public CompraDTO buscarPorId(Long id) {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
 
         return Mapper.toDTO(compra);
     }
+
     public CompraDetalleResponseDTO buscarDetallePorId(Long id) {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
 
         return Mapper.toCompraDetalleResponse(compra);
     }
-
 }

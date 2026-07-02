@@ -19,7 +19,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             String codigoBarras,
             Long categoriaId
     );
-    List<Producto> findByStockLessThan(Integer limite);
     List<Producto> findByActivoTrue();
-    List<Producto> findByStockLessThanAndActivoTrue(Integer stock);
+    List<Producto> findByStockLessThanAndActivoTrue(Double stock);
 }

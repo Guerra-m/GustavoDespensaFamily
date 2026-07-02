@@ -34,7 +34,7 @@ public class ProductoService {
             producto.setCategoria(categoria);
         }
 
-        // 👉 imagen OPCIONAL
+        //
         if (imagen != null && !imagen.isEmpty()) {
             String nombreImagen = guardarImagen(imagen);
             producto.setImagenUrl(nombreImagen);

@@ -10,5 +10,5 @@ import lombok.*;
 public class ProductoBajoStockDTO {
     private Long id;
     private String nombre;
-    private Integer stock;
+    private double stock;
 }

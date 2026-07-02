@@ -64,6 +64,27 @@
   </label>
 
   <label>
+    Tipo de venta
+    <select name="tipoCantidad" required>
+      <option value="UNIDAD">Por unidad</option>
+      <option value="PESO">Por peso</option>
+    </select>
+  </label>
+
+  <label>
+    Unidad de medida
+    <select name="unidadMedida" required>
+      <option value="u">u</option>
+      <option value="kg">kg</option>
+    </select>
+  </label>
+
+  <label>
+    Fracción mínima
+    <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
+  </label>
+
+  <label>
     Código de Barras
     <input type="text" name="codigoBarras" />
   </label>
@@ -123,6 +144,27 @@
       <label>
         Stock
         <input type="number" name="stock" required />
+      </label>
+
+      <label>
+        Tipo de venta
+        <select name="tipoCantidad" required>
+          <option value="UNIDAD">Por unidad</option>
+          <option value="PESO">Por peso</option>
+        </select>
+      </label>
+
+      <label>
+        Unidad de medida
+        <select name="unidadMedida" required>
+          <option value="u">u</option>
+          <option value="kg">kg</option>
+        </select>
+      </label>
+
+      <label>
+        Fracción mínima
+        <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
       </label>
 
       <label>

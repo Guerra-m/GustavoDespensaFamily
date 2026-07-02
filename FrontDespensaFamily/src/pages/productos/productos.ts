@@ -71,6 +71,47 @@ function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);
 }
 
+function esProductoPesable(producto: Producto): boolean {
+  return producto.tipoCantidad === "PESO";
+}
+
+function obtenerUnidad(producto: Producto): "u" | "kg" {
+  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
+}
+
+function obtenerFraccionMinima(producto: Producto): number {
+  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
+  return esProductoPesable(producto) ? 0.001 : 1;
+}
+
+function sincronizarTipoYUnidad(form: HTMLFormElement) {
+  const tipo = form.querySelector("select[name='tipoCantidad']") as HTMLSelectElement;
+  const unidad = form.querySelector("select[name='unidadMedida']") as HTMLSelectElement;
+  const fraccion = form.querySelector("input[name='fraccionMinima']") as HTMLInputElement;
+  const stock = form.querySelector("input[name='stock']") as HTMLInputElement;
+
+  const aplicarValores = () => {
+    if (tipo.value === "PESO") {
+      unidad.value = "kg";
+      fraccion.value = fraccion.value && Number(fraccion.value) < 1 ? fraccion.value : "0.001";
+      fraccion.step = "0.001";
+      fraccion.min = "0.001";
+      stock.step = "0.001";
+      stock.min = "0.001";
+    } else {
+      unidad.value = "u";
+      fraccion.value = "1";
+      fraccion.step = "1";
+      fraccion.min = "1";
+      stock.step = "1";
+      stock.min = "0";
+    }
+  };
+
+  tipo.addEventListener("change", aplicarValores);
+  aplicarValores();
+}
+
 // ---------- AUTOCÁLCULO CREAR ----------
 inputCostoCrear.addEventListener("input", () =>
   recalcularVenta(
@@ -146,8 +187,8 @@ function renderProductos(lista: Producto[]) {
       <div class="producto-info">
         <div class="producto-nombre">${prod.nombre}</div>
         <span class="producto-categoria">${nombreCategoria}</span>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)}</div>
-        <div class="producto-stock">Stock: ${prod.stock}</div>
+        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
+        <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
       </div>
     `;
 
@@ -323,6 +364,9 @@ formCrear.addEventListener("submit", async e => {
     porcentajeGanancia: Number(formCrear.porcentajeGanancia.value),
     precioVenta: Number(formCrear.precioVenta.value),
     stock: Number(formCrear.stock.value),
+    tipoCantidad: formCrear.tipoCantidad.value,
+    unidadMedida: formCrear.unidadMedida.value,
+    fraccionMinima: Number(formCrear.fraccionMinima.value),
     codigoBarras: formCrear.codigoBarras.value || undefined,
     proveedor: formCrear.proveedor.value || undefined,
     categoriaId: Number(formCrear.categoriaId.value)
@@ -341,6 +385,10 @@ formCrear.addEventListener("submit", async e => {
     await createProducto(fd);
     formCrear.reset();
     textoGananciaCrear.textContent = "30";
+    (formCrear.tipoCantidad as HTMLSelectElement).value = "UNIDAD";
+    (formCrear.unidadMedida as HTMLSelectElement).value = "u";
+    (formCrear.fraccionMinima as HTMLInputElement).value = "1";
+    (formCrear.tipoCantidad as HTMLSelectElement).dispatchEvent(new Event("change"));
     cargarProductos();
   } catch (err) {
     console.error(err);
@@ -370,6 +418,10 @@ function abrirEditarProducto(id: number) {
   ).toString();
 
   formEditar.stock.value = productoActual.stock.toString();
+  formEditar.tipoCantidad.value = productoActual.tipoCantidad || "UNIDAD";
+  formEditar.unidadMedida.value = obtenerUnidad(productoActual);
+  formEditar.fraccionMinima.value = obtenerFraccionMinima(productoActual).toString();
+  formEditar.tipoCantidad.dispatchEvent(new Event("change"));
   formEditar.codigoBarras.value = productoActual.codigoBarras || "";
   formEditar.proveedor.value = productoActual.proveedor || "";
   formEditar.categoriaId.value =
@@ -399,6 +451,9 @@ formEditar.addEventListener("submit", async e => {
     porcentajeGanancia: Number(formEditar.porcentajeGanancia.value),
     precioVenta: Number(formEditar.precioVenta.value),
     stock: Number(formEditar.stock.value),
+    tipoCantidad: formEditar.tipoCantidad.value,
+    unidadMedida: formEditar.unidadMedida.value,
+    fraccionMinima: Number(formEditar.fraccionMinima.value),
     codigoBarras: formEditar.codigoBarras.value || undefined,
     proveedor: formEditar.proveedor.value || undefined,
     categoriaId: Number(formEditar.categoriaId.value)
@@ -467,3 +522,5 @@ function recalcularVenta(
 // ---------- INIT ----------
 cargarCategorias();
 cargarProductos();
+sincronizarTipoYUnidad(formCrear);
+sincronizarTipoYUnidad(formEditar);

@@ -15,6 +15,34 @@ let compras: Compra[] = [];
 let productos: Producto[] = [];
 let detallesCompra: DetalleCompraRequest[] = [];
 
+function esProductoPesable(producto: Producto): boolean {
+  return producto.tipoCantidad === "PESO";
+}
+
+function unidadProducto(producto: Producto): "u" | "kg" {
+  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
+}
+
+function fraccionMinima(producto: Producto): number {
+  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
+  return esProductoPesable(producto) ? 0.001 : 1;
+}
+
+function formatearCantidad(cantidad: number, producto?: Producto) {
+  if (!producto) return cantidad.toString();
+  if (esProductoPesable(producto)) return `${cantidad.toFixed(3)} ${unidadProducto(producto)}`;
+  return `${cantidad} ${unidadProducto(producto)}`;
+}
+
+function configurarInputCantidadCompra(producto: Producto) {
+  const step = fraccionMinima(producto);
+  inputCantidad.step = step.toString();
+  inputCantidad.min = step.toString();
+  inputCantidad.placeholder = esProductoPesable(producto)
+    ? `Cantidad en ${unidadProducto(producto)}`
+    : "Cantidad en unidades";
+}
+
 // ---------------- DOM ----------------
 const tablaCompras = document.getElementById("tabla-compras") as HTMLTableElement;
 const formCompra = document.getElementById("form-compra") as HTMLFormElement;
@@ -65,12 +93,12 @@ function agregarEventosDetalle() {
   botones.forEach(btn => {
     btn.addEventListener("click", () => {
       const id = Number((btn as HTMLElement).dataset.id);
-      console.log("CLICK DETALLE", id); // 👈 debug
+      console.log("CLICK DETALLE", id); // debug
       verDetalleCompra(id);
     });
   });
 }
-// Agregar eventos a los botones después de renderizar
+// Agregar eventos a los botones despues de renderizar
     document.querySelectorAll(".btn-detalle").forEach(btn => {
         btn.addEventListener("click", () => {
             const id = Number((btn as HTMLElement).dataset.id);
@@ -104,9 +132,15 @@ btnAgregar.addEventListener("click", () => {
   const productoId = Number(selectProducto.value);
   const cantidad = Number(inputCantidad.value);
   const precioCosto = Number(inputPrecioCosto.value);
+  const producto = productos.find(p => p.id === productoId);
 
-  if (!productoId || cantidad <= 0 || precioCosto < 0) {
+  if (!productoId || cantidad <= 0 || precioCosto < 0 || !producto) {
     alert("Datos inválidos");
+    return;
+  }
+
+  if (!esProductoPesable(producto) && !Number.isInteger(cantidad)) {
+    alert("Este producto se compra por unidad, la cantidad debe ser entera");
     return;
   }
 
@@ -128,8 +162,8 @@ function renderDetalles() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${producto?.nombre || "Producto"}</td>
-      <td>${d.cantidad}</td>
-      <td>${d.precioCosto}</td>
+      <td>${formatearCantidad(d.cantidad, producto)}</td>
+      <td>$${d.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
       <td>${(d.cantidad * d.precioCosto).toFixed(2)}</td>
       <td>
         <button data-index="${index}" class="btn-quitar">Quitar</button>
@@ -215,8 +249,8 @@ async function verDetalleCompra(id: number) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
         <td>${nombre}</td>
-        <td>${det.cantidad}</td>
-        <td>$${det.precioCosto.toFixed(2)}</td>
+        <td>${formatearCantidad(det.cantidad, producto)}</td>
+        <td>$${det.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td>$${subtotal.toFixed(2)}</td>
     `;
     tablaDetalleCompra.appendChild(tr);
@@ -232,3 +266,13 @@ async function verDetalleCompra(id: number) {
 btnCerrarDetalleCompra.addEventListener("click", () => {
     modalDetalleCompra.classList.add("hidden");
 });
+
+selectProducto.addEventListener("change", () => {
+  const productoId = Number(selectProducto.value);
+  const producto = productos.find(p => p.id === productoId);
+  if (!producto) return;
+
+  configurarInputCantidadCompra(producto);
+  inputCantidad.value = fraccionMinima(producto).toString();
+});
+

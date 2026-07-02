@@ -42,6 +42,35 @@ let escaneando = false;
 let ultimoCodigoEscaneado: string | null = null;
 let productoSeleccionado: Producto | null = null;
 
+function esProductoPesable(producto: Producto): boolean {
+  return producto.tipoCantidad === "PESO";
+}
+
+function unidadProducto(producto: Producto): "u" | "kg" {
+  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
+}
+
+function fraccionMinima(producto: Producto): number {
+  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
+  return esProductoPesable(producto) ? 0.001 : 1;
+}
+
+function configurarInputCantidad(producto: Producto) {
+  const step = fraccionMinima(producto);
+  inputCantidad.step = step.toString();
+  inputCantidad.min = step.toString();
+  inputCantidad.placeholder = esProductoPesable(producto)
+    ? `Cantidad en ${unidadProducto(producto)}`
+    : "Cantidad en unidades";
+  inputCantidad.value = step.toString();
+}
+
+function formatearCantidad(cantidad: number, producto?: Producto) {
+  if (!producto) return cantidad.toString();
+  if (esProductoPesable(producto)) return `${cantidad.toFixed(3)} ${unidadProducto(producto)}`;
+  return `${cantidad} ${unidadProducto(producto)}`;
+}
+
 /* =======================
    CARGA DE DATOS
 ======================= */
@@ -135,8 +164,8 @@ function renderProductosGrid(filtro: string = "") {
 </div>
       <div class="producto-info">
         <div class="producto-nombre">${prod.nombre}</div>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)}</div>
-        <div class="producto-stock">Stock: ${prod.stock}</div>
+        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
+        <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
       </div>
     `;
 
@@ -152,7 +181,7 @@ function seleccionarProducto(producto: Producto) {
   productoSeleccionado = producto;
   inputBuscarProducto.value = producto.nombre;
   inputBuscarProducto.dataset.id = producto.id!.toString();
-  inputCantidad.value = "1";
+  configurarInputCantidad(producto);
   inputCantidad.focus();
   
   // Actualizar visualización
@@ -177,9 +206,9 @@ function renderCarrito() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${prod.nombre}</td>
-      <td>${item.cantidad}</td>
-      <td>$${prod.precioVenta}</td>
-      <td>$${subtotal}</td>
+      <td>${formatearCantidad(item.cantidad, prod)}</td>
+      <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
+      <td>$${subtotal.toFixed(2)}</td>
       <td><button class="btn-quitar" data-index="${index}">Quitar</button></td>
     `;
     tablaDetalle.appendChild(tr);
@@ -235,7 +264,7 @@ async function abrirDetalleVenta(ventaId: number) {
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${nombre}</td><td>${item.cantidad}</td><td>$${item.precioUnitario}</td><td>$${item.subtotal}</td>`;
+    tr.innerHTML = `<td>${nombre}</td><td>${formatearCantidad(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
     tablaDetalleVenta.appendChild(tr);
     total += item.subtotal;
   });
@@ -306,12 +335,18 @@ btnAgregar.addEventListener("click", () => {
 
   const producto = productos.find(p => p.id === productoId);
   if (!producto) return;
+  if (!esProductoPesable(producto) && !Number.isInteger(cantidad)) {
+    return alert("Este producto se vende por unidad, la cantidad debe ser entera");
+  }
 
   carrito.push({ productoId, cantidad });
   renderCarrito();
 
   inputBuscarProducto.value = "";
   inputCantidad.value = "";
+  inputCantidad.step = "0.001";
+  inputCantidad.min = "0.001";
+  inputCantidad.placeholder = "Cantidad (u o kg)";
   delete inputBuscarProducto.dataset.id;
   productoSeleccionado = null;
   renderProductosGrid();
@@ -385,8 +420,8 @@ async function imprimirTicket(venta: Venta) {
     filas += `
       <tr>
         <td>${nombre}</td>
-        <td style="text-align:center">${d.cantidad}</td>
-        <td style="text-align:right">$${d.precioUnitario.toFixed(2)}</td>
+        <td style="text-align:center">${formatearCantidad(d.cantidad, producto)}</td>
+        <td style="text-align:right">$${d.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td style="text-align:right">$${d.subtotal.toFixed(2)}</td>
       </tr>
     `;
