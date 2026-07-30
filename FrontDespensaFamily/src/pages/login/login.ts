@@ -1,7 +1,10 @@
 import { login } from "../../services/api";
 
-const form = document.getElementById("loginForm") as HTMLFormElement;
-const mensaje = document.getElementById("mensaje") as HTMLParagraphElement;
+const form       = document.getElementById("loginForm")   as HTMLFormElement;
+const mensaje    = document.getElementById("mensaje")      as HTMLParagraphElement;
+const btnSubmit  = document.getElementById("btn-submit")   as HTMLButtonElement;
+const btnText    = document.getElementById("btn-text")     as HTMLSpanElement;
+const btnSpinner = document.getElementById("btn-spinner")  as HTMLSpanElement;
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -9,21 +12,25 @@ form.addEventListener("submit", async (e) => {
   const username = (document.getElementById("username") as HTMLInputElement).value;
   const password = (document.getElementById("password") as HTMLInputElement).value;
 
+  // Estado de carga
+  mensaje.textContent = "";
+  btnText.classList.add("hidden");
+  btnSpinner.classList.remove("hidden");
+  btnSubmit.disabled = true;
+
   try {
     const data = await login(username, password);
 
-    console.log("Usuario recibido:", data);
-
-    // ✅ guardamos sesión (simple y estable)
     localStorage.setItem("auth", "true");
-
-    // (opcional, si el backend devuelve info del usuario)
-    // localStorage.setItem("usuario", JSON.stringify(data.usuario));
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("rol", data.rol);
+    localStorage.setItem("username", username);
 
     window.location.href = "../home/home.html";
-  } catch (err) {
-    console.error(err);
-    mensaje.textContent = "Usuario o contraseña incorrectos ❌";
-    mensaje.style.display = "block";
+  } catch {
+    mensaje.textContent = "Usuario o contraseña incorrectos";
+    btnText.classList.remove("hidden");
+    btnSpinner.classList.add("hidden");
+    btnSubmit.disabled = false;
   }
 });

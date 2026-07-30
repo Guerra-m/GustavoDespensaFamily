@@ -439,72 +439,237 @@ tbody:empty::after {
   background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
   color: #ffffff;
 }
+/* ── ENCABEZADO DE IMPRESIÓN (oculto en pantalla) ── */
+.print-header {
+  display: none;
+}
+
+/* Logo CSS para el encabezado de impresión */
+.print-header-logo {
+  width: 52px;
+  height: 52px;
+  background: #0288d1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+
+/* ── BARRA TOP (h1 + botón juntos en pantalla) ── */
+.page-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.page-top-bar h1 {
+  margin-bottom: 0;
+}
+
+#btn-imprimir {
+  background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(55, 71, 79, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+#btn-imprimir:hover {
+  background: linear-gradient(135deg, #37474f 0%, #263238 100%);
+}
+
 /* ======================================
-   IMPRESIÓN LIMPIA - REPORTES
+   IMPRESIÓN PROFESIONAL - REPORTES
 ====================================== */
 @media print {
 
-  /* NAVBAR Y BOTONES */
+  /* ── Activar colores en impresión ── */
+  html, body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── Ocultar todo lo que no debe imprimirse ── */
   #navbar-container,
-  nav,
   .navbar,
-  button,
-  #btn-imprimir,
+  .menu-toggle,
+  .page-top-bar,
+  .filtros,
   #btn-imprimir-movimientos,
   #btn-mas-vendidos,
   #btn-movimientos,
-  #btn-resumen {
+  #btn-resumen,
+  input[type="date"],
+  section label {
     display: none !important;
   }
 
-  /* FILTROS E INPUTS */
-  .filtros,
-  input,
-  select,
-  label {
-    display: none !important;
+  /* ── Mostrar encabezado de impresión ── */
+  .print-header {
+    display: flex !important;
+    align-items: center;
+    gap: 16px;
+    padding: 0 0 16px 0;
+    margin-bottom: 24px;
+    border-bottom: 3px solid #0288d1;
+    page-break-after: avoid;
   }
 
-  /* AJUSTES GENERALES */
+  .print-header-logo {
+    width: 52px;
+    height: 52px;
+    background: #0288d1 !important;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff !important;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    flex-shrink: 0;
+  }
+
+  .print-header-empresa {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0288d1 !important;
+  }
+
+  .print-header-subtitulo {
+    font-size: 13px;
+    color: #546e7a;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .print-header-fecha {
+    font-size: 11px;
+    color: #90a4ae;
+    margin-top: 4px;
+  }
+
+  /* ── Layout ── */
   body {
     margin: 0 !important;
     padding: 0 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #fff !important;
+    color: #212529;
   }
 
   main.content {
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 12px 16px !important;
     width: 100% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    max-width: none !important;
   }
 
-  h1, h2 {
-    margin-top: 20px;
+  /* ── Secciones ── */
+  section {
+    border: 1px solid #cfd8dc !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid;
+    background: #fff !important;
+    box-shadow: none !important;
+    transform: none !important;
   }
 
-  /* TABLAS */
+  h2 {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #0288d1 !important;
+    margin: 0 0 12px 0 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* ── Tablas ── */
   table {
     width: 100% !important;
-    border-collapse: collapse;
-    font-size: 12px;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    font-size: 11px !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
-  th, td {
-    border: 1px solid #000 !important;
-    padding: 6px;
-    text-align: left;
+  th {
+    background-color: #e3f2fd !important;
+    color: #01579b !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    padding: 8px 10px !important;
+    border: 1px solid #b0bec5 !important;
+    text-align: left !important;
   }
 
-  thead {
-    background-color: #f0f0f0 !important;
+  td {
+    padding: 7px 10px !important;
+    border: 1px solid #e0e0e0 !important;
+    color: #37474f !important;
+    font-size: 11px !important;
+    text-align: left !important;
   }
 
-  tr {
-    page-break-inside: avoid;
+  tbody tr:nth-child(even) td {
+    background-color: #f9fbfc !important;
   }
 
-  /* SCROLL OFF */
+  #tabla-bajo-stock tbody tr td {
+    background-color: #fff8e1 !important;
+  }
+
+  #tabla-bajo-stock td:last-child {
+    color: #e65100 !important;
+    font-weight: 700 !important;
+  }
+
+  #tabla-mas-vendidos tbody tr:nth-child(1) td { background-color: #fffde7 !important; }
+
   .tabla-scroll {
     overflow: visible !important;
     max-height: none !important;
+  }
+
+  /* ── Resumen ── */
+  #resumen-container {
+    background: #e3f2fd !important;
+    border: 1px solid #90caf9 !important;
+    border-radius: 8px !important;
+    padding: 14px 20px !important;
+    font-size: 13px !important;
+    color: #01579b !important;
+    box-shadow: none !important;
+    display: block !important;
+    min-height: auto !important;
+  }
+
+  #resumen-container p {
+    margin: 4px 0 !important;
+    font-weight: 600 !important;
+  }
+
+  @page {
+    margin: 15mm 12mm;
+    size: A4 portrait;
   }
 }

@@ -1,3 +1,6 @@
+import { checkAuth } from "../../services/auth.service";
+checkAuth();
+
 import type { Categoria } from "../../models/Categoria";
 import {
   getCategorias,

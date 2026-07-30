@@ -1,5 +1,10 @@
+import { checkAuth } from "../../services/auth.service";
+checkAuth();
+
 import { getProductos } from "../../services/productos.service";
 import { getVentas, createVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
+import { getCategorias } from "../../services/categorias.service";
+import type { Categoria } from "../../models/Categoria";
 import type { Producto } from "../../models/Producto";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
@@ -29,6 +34,8 @@ const btnCerrarScan = document.getElementById("btn-cerrar-scan") as HTMLButtonEl
 
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
+const categoriasSection = document.getElementById("categorias-section") as HTMLDivElement;
+const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
 
 const toast = document.getElementById("toast") as HTMLDivElement;
 const selectCliente = document.getElementById("select-cliente") as HTMLSelectElement;
@@ -36,11 +43,13 @@ const selectCliente = document.getElementById("select-cliente") as HTMLSelectEle
    ESTADO
 ======================= */
 let productos: Producto[] = [];
+let categorias: Categoria[] = [];
 let carrito: DetalleVentaRequest[] = [];
 let html5QrCode: Html5Qrcode;
 let escaneando = false;
 let ultimoCodigoEscaneado: string | null = null;
 let productoSeleccionado: Producto | null = null;
+let categoriaActivaId: number | null = null;
 
 function esProductoPesable(producto: Producto): boolean {
   return producto.tipoCantidad === "PESO";
@@ -75,9 +84,12 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
    CARGA DE DATOS
 ======================= */
 async function cargarProductos() {
-  productos = await getProductos();
-  productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
+  productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  renderFiltrosCategorias();
   renderProductosGrid();
+  renderCategoriasSection();
 }
 
 async function cargarVentas() {
@@ -122,59 +134,122 @@ async function cargarVentas() {
 /* =======================
    RENDER GRID DE PRODUCTOS
 ======================= */
+function crearProductoCard(prod: Producto): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "producto-card";
+  card.dataset.productoId = String(prod.id);
+  if (prod.stock < 10) card.classList.add("stock-bajo");
+  if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
+
+  card.innerHTML = `
+    <div class="producto-imagen">
+      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">` : ""}
+    </div>
+    <div class="producto-info">
+      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
+      <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
+    </div>
+  `;
+  card.addEventListener("click", () => seleccionarProducto(prod));
+  return card;
+}
+
+function renderFiltrosCategorias() {
+  filtrosCategorias.innerHTML = "";
+
+  const btnTodos = document.createElement("button");
+  btnTodos.className = "filtro-cat-btn" + (categoriaActivaId === null ? " activo" : "");
+  btnTodos.textContent = "Todos";
+  btnTodos.addEventListener("click", () => {
+    categoriaActivaId = null;
+    actualizarActivoCat();
+    renderProductosGrid(inputBuscarProducto.value);
+  });
+  filtrosCategorias.appendChild(btnTodos);
+
+  categorias.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "filtro-cat-btn" + (categoriaActivaId === cat.id ? " activo" : "");
+    btn.dataset.catId = String(cat.id);
+    btn.textContent = cat.nombre;
+    btn.addEventListener("click", () => {
+      categoriaActivaId = cat.id ?? null;
+      actualizarActivoCat();
+      renderProductosGrid(inputBuscarProducto.value);
+    });
+    filtrosCategorias.appendChild(btn);
+  });
+}
+
+function actualizarActivoCat() {
+  filtrosCategorias.querySelectorAll<HTMLButtonElement>(".filtro-cat-btn").forEach(btn => {
+    const catId = btn.dataset.catId ? Number(btn.dataset.catId) : null;
+    btn.classList.toggle("activo", catId === categoriaActivaId);
+  });
+}
+
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
-  
+
   const textoFiltro = filtro.toLowerCase().trim();
-  const productosFiltrados = textoFiltro 
-    ? productos.filter(p => 
+
+  let productosFiltrados = textoFiltro
+    ? productos.filter(p =>
         p.nombre.toLowerCase().includes(textoFiltro) ||
         p.codigoBarras?.toLowerCase().includes(textoFiltro)
       )
-    : productos;
+    : [...productos];
+
+  if (categoriaActivaId !== null) {
+    productosFiltrados = productosFiltrados.filter(p => p.categoriaId === categoriaActivaId);
+  }
 
   if (productosFiltrados.length === 0) {
-    productosGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">
-        No se encontraron productos
-      </div>
-    `;
+    productosGrid.innerHTML = `<div class="sin-resultados">No se encontraron productos</div>`;
     return;
   }
 
-  productosFiltrados.forEach(prod => {
-    const card = document.createElement("div");
-    card.className = "producto-card";
-    
-    if (prod.stock < 10) {
-      card.classList.add("stock-bajo");
-    }
+  productosFiltrados.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+}
 
-    if (productoSeleccionado?.id === prod.id) {
-      card.classList.add("seleccionado");
-    }
+function renderCategoriasSection() {
+  categoriasSection.innerHTML = "";
 
-    card.innerHTML = `
-      <div class="producto-imagen">
-  ${
-    prod.imagenUrl
-      ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">`
-      : "📦"
-  }
-</div>
-      <div class="producto-info">
-        <div class="producto-nombre">${prod.nombre}</div>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
-        <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
-      </div>
-    `;
+  categorias.forEach(cat => {
+    const prods = productos.filter(p => p.categoriaId === cat.id);
+    if (prods.length === 0) return;
 
-    card.addEventListener("click", () => {
-      seleccionarProducto(prod);
-    });
+    const bloque = document.createElement("div");
+    bloque.className = "categoria-bloque";
 
-    productosGrid.appendChild(card);
+    const titulo = document.createElement("h2");
+    titulo.className = "categoria-bloque-titulo";
+    titulo.textContent = cat.nombre;
+    bloque.appendChild(titulo);
+
+    const grid = document.createElement("div");
+    grid.className = "categoria-grid";
+    prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+    bloque.appendChild(grid);
+
+    categoriasSection.appendChild(bloque);
   });
+
+  const sinCat = productos.filter(p => !categorias.some(c => c.id === p.categoriaId));
+  if (sinCat.length > 0) {
+    const bloque = document.createElement("div");
+    bloque.className = "categoria-bloque";
+    const titulo = document.createElement("h2");
+    titulo.className = "categoria-bloque-titulo";
+    titulo.textContent = "Sin categoría";
+    bloque.appendChild(titulo);
+    const grid = document.createElement("div");
+    grid.className = "categoria-grid";
+    sinCat.forEach(prod => grid.appendChild(crearProductoCard(prod)));
+    bloque.appendChild(grid);
+    categoriasSection.appendChild(bloque);
+  }
 }
 
 function seleccionarProducto(producto: Producto) {
@@ -183,11 +258,11 @@ function seleccionarProducto(producto: Producto) {
   inputBuscarProducto.dataset.id = producto.id!.toString();
   configurarInputCantidad(producto);
   inputCantidad.focus();
-  
-  // Actualizar visualización
-  const textoActual = inputBuscarProducto.value;
-  renderProductosGrid(textoActual);
-  
+
+  document.querySelectorAll<HTMLDivElement>(".producto-card").forEach(card => {
+    card.classList.toggle("seleccionado", card.dataset.productoId === String(producto.id));
+  });
+
   mostrarToast(`Producto seleccionado: ${producto.nombre}`);
 }
 

@@ -1,3 +1,6 @@
+import { checkAuth } from "../../services/auth.service";
+checkAuth();
+
 import type { Producto } from "../../models/Producto";
 import type { Categoria } from "../../models/Categoria";
 
@@ -150,58 +153,193 @@ inputPorcentajeEditar.addEventListener("input", () =>
   )
 );
 
-// ---------- RENDER GRID ----------
-// ---------- RENDER GRID CON MENÚ DE TRES PUNTOS ----------
+// ---------- CREAR CARD ----------
+function crearCard(prod: Producto): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "producto-card";
+  if (prod.stock < 10) card.classList.add("stock-bajo");
+
+  card.innerHTML = `
+    <div class="producto-menu-container">
+      <button class="btn-menu" data-id="${prod.id}"></button>
+      <div class="producto-menu-dropdown">
+        <button class="btn-editar-menu" data-id="${prod.id}">Editar</button>
+        <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
+        <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+      </div>
+    </div>
+    <div class="producto-imagen">
+      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
+    </div>
+    <div class="producto-info">
+      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
+      <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
+    </div>
+  `;
+  return card;
+}
+
+// ---------- IMPRIMIR CARTEL DE PRODUCTO ----------
+function imprimirCartelProducto(prod: Producto) {
+  const ventana = window.open("", "_blank");
+  if (!ventana) return;
+
+  const unidad = obtenerUnidad(prod);
+  const precio = prod.precioVenta.toFixed(2);
+  const categoria = categorias.find(c => c.id === prod.categoriaId)?.nombre ?? "";
+  const ahora = new Date().toLocaleString("es-AR", {
+    dateStyle: "long",
+    timeStyle: "short"
+  });
+
+  ventana.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cartel — ${prod.nombre}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #fff;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .cartel {
+      width: 100%;
+      max-width: 480px;
+      border: 3px solid #0288d1;
+      border-radius: 20px;
+      padding: 32px 28px;
+      text-align: center;
+    }
+    .cartel-marca {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #0288d1;
+      margin-bottom: 6px;
+    }
+    .cartel-categoria {
+      font-size: 12px;
+      color: #90a4ae;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+    .cartel-nombre {
+      font-size: 30px;
+      font-weight: 800;
+      color: #212529;
+      line-height: 1.2;
+      margin-bottom: 24px;
+      word-break: break-word;
+    }
+    .cartel-precio {
+      font-size: 72px;
+      font-weight: 900;
+      color: #0288d1;
+      line-height: 1;
+    }
+    .cartel-precio span {
+      font-size: 32px;
+      vertical-align: super;
+    }
+    .cartel-unidad {
+      font-size: 16px;
+      font-weight: 600;
+      color: #546e7a;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+    .cartel-codigo {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #78909c;
+      border-top: 1px dashed #cfd8dc;
+      padding-top: 12px;
+      margin-top: 4px;
+    }
+    .cartel-fecha {
+      font-size: 10px;
+      color: #b0bec5;
+      margin-top: 10px;
+    }
+    @media print {
+      @page { margin: 15mm; size: A5 portrait; }
+      body { padding: 0; }
+      .cartel { border-width: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cartel">
+    <div class="cartel-marca">🏪 DespensaFamily</div>
+    ${categoria ? `<div class="cartel-categoria">${categoria}</div>` : ""}
+    <div class="cartel-nombre">${prod.nombre}</div>
+    <div class="cartel-precio"><span>$</span>${precio}</div>
+    <div class="cartel-unidad">por ${unidad}</div>
+    ${prod.codigoBarras ? `<div class="cartel-codigo">${prod.codigoBarras}</div>` : ""}
+    <div class="cartel-fecha">Impreso el ${ahora}</div>
+  </div>
+</body>
+</html>`);
+
+  ventana.document.close();
+  ventana.print();
+}
+
+// ---------- RENDER GRID CON SECCIONES POR CATEGORÍA ----------
 function renderProductos(lista: Producto[]) {
   productosGrid.innerHTML = "";
 
   if (lista.length === 0) {
-    productosGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">
-        No se encontraron productos
-      </div>
-    `;
+    productosGrid.innerHTML = `<div class="prod-sin-resultados">No se encontraron productos</div>`;
     return;
   }
 
+  const grupos = new Map<string, { nombre: string; prods: Producto[] }>();
+
   lista.forEach(prod => {
-    const nombreCategoria =
-      categorias.find(c => c.id === prod.categoriaId)?.nombre || "Sin categoría";
-
-    const card = document.createElement("div");
-    card.className = "producto-card";
-
-    if (prod.stock < 10) card.classList.add("stock-bajo");
-
-    card.innerHTML = `
-      <div class="producto-menu-container">
-        <button class="btn-menu" data-id="${prod.id}"></button>
-        <div class="producto-menu-dropdown">
-          <button class="btn-editar-menu" data-id="${prod.id}">Editar</button>
-          <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
-        </div>
-      </div>
-      <div class="producto-imagen">
-        ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
-      </div>
-      <div class="producto-info">
-        <div class="producto-nombre">${prod.nombre}</div>
-        <span class="producto-categoria">${nombreCategoria}</span>
-        <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
-        <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
-      </div>
-    `;
-
-    productosGrid.appendChild(card);
+    const cat = categorias.find(c => c.id === prod.categoriaId);
+    const key = cat ? String(cat.id) : "__sin__";
+    const nombre = cat ? cat.nombre : "Sin categoría";
+    if (!grupos.has(key)) grupos.set(key, { nombre, prods: [] });
+    grupos.get(key)!.prods.push(prod);
   });
 
-  // Crear overlay si no existe
-  if (!document.querySelector('.producto-menu-overlay')) {
-    const overlay = document.createElement('div');
-    overlay.className = 'producto-menu-overlay';
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', cerrarTodosLosMenus);
-  }
+  const gruposOrdenados = [...grupos.entries()]
+    .sort(([, a], [, b]) => {
+      if (a.nombre === "Sin categoría") return 1;
+      if (b.nombre === "Sin categoría") return -1;
+      return a.nombre.localeCompare(b.nombre, "es");
+    });
+
+  gruposOrdenados.forEach(([, { nombre, prods }]) => {
+    const seccion = document.createElement("div");
+    seccion.className = "prod-cat-seccion";
+
+    const titulo = document.createElement("div");
+    titulo.className = "prod-cat-titulo";
+    titulo.textContent = nombre;
+    seccion.appendChild(titulo);
+
+    const grid = document.createElement("div");
+    grid.className = "prod-cat-grid";
+    prods.forEach(prod => grid.appendChild(crearCard(prod)));
+    seccion.appendChild(grid);
+
+    productosGrid.appendChild(seccion);
+  });
 }
 
 // ---------- DELEGACIÓN DE EVENTOS PARA EL MENÚ ----------
@@ -216,6 +354,15 @@ productosGrid.addEventListener("click", (e) => {
     abrirEditarProducto(id);
   }
 
+  // BOTÓN IMPRIMIR CARTEL
+  if (target.closest('.btn-imprimir-menu')) {
+    const btn = target.closest('.btn-imprimir-menu') as HTMLElement;
+    const id = Number(btn.dataset.id);
+    cerrarTodosLosMenus();
+    const prod = productos.find(p => p.id === id);
+    if (prod) imprimirCartelProducto(prod);
+  }
+
   // BOTÓN ELIMINAR
   if (target.closest('.btn-eliminar-menu')) {
     const btn = target.closest('.btn-eliminar-menu') as HTMLElement;
@@ -228,7 +375,6 @@ productosGrid.addEventListener("click", (e) => {
   if (target.closest('.btn-menu')) {
     const btn = target.closest('.btn-menu') as HTMLElement;
     const dropdown = btn.nextElementSibling as HTMLDivElement;
-    const overlay = document.querySelector('.producto-menu-overlay') as HTMLDivElement;
 
     // Cerrar otros menús abiertos
     document.querySelectorAll('.producto-menu-dropdown.active').forEach(menu => {
@@ -236,25 +382,23 @@ productosGrid.addEventListener("click", (e) => {
     });
 
     // Toggle este menú
-    const estaActivo = dropdown.classList.contains('active');
-    if (estaActivo) {
-      dropdown.classList.remove('active');
-      overlay?.classList.remove('active');
-    } else {
-      dropdown.classList.add('active');
-      overlay?.classList.add('active');
-    }
+    dropdown.classList.toggle('active');
   }
 });
 
+// Cerrar cualquier menú abierto al clickear fuera de él
+document.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.producto-menu-container')) {
+    cerrarTodosLosMenus();
+  }
+});
 
 // ---------- CERRAR TODOS LOS MENÚS ----------
 function cerrarTodosLosMenus() {
   document.querySelectorAll('.producto-menu-dropdown.active').forEach(menu => {
     menu.classList.remove('active');
   });
-  const overlay = document.querySelector('.producto-menu-overlay') as HTMLDivElement;
-  overlay?.classList.remove('active');
 }
 
 // ---------- EVENTOS DEL MENÚ ----------
@@ -488,7 +632,12 @@ async function eliminarProducto(id: number) {
 
 // ---------- BUSCAR ----------
 inputBuscar.addEventListener("input", () => {
-  const q = inputBuscar.value.toLowerCase();
+  const q = inputBuscar.value.toLowerCase().trim();
+
+  if (!q) {
+    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    return;
+  }
 
   renderProductos(
     productos.filter(p =>

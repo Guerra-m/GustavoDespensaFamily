@@ -1,3 +1,6 @@
+import { checkAdmin } from "../../services/auth.service";
+checkAdmin();
+
 import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas } from "../../models/Reportes";
 import {
   getProductosBajoStock,
@@ -122,48 +125,151 @@ function imprimirMovimientos() {
   const ventana = window.open("", "_blank");
   if (!ventana) return;
 
-  ventana.document.write(`
-    <html>
-      <head>
-        <title>Reporte de Movimientos</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-          }
+  const desde = inputMovDesde.value || "—";
+  const hasta = inputMovHasta.value || "—";
+  const ahora = new Date().toLocaleString("es-AR", {
+    dateStyle: "long",
+    timeStyle: "short"
+  });
 
-          h2 {
-            text-align: center;
-            margin-bottom: 20px;
-          }
+  const filas = Array.from(tabla.querySelectorAll("tbody tr"))
+    .map(tr => {
+      const celdas = Array.from(tr.querySelectorAll("td"));
+      const tipo = celdas[3]?.textContent?.trim() ?? "";
+      const color = tipo === "VENTA" ? "#e8f5e9" : tipo === "COMPRA" ? "#e3f2fd" : "#fff";
+      const tipoColor = tipo === "VENTA" ? "#2e7d32" : tipo === "COMPRA" ? "#01579b" : "#37474f";
+      return `
+        <tr style="background:${color}">
+          <td>${celdas[0]?.textContent ?? ""}</td>
+          <td>${celdas[1]?.textContent ?? ""}</td>
+          <td>${celdas[2]?.textContent ?? ""}</td>
+          <td style="color:${tipoColor};font-weight:700">${tipo}</td>
+        </tr>`;
+    }).join("");
 
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
+  ventana.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Movimientos — DespensaFamily</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #fff;
+      color: #212529;
+      padding: 24px 28px;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
 
-          th, td {
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: left;
-            font-size: 12px;
-          }
+    /* ── ENCABEZADO ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #0288d1;
+    }
+    .header-logo { font-size: 44px; line-height: 1; }
+    .header-empresa { font-size: 20px; font-weight: 800; color: #0288d1; }
+    .header-titulo { font-size: 13px; color: #546e7a; margin-top: 2px; font-weight: 500; }
+    .header-meta { font-size: 11px; color: #90a4ae; margin-top: 3px; }
 
-          th {
-            background-color: #f0f0f0;
-          }
+    /* ── BANDA DE PERÍODO ── */
+    .periodo-bar {
+      display: flex;
+      gap: 24px;
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: #01579b;
+    }
+    .periodo-bar span { font-weight: 700; }
 
-          tr {
-            page-break-inside: avoid;
-          }
-        </style>
-      </head>
-      <body>
-        <h2>Movimientos de Stock</h2>
-        ${tabla.outerHTML}
-      </body>
-    </html>
-  `);
+    /* ── TABLA ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    thead th {
+      background: #e3f2fd;
+      color: #01579b;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 9px 12px;
+      border: 1px solid #b0bec5;
+      text-align: left;
+    }
+    tbody td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #e0e0e0;
+      border-left: 1px solid #eceff1;
+      border-right: 1px solid #eceff1;
+      color: #37474f;
+    }
+    tbody tr:last-child td { border-bottom: 1px solid #b0bec5; }
+
+    /* ── PIE ── */
+    .footer {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #90a4ae;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 8px;
+    }
+
+    @media print {
+      @page { margin: 15mm 12mm; size: A4 portrait; }
+      body { padding: 0; }
+      tr { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-logo">🏪</div>
+    <div>
+      <div class="header-empresa">DespensaFamily</div>
+      <div class="header-titulo">Reporte de Movimientos de Stock</div>
+      <div class="header-meta">Impreso el ${ahora}</div>
+    </div>
+  </div>
+
+  <div class="periodo-bar">
+    <div>Período: <span>${desde}</span> al <span>${hasta}</span></div>
+    <div>Total registros: <span>${tabla.querySelectorAll("tbody tr").length}</span></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Tipo</th>
+      </tr>
+    </thead>
+    <tbody>${filas}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>DespensaFamily — Control de Stock</span>
+    <span>${ahora}</span>
+  </div>
+
+</body>
+</html>`);
 
   ventana.document.close();
   ventana.print();
@@ -181,6 +287,11 @@ btnImprimir.addEventListener("click", () => {
 });
 
 // ---------------- INIT ----------------
+const printFecha = document.getElementById("print-fecha");
+if (printFecha) {
+  printFecha.textContent = new Date().toLocaleString("es-AR", { dateStyle: "long", timeStyle: "short" });
+}
+
 inicializarFechas();
 cargarProductosBajoStock();
 cargarProductosMasVendidos();

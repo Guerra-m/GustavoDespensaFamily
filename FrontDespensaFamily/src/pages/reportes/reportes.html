@@ -15,9 +15,21 @@
   <div id="navbar-container"></div>
 
 
+  <!-- Encabezado que solo se ve al imprimir -->
+  <div class="print-header">
+    <div class="print-header-logo">DF</div>
+    <div class="print-header-info">
+      <div class="print-header-empresa">DespensaFamily</div>
+      <div class="print-header-subtitulo">Reporte General de Stock y Ventas</div>
+      <div class="print-header-fecha" id="print-fecha"></div>
+    </div>
+  </div>
+
   <main class="content">
-    <h1>Reportes</h1>
-    <button id="btn-imprimir">🖨️ Imprimir Reporte</button>
+    <div class="page-top-bar">
+      <h1>Reportes</h1>
+      <button id="btn-imprimir">🖨️ Imprimir Reporte</button>
+    </div>
 
     <!-- Productos bajo stock -->
     <section>

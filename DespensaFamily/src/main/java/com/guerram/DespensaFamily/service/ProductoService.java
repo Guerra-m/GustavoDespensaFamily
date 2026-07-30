@@ -96,6 +96,9 @@ public class ProductoService {
         producto.setStock(dto.getStock());
         producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setProveedor(dto.getProveedor());
+        producto.setTipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD");
+        producto.setUnidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u");
+        producto.setFraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0);
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
