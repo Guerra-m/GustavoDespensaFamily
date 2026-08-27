@@ -329,6 +329,15 @@ function actualizarStockLocal(itemsVendidos: DetalleVentaRequest[]) {
    FUNCIONES CLAVE
 ======================= */
 
+// Atajo tipo caja de supermercado: "3x<código>" agrega 3 unidades en
+// vez de 1. Los códigos de barra reales son puramente numéricos, así
+// que esto nunca choca con un escaneo normal (de teclado o cámara).
+function extraerMultiplicador(codigo: string): { multiplicador: number | null; codigoBarras: string } {
+  const match = codigo.match(/^(\d+)x(.+)$/i);
+  if (!match) return { multiplicador: null, codigoBarras: codigo };
+  return { multiplicador: Number(match[1]), codigoBarras: match[2].trim() };
+}
+
 async function procesarCodigoEscaneado(codigo: string) {
   codigo = codigo.trim();
 
@@ -338,15 +347,20 @@ async function procesarCodigoEscaneado(codigo: string) {
 
   if (!productos.length) await cargarProductos();
 
-  const producto = productos.find(p => String(p.codigoBarras) === codigo);
+  const { multiplicador, codigoBarras } = extraerMultiplicador(codigo);
+  const producto = productos.find(p => String(p.codigoBarras) === codigoBarras);
 
   if (!producto) {
     mostrarToast("Producto no encontrado", true);
     return;
   }
 
-  mostrarToast(`Producto encontrado: ${producto.nombre}`);
   seleccionarProducto(producto);
+
+  if (multiplicador && multiplicador > 0) {
+    inputCantidad.value = multiplicador.toString();
+    mostrarToast(`Producto encontrado: ${producto.nombre} (x${multiplicador})`);
+  }
 
   await cerrarScanner();
 }
@@ -487,6 +501,14 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
   } else {
     mostrarToast("Producto no encontrado", true);
   }
+});
+
+// Enter en "Cantidad" agrega al carrito, igual que tocar "Agregar"
+// (útil cuando el producto se eligió a mano tocando una tarjeta).
+inputCantidad.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  btnAgregar.click();
 });
 
 // btnScanCamara.addEventListener("click", abrirScanner);
