@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.repository;
 
+import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
 import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
@@ -84,6 +85,24 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     ORDER BY SUM(dv.subtotal) DESC
     """)
     List<VentasPorCategoriaDTO> ventasPorCategoria(
+            @Param("desde") LocalDate desde,
+            @Param("hasta") LocalDate hasta
+    );
+
+    @Query("""
+    SELECT new com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO(
+        v.fechaHora,
+        SUM(dv.subtotal),
+        SUM(dv.cantidad * (dv.precioUnitario - dv.precioCosto))
+    )
+    FROM DetalleVenta dv
+    JOIN dv.venta v
+    WHERE v.fechaHora BETWEEN :desde AND :hasta
+    AND v.estado = 'ACTIVA'
+    GROUP BY v.fechaHora
+    ORDER BY v.fechaHora
+    """)
+    List<GananciaPorFechaDTO> gananciaPorFecha(
             @Param("desde") LocalDate desde,
             @Param("hasta") LocalDate hasta
     );

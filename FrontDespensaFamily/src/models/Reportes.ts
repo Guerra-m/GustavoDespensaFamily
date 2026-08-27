@@ -34,3 +34,9 @@ export interface VentasPorCategoria {
   totalVentas: number;
   cantidadVendida: number;
 }
+
+export interface GananciaPorFecha {
+  fecha: string;
+  totalVentas: number;
+  ganancia: number;
+}

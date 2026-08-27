@@ -1,4 +1,4 @@
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria } from "../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha } from "../models/Reportes";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/reportes`;
@@ -45,5 +45,12 @@ export async function getVentasPorCategoria(desde: string, hasta: string): Promi
   const params = new URLSearchParams({ desde, hasta });
   const res = await fetch(`${BASE_URL}/ventas-por-categoria?${params.toString()}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Error al obtener ventas por categoría");
+  return res.json();
+}
+
+export async function getGananciaPorFecha(desde: string, hasta: string): Promise<GananciaPorFecha[]> {
+  const params = new URLSearchParams({ desde, hasta });
+  const res = await fetch(`${BASE_URL}/ganancia?${params.toString()}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Error al obtener ganancia en el tiempo");
   return res.json();
 }

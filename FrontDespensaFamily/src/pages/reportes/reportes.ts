@@ -1,13 +1,14 @@
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria } from "../../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha } from "../../models/Reportes";
 import {
   getProductosBajoStock,
   getProductosMasVendidos,
   getMovimientos,
   getResumenVentas,
-  getVentasPorCategoria
+  getVentasPorCategoria,
+  getGananciaPorFecha
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
 
@@ -18,13 +19,16 @@ const tablaMovimientos = document.getElementById("tabla-movimientos") as HTMLTab
 const tablaVentasCategoria = document.getElementById("tabla-ventas-categoria") as HTMLTableElement;
 const resumenContainer = document.getElementById("resumen-container") as HTMLDivElement;
 
+const tablaGanancia = document.getElementById("tabla-ganancia") as HTMLTableElement;
 const canvasMasVendidos = document.getElementById("chart-mas-vendidos") as HTMLCanvasElement;
 const canvasMovimientos = document.getElementById("chart-movimientos") as HTMLCanvasElement;
 const canvasVentasCategoria = document.getElementById("chart-ventas-categoria") as HTMLCanvasElement;
+const canvasGanancia = document.getElementById("chart-ganancia") as HTMLCanvasElement;
 
 let chartMasVendidos: Chart | null = null;
 let chartMovimientos: Chart | null = null;
 let chartVentasCategoria: Chart | null = null;
+let chartGanancia: Chart | null = null;
 
 const inputMasVendidosDesde = document.getElementById("fecha-desde") as HTMLInputElement;
 const inputMasVendidosHasta = document.getElementById("fecha-hasta") as HTMLInputElement;
@@ -32,10 +36,13 @@ const inputMovDesde = document.getElementById("mov-desde") as HTMLInputElement;
 const inputMovHasta = document.getElementById("mov-hasta") as HTMLInputElement;
 const inputCatDesde = document.getElementById("cat-desde") as HTMLInputElement;
 const inputCatHasta = document.getElementById("cat-hasta") as HTMLInputElement;
+const inputGanDesde = document.getElementById("gan-desde") as HTMLInputElement;
+const inputGanHasta = document.getElementById("gan-hasta") as HTMLInputElement;
 const selectPeriodo = document.getElementById("select-periodo") as HTMLSelectElement;
 
 const btnMasVendidos = document.getElementById("btn-mas-vendidos") as HTMLButtonElement;
 const btnVentasCategoria = document.getElementById("btn-ventas-categoria") as HTMLButtonElement;
+const btnGanancia = document.getElementById("btn-ganancia") as HTMLButtonElement;
 const btnMovimientos = document.getElementById("btn-movimientos") as HTMLButtonElement;
 const btnResumen = document.getElementById("btn-resumen") as HTMLButtonElement;
 
@@ -55,6 +62,9 @@ function inicializarFechas() {
 
   inputCatDesde.value = formatDate(haceUnMes);
   inputCatHasta.value = formatDate(hoy);
+
+  inputGanDesde.value = formatDate(haceUnMes);
+  inputGanHasta.value = formatDate(hoy);
 }
 
 // ---------------- FUNCIONES ----------------
@@ -169,6 +179,64 @@ function renderVentasPorCategoriaChart(categorias: VentasPorCategoria[]) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { position: "right" } }
+    }
+  });
+}
+
+async function cargarGanancia() {
+  try {
+    const desde = inputGanDesde.value;
+    const hasta = inputGanHasta.value;
+    if (!desde || !hasta) {
+      alert("Seleccioná desde y hasta");
+      return;
+    }
+
+    const datos: GananciaPorFecha[] = await getGananciaPorFecha(desde, hasta);
+    const tbody = tablaGanancia.querySelector("tbody")!;
+    tbody.innerHTML = "";
+    datos.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${d.fecha}</td><td>$${d.totalVentas.toLocaleString()}</td><td>$${d.ganancia.toLocaleString()}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    renderGananciaChart(datos);
+  } catch (err) {
+    console.error(err);
+    alert("Error al obtener la ganancia en el tiempo");
+  }
+}
+
+function renderGananciaChart(datos: GananciaPorFecha[]) {
+  chartGanancia?.destroy();
+  chartGanancia = new Chart(canvasGanancia, {
+    type: "line",
+    data: {
+      labels: datos.map(d => d.fecha),
+      datasets: [
+        {
+          label: "Total vendido ($)",
+          data: datos.map(d => d.totalVentas),
+          borderColor: "rgba(2, 136, 209, 1)",
+          backgroundColor: "rgba(2, 136, 209, 0.15)",
+          tension: 0.25,
+          fill: true
+        },
+        {
+          label: "Ganancia ($)",
+          data: datos.map(d => d.ganancia),
+          borderColor: "rgba(67, 160, 71, 1)",
+          backgroundColor: "rgba(67, 160, 71, 0.15)",
+          tension: 0.25,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
@@ -418,6 +486,7 @@ function imprimirMovimientos() {
 // ---------------- EVENTOS ----------------
 btnMasVendidos.addEventListener("click", cargarProductosMasVendidos);
 btnVentasCategoria.addEventListener("click", cargarVentasPorCategoria);
+btnGanancia.addEventListener("click", cargarGanancia);
 btnMovimientos.addEventListener("click", cargarMovimientos);
 btnResumen.addEventListener("click", cargarResumen);
 const btnImprimir = document.getElementById("btn-imprimir") as HTMLButtonElement;
@@ -436,5 +505,6 @@ inicializarFechas();
 cargarProductosBajoStock();
 cargarProductosMasVendidos();
 cargarVentasPorCategoria();
+cargarGanancia();
 cargarMovimientos();
 cargarResumen();

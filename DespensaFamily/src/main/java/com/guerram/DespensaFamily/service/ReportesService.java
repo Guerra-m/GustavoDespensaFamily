@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
@@ -88,6 +89,13 @@ public class ReportesService {
             LocalDate hasta
     ) {
         return detalleVentaRepository.ventasPorCategoria(desde, hasta);
+    }
+
+    public List<GananciaPorFechaDTO> gananciaPorFecha(
+            LocalDate desde,
+            LocalDate hasta
+    ) {
+        return detalleVentaRepository.gananciaPorFecha(desde, hasta);
     }
 
     public List<MovimientoDTO> movimientosPorFecha(

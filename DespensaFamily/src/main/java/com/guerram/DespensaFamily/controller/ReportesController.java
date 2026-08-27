@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
@@ -50,6 +51,14 @@ public class ReportesController {
             @RequestParam LocalDate hasta
     ) {
         return reportesService.ventasPorCategoria(desde, hasta);
+    }
+
+    @GetMapping("/ganancia")
+    public List<GananciaPorFechaDTO> gananciaPorFecha(
+            @RequestParam LocalDate desde,
+            @RequestParam LocalDate hasta
+    ) {
+        return reportesService.gananciaPorFecha(desde, hasta);
     }
 
     @GetMapping("/movimientos")
