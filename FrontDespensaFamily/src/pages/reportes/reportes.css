@@ -167,6 +167,21 @@ button:not(.menu-toggle):active {
   background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
 }
 
+/* GRÁFICOS */
+.chart-wrap {
+  margin-top: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  height: 280px;
+}
+
+.chart-wrap canvas {
+  max-height: 100%;
+}
+
 /* TABLAS */
 table {
   width: 100%;
@@ -510,7 +525,8 @@ tbody:empty::after {
   #btn-movimientos,
   #btn-resumen,
   input[type="date"],
-  section label {
+  section label,
+  .chart-wrap {
     display: none !important;
   }
 

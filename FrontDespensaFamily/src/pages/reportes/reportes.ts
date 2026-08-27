@@ -8,12 +8,19 @@ import {
   getMovimientos,
   getResumenVentas
 } from "../../services/reportes.service";
+import Chart from "chart.js/auto";
 
 // ---------------- DOM ----------------
 const tablaBajoStock = document.getElementById("tabla-bajo-stock") as HTMLTableElement;
 const tablaMasVendidos = document.getElementById("tabla-mas-vendidos") as HTMLTableElement;
 const tablaMovimientos = document.getElementById("tabla-movimientos") as HTMLTableElement;
 const resumenContainer = document.getElementById("resumen-container") as HTMLDivElement;
+
+const canvasMasVendidos = document.getElementById("chart-mas-vendidos") as HTMLCanvasElement;
+const canvasMovimientos = document.getElementById("chart-movimientos") as HTMLCanvasElement;
+
+let chartMasVendidos: Chart | null = null;
+let chartMovimientos: Chart | null = null;
 
 const inputMasVendidosDesde = document.getElementById("fecha-desde") as HTMLInputElement;
 const inputMasVendidosHasta = document.getElementById("fecha-hasta") as HTMLInputElement;
@@ -70,10 +77,38 @@ async function cargarProductosMasVendidos() {
       tr.innerHTML = `<td>${p.productoId}</td><td>${p.nombre}</td><td>${p.cantidadVendida}</td>`;
       tbody.appendChild(tr);
     });
+
+    renderMasVendidosChart(productos);
   } catch (err) {
     console.error(err);
     alert("Error al obtener productos más vendidos");
   }
+}
+
+function renderMasVendidosChart(productos: ProductoMasVendido[]) {
+  const top10 = productos.slice(0, 10);
+
+  chartMasVendidos?.destroy();
+  chartMasVendidos = new Chart(canvasMasVendidos, {
+    type: "bar",
+    data: {
+      labels: top10.map(p => p.nombre),
+      datasets: [{
+        label: "Unidades vendidas",
+        data: top10.map(p => p.cantidadVendida),
+        backgroundColor: "rgba(2, 136, 209, 0.6)",
+        borderColor: "rgba(2, 136, 209, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
 }
 
 async function cargarMovimientos() {
@@ -89,10 +124,52 @@ async function cargarMovimientos() {
       tr.innerHTML = `<td>${m.fecha}</td><td>${m.productoNombre}</td><td>${m.cantidad}</td><td>${m.tipo}</td>`;
       tbody.appendChild(tr);
     });
+
+    renderMovimientosChart(movimientos);
   } catch (err) {
     console.error(err);
     alert("Error al obtener movimientos");
   }
+}
+
+function renderMovimientosChart(movimientos: Movimiento[]) {
+  const porFecha: Record<string, { compras: number; ventas: number }> = {};
+  movimientos.forEach(m => {
+    if (!porFecha[m.fecha]) porFecha[m.fecha] = { compras: 0, ventas: 0 };
+    if (m.tipo === "COMPRA") porFecha[m.fecha].compras += m.subtotal;
+    else porFecha[m.fecha].ventas += m.subtotal;
+  });
+
+  const fechas = Object.keys(porFecha).sort();
+
+  chartMovimientos?.destroy();
+  chartMovimientos = new Chart(canvasMovimientos, {
+    type: "bar",
+    data: {
+      labels: fechas,
+      datasets: [
+        {
+          label: "Compras ($)",
+          data: fechas.map(f => porFecha[f].compras),
+          backgroundColor: "rgba(2, 87, 155, 0.6)",
+          borderColor: "rgba(2, 87, 155, 1)",
+          borderWidth: 1
+        },
+        {
+          label: "Ventas ($)",
+          data: fechas.map(f => porFecha[f].ventas),
+          backgroundColor: "rgba(46, 125, 50, 0.6)",
+          borderColor: "rgba(46, 125, 50, 1)",
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 }
 
 async function cargarResumen() {
