@@ -10,6 +10,7 @@ export interface Producto {
     tipoCantidad?: "UNIDAD" | "PESO";
     unidadMedida?: "u" | "kg";
     fraccionMinima?: number;
+    unidadesPorPaquete?: number;
     codigoBarras?: string;
     proveedor?: string;
     categoriaId?: number; 

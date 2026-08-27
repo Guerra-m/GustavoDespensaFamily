@@ -29,6 +29,12 @@ public class Producto {
     private String tipoCantidad; // "UNIDAD" | "PESO"
     private String unidadMedida; // "u" | "kg"
     private Double fraccionMinima; // 1 o 0.001
+
+    // Cuántas unidades sueltas trae un paquete de este producto (ej: 8).
+    // Solo aplica si tipoCantidad = "UNIDAD". El stock siempre se guarda
+    // en unidades sueltas; esto es solo para comprar/mostrar por paquete.
+    private Integer unidadesPorPaquete;
+
     @ManyToOne
     @JoinColumn(name= "categoria_id")
     private Categoria categoria;

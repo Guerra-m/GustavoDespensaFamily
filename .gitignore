@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Scripts locales de ejecución
+backend.bat
+close_all.bat
+start_all.txt

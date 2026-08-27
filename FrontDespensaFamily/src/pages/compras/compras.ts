@@ -37,13 +37,39 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
   return `${cantidad} ${unidadProducto(producto)}`;
 }
 
+function esProductoPorPaquete(producto: Producto): boolean {
+  return !esProductoPesable(producto) && !!producto.unidadesPorPaquete && producto.unidadesPorPaquete >= 2;
+}
+
+function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
+  const upp = producto?.unidadesPorPaquete;
+  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
+  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
+}
+
+function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
+  const base = formatearCantidad(cantidad, producto);
+  const desglose = desglosePaquete(cantidad, producto);
+  if (!desglose) return base;
+  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
+}
+
 function configurarInputCantidadCompra(producto: Producto) {
+  if (esProductoPorPaquete(producto)) {
+    inputCantidad.step = "1";
+    inputCantidad.min = "1";
+    inputCantidad.placeholder = `Cantidad de paquetes (x${producto.unidadesPorPaquete} u c/u)`;
+    inputPrecioCosto.placeholder = "Precio costo por paquete";
+    return;
+  }
+
   const step = fraccionMinima(producto);
   inputCantidad.step = step.toString();
   inputCantidad.min = step.toString();
   inputCantidad.placeholder = esProductoPesable(producto)
     ? `Cantidad en ${unidadProducto(producto)}`
     : "Cantidad en unidades";
+  inputPrecioCosto.placeholder = "Precio costo";
 }
 
 // ---------------- DOM ----------------
@@ -133,18 +159,28 @@ async function cargarProductos() {
 // Agregar detalle
 btnAgregar.addEventListener("click", () => {
   const productoId = Number(selectProducto.value);
-  const cantidad = Number(inputCantidad.value);
-  const precioCosto = Number(inputPrecioCosto.value);
+  const cantidadIngresada = Number(inputCantidad.value);
+  const precioIngresado = Number(inputPrecioCosto.value);
   const producto = productos.find(p => p.id === productoId);
 
-  if (!productoId || cantidad <= 0 || precioCosto < 0 || !producto) {
+  if (!productoId || cantidadIngresada <= 0 || precioIngresado < 0 || !producto) {
     alert("Datos inválidos");
     return;
   }
 
-  if (!esProductoPesable(producto) && !Number.isInteger(cantidad)) {
+  if (!esProductoPesable(producto) && !Number.isInteger(cantidadIngresada)) {
     alert("Este producto se compra por unidad, la cantidad debe ser entera");
     return;
+  }
+
+  // Si el producto se compra por paquete, acá adentro se ingresan
+  // paquetes y costo-por-paquete; se convierte a unidades sueltas
+  // y costo-por-unidad antes de guardar (el backend no cambia).
+  let cantidad = cantidadIngresada;
+  let precioCosto = precioIngresado;
+  if (esProductoPorPaquete(producto)) {
+    cantidad = cantidadIngresada * producto.unidadesPorPaquete!;
+    precioCosto = precioIngresado / producto.unidadesPorPaquete!;
   }
 
   detallesCompra.push({ productoId, cantidad, precioCosto });
@@ -165,7 +201,7 @@ function renderDetalles() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${producto?.nombre || "Producto"}</td>
-      <td>${formatearCantidad(d.cantidad, producto)}</td>
+      <td>${formatearCantidadConPaquete(d.cantidad, producto)}</td>
       <td>$${d.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
       <td>${(d.cantidad * d.precioCosto).toFixed(2)}</td>
       <td>
@@ -252,7 +288,7 @@ async function verDetalleCompra(id: number) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
         <td>${nombre}</td>
-        <td>${formatearCantidad(det.cantidad, producto)}</td>
+        <td>${formatearCantidadConPaquete(det.cantidad, producto)}</td>
         <td>$${det.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td>$${subtotal.toFixed(2)}</td>
     `;

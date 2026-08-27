@@ -80,6 +80,19 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
   return `${cantidad} ${unidadProducto(producto)}`;
 }
 
+function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
+  const upp = producto?.unidadesPorPaquete;
+  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
+  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
+}
+
+function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
+  const base = formatearCantidad(cantidad, producto);
+  const desglose = desglosePaquete(cantidad, producto);
+  if (!desglose) return base;
+  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
+}
+
 /* =======================
    CARGA DE DATOS
 ======================= */
@@ -148,7 +161,7 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
     <div class="producto-info">
       <div class="producto-nombre">${prod.nombre}</div>
       <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
-      <div class="producto-stock">Stock: ${prod.stock} ${unidadProducto(prod)}</div>
+      <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
   `;
   card.addEventListener("click", () => seleccionarProducto(prod));
@@ -281,7 +294,7 @@ function renderCarrito() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${prod.nombre}</td>
-      <td>${formatearCantidad(item.cantidad, prod)}</td>
+      <td>${formatearCantidadConPaquete(item.cantidad, prod)}</td>
       <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
       <td>$${subtotal.toFixed(2)}</td>
       <td><button class="btn-quitar" data-index="${index}">Quitar</button></td>
@@ -298,6 +311,18 @@ function renderCarrito() {
       renderCarrito();
     });
   });
+}
+
+// Descuenta localmente lo vendido, sin volver a pedir todo el listado
+// al backend: la venta ya restó el stock ahí, acá solo reflejamos ese
+// mismo descuento en el array que tenemos en memoria.
+function actualizarStockLocal(itemsVendidos: DetalleVentaRequest[]) {
+  itemsVendidos.forEach(item => {
+    const prod = productos.find(p => p.id === item.productoId);
+    if (prod) prod.stock -= item.cantidad;
+  });
+  renderProductosGrid(inputBuscarProducto.value);
+  renderCategoriasSection();
 }
 
 /* =======================
@@ -339,7 +364,7 @@ async function abrirDetalleVenta(ventaId: number) {
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${nombre}</td><td>${formatearCantidad(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
+    tr.innerHTML = `<td>${nombre}</td><td>${formatearCantidadConPaquete(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
     tablaDetalleVenta.appendChild(tr);
     total += item.subtotal;
   });
@@ -435,12 +460,13 @@ btnConfirmar.addEventListener("click", async () => {
 
   const ventaCreada = await createVenta({ detalles: carrito });
 
+  actualizarStockLocal(carrito);
   carrito = [];
   renderCarrito();
   cargarVentas();
 
   await imprimirTicket(ventaCreada);
-  
+
   mostrarToast("Venta registrada exitosamente");
 });
 
@@ -495,7 +521,7 @@ async function imprimirTicket(venta: Venta) {
     filas += `
       <tr>
         <td>${nombre}</td>
-        <td style="text-align:center">${formatearCantidad(d.cantidad, producto)}</td>
+        <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
         <td style="text-align:right">$${d.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td style="text-align:right">$${d.subtotal.toFixed(2)}</td>
       </tr>

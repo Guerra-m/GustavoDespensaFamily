@@ -33,6 +33,7 @@ public class ProductoDTO {
     private String tipoCantidad;
     private String unidadMedida;
     private Double fraccionMinima;
+    private Integer unidadesPorPaquete;
     private String codigoBarras;
 
     private String imagenUrl;

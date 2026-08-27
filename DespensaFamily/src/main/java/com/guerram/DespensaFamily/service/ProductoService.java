@@ -99,6 +99,7 @@ public class ProductoService {
         producto.setTipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD");
         producto.setUnidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u");
         producto.setFraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0);
+        producto.setUnidadesPorPaquete(dto.getUnidadesPorPaquete());
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())

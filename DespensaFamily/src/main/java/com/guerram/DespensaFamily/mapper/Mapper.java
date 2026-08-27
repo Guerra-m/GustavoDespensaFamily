@@ -24,6 +24,7 @@ public class Mapper {
                 .tipoCantidad(p.getTipoCantidad())
                 .unidadMedida(p.getUnidadMedida())
                 .fraccionMinima(p.getFraccionMinima())
+                .unidadesPorPaquete(p.getUnidadesPorPaquete())
                 .build();
     }
 
@@ -119,6 +120,7 @@ public class Mapper {
                 .tipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD")
                 .unidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u")
                 .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0)
+                .unidadesPorPaquete(dto.getUnidadesPorPaquete())
                 .build();
 
         return p;
