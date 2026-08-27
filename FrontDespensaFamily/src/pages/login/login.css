@@ -7,197 +7,212 @@
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+}
+
+/* ══════════════════════════════════════
+   LAYOUT SPLIT-SCREEN
+══════════════════════════════════════ */
+.login-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+}
+
+/* ══════════════════════════════════════
+   PANEL IZQUIERDO — HERO ILUSTRADO
+══════════════════════════════════════ */
+.login-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0288d1 0%, #01579b 65%, #013a68 100%);
+  color: #ffffff;
+  padding: 48px 56px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #071525;
-  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-/* ══════════════════════════════════════
-   FONDO CON BLOBS ANIMADOS
-══════════════════════════════════════ */
-.bg {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(145deg, #071525 0%, #0d2a4a 60%, #071e3a 100%);
-  z-index: 0;
-}
-
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  animation: blobFloat 10s ease-in-out infinite;
-}
-
-.blob-1 {
-  width: 560px;
-  height: 560px;
-  background: radial-gradient(circle, #0288d1 0%, #01579b 70%);
-  top: -180px;
-  left: -140px;
-  opacity: 0.45;
-  animation-delay: 0s;
-}
-
-.blob-2 {
-  width: 440px;
-  height: 440px;
-  background: radial-gradient(circle, #4fc3f7 0%, #0288d1 70%);
-  bottom: -120px;
-  right: -100px;
-  opacity: 0.35;
-  animation-delay: -4s;
-}
-
-.blob-3 {
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, #81d4fa 0%, #4fc3f7 70%);
-  top: 40%;
-  left: 40%;
-  opacity: 0.12;
-  animation-delay: -7s;
-}
-
-@keyframes blobFloat {
-  0%, 100% { transform: translate(0px, 0px) scale(1); }
-  25%       { transform: translate(25px, -35px) scale(1.04); }
-  50%       { transform: translate(-15px, 20px) scale(0.97); }
-  75%       { transform: translate(10px, -10px) scale(1.02); }
-}
-
-/* ══════════════════════════════════════
-   CARD
-══════════════════════════════════════ */
-.login-wrapper {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
-}
-
-.login-card {
-  background: #ffffff;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow:
-    0 30px 70px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
-  animation: cardEntrada 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes cardEntrada {
-  from {
-    opacity: 0;
-    transform: translateY(50px) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ══════════════════════════════════════
-   SECCIÓN DE MARCA
-══════════════════════════════════════ */
-.brand {
-  background: linear-gradient(145deg, #0288d1 0%, #01579b 100%);
-  padding: 44px 32px 36px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Patrón de puntos sutil */
-.brand::before {
+/* Patrón de puntos sutil, igual espíritu que el resto de la app */
+.login-hero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
   pointer-events: none;
 }
 
-/* Arco decorativo inferior */
-.brand::after {
-  content: '';
+/* ── Partículas flotantes ── */
+.hero-particles {
   position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 140%;
-  height: 60px;
-  background: #ffffff;
-  border-radius: 50% 50% 0 0 / 60px 60px 0 0;
+  inset: 0;
+  pointer-events: none;
 }
 
-.brand-icon {
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  animation: particulaFlotar 6s ease-in-out infinite;
+}
+
+@keyframes particulaFlotar {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+  50%      { transform: translateY(-22px) scale(1.15); opacity: 0.9; }
+}
+
+/* ── Logo superior ── */
+.hero-top {
   position: relative;
   z-index: 1;
-  width: 76px;
-  height: 76px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  border-radius: 22px;
+}
+
+.hero-logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 18px;
-  backdrop-filter: blur(6px);
-  animation: iconoPulso 3.5s ease-in-out infinite;
-}
-
-.brand-icon svg {
-  width: 38px;
-  height: 38px;
-  color: #ffffff;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-}
-
-@keyframes iconoPulso {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 0 14px rgba(255, 255, 255, 0);
-  }
-}
-
-.brand h1 {
-  position: relative;
-  z-index: 1;
-  font-size: 27px;
+  gap: 10px;
   font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-  margin-bottom: 6px;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  font-size: 18px;
+  letter-spacing: -0.3px;
 }
 
-.brand-sub {
+.hero-logo svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* ── Título y bajada ── */
+.hero-content {
   position: relative;
   z-index: 1;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 400;
-  letter-spacing: 0.2px;
+}
+
+.hero-content h1 {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+.hero-content p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* ── Ilustración ── */
+.hero-illustration {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 4px auto;
+  align-self: center;
+}
+
+.hero-illustration svg {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.25));
+}
+
+/* ── Tarjetas de features ── */
+.hero-features {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 14px;
+}
+
+.feature-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 14px 8px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.feature-icon {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 6px;
 }
 
 /* ══════════════════════════════════════
-   FORMULARIO
+   PANEL DERECHO — FORMULARIO
 ══════════════════════════════════════ */
-form {
-  padding: 40px 32px 32px;
+.login-form-panel {
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.login-form-wrapper {
+  width: 100%;
+  max-width: 360px;
+  animation: formEntrada 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes formEntrada {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Marca visible solo en mobile (cuando se oculta el panel hero) */
+.mobile-brand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 17px;
+  color: #01579b;
+  margin-bottom: 28px;
+}
+
+.mobile-brand .brand-icon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(145deg, #0288d1 0%, #01579b 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.mobile-brand .brand-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.form-heading {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+  letter-spacing: -0.4px;
 }
 
 .form-title {
   font-size: 14px;
   color: #6c757d;
-  margin-bottom: 24px;
-  text-align: center;
+  margin-bottom: 28px;
   font-weight: 500;
 }
 
@@ -267,19 +282,19 @@ button[type="submit"] {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 4px 18px rgba(2, 136, 209, 0.45);
+  box-shadow: 0 4px 18px rgba(2, 136, 209, 0.35);
   transition: all 0.22s ease;
 }
 
 button[type="submit"]:hover:not(:disabled) {
   background: linear-gradient(135deg, #0277bd 0%, #014377 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(2, 136, 209, 0.5);
+  box-shadow: 0 8px 24px rgba(2, 136, 209, 0.4);
 }
 
 button[type="submit"]:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.35);
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.3);
 }
 
 button[type="submit"]:disabled {
@@ -322,20 +337,27 @@ button[type="submit"]:disabled {
   background: #ffebee;
 }
 
-/* ── Pie ── */
-.login-card-footer {
-  text-align: center;
-  padding: 0 32px 24px;
-  font-size: 12px;
-  color: #adb5bd;
-}
-
 /* ══════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════ */
+@media (max-width: 900px) {
+  .login-split {
+    grid-template-columns: 1fr;
+  }
+
+  .login-hero {
+    display: none;
+  }
+
+  .login-form-panel {
+    padding: 32px 20px;
+  }
+
+  .mobile-brand {
+    display: flex;
+  }
+}
+
 @media (max-width: 480px) {
-  .login-wrapper { padding: 12px; }
-  .brand { padding: 32px 20px 28px; }
-  form  { padding: 32px 20px 24px; }
-  .brand h1 { font-size: 23px; }
+  .form-heading { font-size: 22px; }
 }
