@@ -4,6 +4,7 @@ import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ResumenVentasDTO;
+import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.repository.DetalleCompraRepository;
 import com.guerram.DespensaFamily.repository.DetalleVentaRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
@@ -80,6 +81,13 @@ public class ReportesService {
                         .map(prod -> prod.isActivo())
                         .orElse(false)) // 🔹 solo productos activos
                 .toList();
+    }
+
+    public List<VentasPorCategoriaDTO> ventasPorCategoria(
+            LocalDate desde,
+            LocalDate hasta
+    ) {
+        return detalleVentaRepository.ventasPorCategoria(desde, hasta);
     }
 
     public List<MovimientoDTO> movimientosPorFecha(

@@ -69,6 +69,29 @@
       </table>
     </section>
 
+    <!-- Ventas por categoría -->
+    <section>
+      <h2>Ventas por Categoría</h2>
+      <label>
+        Desde: <input type="date" id="cat-desde" />
+        Hasta: <input type="date" id="cat-hasta" />
+      </label>
+      <button id="btn-ventas-categoria">Buscar</button>
+      <div class="chart-wrap">
+        <canvas id="chart-ventas-categoria"></canvas>
+      </div>
+      <table id="tabla-ventas-categoria">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Total Vendido</th>
+            <th>Unidades</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
     <!-- Movimientos por fecha -->
  <section id="seccion-movimientos">
   <h2>Movimientos</h2>

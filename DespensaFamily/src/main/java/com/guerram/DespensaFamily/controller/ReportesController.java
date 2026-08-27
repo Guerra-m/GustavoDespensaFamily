@@ -4,6 +4,7 @@ import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ResumenVentasDTO;
+import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.service.ReportesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,6 +42,14 @@ public class ReportesController {
             @RequestParam LocalDate hasta
     ) {
         return reportesService.productosMasVendidos(desde, hasta);
+    }
+
+    @GetMapping("/ventas-por-categoria")
+    public List<VentasPorCategoriaDTO> ventasPorCategoria(
+            @RequestParam LocalDate desde,
+            @RequestParam LocalDate hasta
+    ) {
+        return reportesService.ventasPorCategoria(desde, hasta);
     }
 
     @GetMapping("/movimientos")

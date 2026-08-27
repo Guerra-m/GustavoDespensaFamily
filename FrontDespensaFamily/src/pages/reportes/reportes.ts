@@ -1,12 +1,13 @@
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas } from "../../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria } from "../../models/Reportes";
 import {
   getProductosBajoStock,
   getProductosMasVendidos,
   getMovimientos,
-  getResumenVentas
+  getResumenVentas,
+  getVentasPorCategoria
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
 
@@ -14,21 +15,27 @@ import Chart from "chart.js/auto";
 const tablaBajoStock = document.getElementById("tabla-bajo-stock") as HTMLTableElement;
 const tablaMasVendidos = document.getElementById("tabla-mas-vendidos") as HTMLTableElement;
 const tablaMovimientos = document.getElementById("tabla-movimientos") as HTMLTableElement;
+const tablaVentasCategoria = document.getElementById("tabla-ventas-categoria") as HTMLTableElement;
 const resumenContainer = document.getElementById("resumen-container") as HTMLDivElement;
 
 const canvasMasVendidos = document.getElementById("chart-mas-vendidos") as HTMLCanvasElement;
 const canvasMovimientos = document.getElementById("chart-movimientos") as HTMLCanvasElement;
+const canvasVentasCategoria = document.getElementById("chart-ventas-categoria") as HTMLCanvasElement;
 
 let chartMasVendidos: Chart | null = null;
 let chartMovimientos: Chart | null = null;
+let chartVentasCategoria: Chart | null = null;
 
 const inputMasVendidosDesde = document.getElementById("fecha-desde") as HTMLInputElement;
 const inputMasVendidosHasta = document.getElementById("fecha-hasta") as HTMLInputElement;
 const inputMovDesde = document.getElementById("mov-desde") as HTMLInputElement;
 const inputMovHasta = document.getElementById("mov-hasta") as HTMLInputElement;
+const inputCatDesde = document.getElementById("cat-desde") as HTMLInputElement;
+const inputCatHasta = document.getElementById("cat-hasta") as HTMLInputElement;
 const selectPeriodo = document.getElementById("select-periodo") as HTMLSelectElement;
 
 const btnMasVendidos = document.getElementById("btn-mas-vendidos") as HTMLButtonElement;
+const btnVentasCategoria = document.getElementById("btn-ventas-categoria") as HTMLButtonElement;
 const btnMovimientos = document.getElementById("btn-movimientos") as HTMLButtonElement;
 const btnResumen = document.getElementById("btn-resumen") as HTMLButtonElement;
 
@@ -45,6 +52,9 @@ function inicializarFechas() {
 
   inputMovDesde.value = formatDate(haceUnMes);
   inputMovHasta.value = formatDate(hoy);
+
+  inputCatDesde.value = formatDate(haceUnMes);
+  inputCatHasta.value = formatDate(hoy);
 }
 
 // ---------------- FUNCIONES ----------------
@@ -107,6 +117,58 @@ function renderMasVendidosChart(productos: ProductoMasVendido[]) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: { x: { beginAtZero: true } }
+    }
+  });
+}
+
+async function cargarVentasPorCategoria() {
+  try {
+    const desde = inputCatDesde.value;
+    const hasta = inputCatHasta.value;
+    if (!desde || !hasta) {
+      alert("Seleccioná desde y hasta");
+      return;
+    }
+
+    const categorias: VentasPorCategoria[] = await getVentasPorCategoria(desde, hasta);
+    const tbody = tablaVentasCategoria.querySelector("tbody")!;
+    tbody.innerHTML = "";
+    categorias.forEach(c => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${c.categoriaNombre}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    renderVentasPorCategoriaChart(categorias);
+  } catch (err) {
+    console.error(err);
+    alert("Error al obtener ventas por categoría");
+  }
+}
+
+const PALETA_CATEGORIAS = [
+  "#0288d1", "#43a047", "#fbc02d", "#e53935", "#8e24aa",
+  "#00897b", "#f4511e", "#3949ab", "#c0ca33", "#6d4c41"
+];
+
+function renderVentasPorCategoriaChart(categorias: VentasPorCategoria[]) {
+  chartVentasCategoria?.destroy();
+  chartVentasCategoria = new Chart(canvasVentasCategoria, {
+    type: "doughnut",
+    data: {
+      labels: categorias.map(c => c.categoriaNombre),
+      datasets: [{
+        label: "Total vendido ($)",
+        data: categorias.map(c => c.totalVentas),
+        backgroundColor: categorias.map((_, i) => PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length]),
+        borderColor: "#ffffff",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "right" } }
     }
   });
 }
@@ -355,6 +417,7 @@ function imprimirMovimientos() {
 
 // ---------------- EVENTOS ----------------
 btnMasVendidos.addEventListener("click", cargarProductosMasVendidos);
+btnVentasCategoria.addEventListener("click", cargarVentasPorCategoria);
 btnMovimientos.addEventListener("click", cargarMovimientos);
 btnResumen.addEventListener("click", cargarResumen);
 const btnImprimir = document.getElementById("btn-imprimir") as HTMLButtonElement;
@@ -372,5 +435,6 @@ if (printFecha) {
 inicializarFechas();
 cargarProductosBajoStock();
 cargarProductosMasVendidos();
+cargarVentasPorCategoria();
 cargarMovimientos();
 cargarResumen();

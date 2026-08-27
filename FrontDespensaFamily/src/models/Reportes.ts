@@ -27,3 +27,10 @@ export interface ResumenVentas {
   cantidadVentas: number;
   ganancia: number;
 }
+
+export interface VentasPorCategoria {
+  categoriaId: number | null;
+  categoriaNombre: string;
+  totalVentas: number;
+  cantidadVendida: number;
+}

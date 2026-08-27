@@ -1,4 +1,4 @@
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas } from "../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria } from "../models/Reportes";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/reportes`;
@@ -38,5 +38,12 @@ export async function getMovimientos(desde?: string, hasta?: string, tipo?: "COM
 export async function getResumenVentas(periodo: "dia" | "semana" | "mes"): Promise<ResumenVentas> {
   const res = await fetch(`${BASE_URL}/resumen?periodo=${periodo}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Error al obtener resumen de ventas");
+  return res.json();
+}
+
+export async function getVentasPorCategoria(desde: string, hasta: string): Promise<VentasPorCategoria[]> {
+  const params = new URLSearchParams({ desde, hasta });
+  const res = await fetch(`${BASE_URL}/ventas-por-categoria?${params.toString()}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Error al obtener ventas por categoría");
   return res.json();
 }

@@ -2,6 +2,7 @@ package com.guerram.DespensaFamily.repository;
 
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
+import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.model.DetalleVenta;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -61,6 +62,28 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     AND v.estado = 'ACTIVA'
     """)
     List<MovimientoDTO> movimientosVentas(
+            @Param("desde") LocalDate desde,
+            @Param("hasta") LocalDate hasta
+    );
+
+    @Query("""
+    SELECT new com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO(
+        c.id,
+        COALESCE(c.nombre, 'Sin categoría'),
+        SUM(dv.subtotal),
+        SUM(dv.cantidad)
+    )
+    FROM DetalleVenta dv
+    JOIN dv.venta v
+    JOIN dv.producto p
+    LEFT JOIN p.categoria c
+    WHERE v.fechaHora BETWEEN :desde AND :hasta
+    AND v.estado = 'ACTIVA'
+    AND p.activo = true
+    GROUP BY c.id, c.nombre
+    ORDER BY SUM(dv.subtotal) DESC
+    """)
+    List<VentasPorCategoriaDTO> ventasPorCategoria(
             @Param("desde") LocalDate desde,
             @Param("hasta") LocalDate hasta
     );

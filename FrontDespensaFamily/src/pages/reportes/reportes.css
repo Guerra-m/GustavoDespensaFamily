@@ -58,11 +58,16 @@ section:nth-of-type(2) h2::before {
 }
 
 section:nth-of-type(3) h2::before {
-  content: '📦';
+  content: '🗂️';
   font-size: 24px;
 }
 
 section:nth-of-type(4) h2::before {
+  content: '📦';
+  font-size: 24px;
+}
+
+section:nth-of-type(5) h2::before {
   content: '📈';
   font-size: 24px;
 }
@@ -146,6 +151,7 @@ button:not(.menu-toggle):active {
 }
 
 #btn-mas-vendidos,
+#btn-ventas-categoria,
 #btn-movimientos {
   background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
   color: white;
@@ -153,6 +159,7 @@ button:not(.menu-toggle):active {
 }
 
 #btn-mas-vendidos:hover,
+#btn-ventas-categoria:hover,
 #btn-movimientos:hover {
   background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
 }
@@ -529,6 +536,7 @@ tbody:empty::after {
   .filtros,
   #btn-imprimir-movimientos,
   #btn-mas-vendidos,
+  #btn-ventas-categoria,
   #btn-movimientos,
   #btn-resumen,
   input[type="date"],
