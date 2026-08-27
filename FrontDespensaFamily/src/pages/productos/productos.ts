@@ -31,6 +31,11 @@ const selectEditar = formEditar.querySelector(
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
 const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement;
 
+const barraSeleccion = document.getElementById("barra-seleccion") as HTMLDivElement;
+const contadorSeleccion = document.getElementById("contador-seleccion") as HTMLSpanElement;
+const btnImprimirSeleccionados = document.getElementById("btn-imprimir-seleccionados") as HTMLButtonElement;
+const btnCancelarSeleccion = document.getElementById("btn-cancelar-seleccion") as HTMLButtonElement;
+
 // ---------- INPUTS PRECIO ----------
 const inputCostoCrear = formCrear.querySelector(
   "input[name='precioCosto']"
@@ -68,6 +73,7 @@ const textoGananciaEditar = formEditar.querySelector(
 let productos: Producto[] = [];
 let categorias: Categoria[] = [];
 let productoActual: Producto | null = null;
+let seleccionados = new Set<number>();
 
 // ---------- UTIL ----------
 function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
@@ -92,6 +98,8 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
   const unidad = form.querySelector("select[name='unidadMedida']") as HTMLSelectElement;
   const fraccion = form.querySelector("input[name='fraccionMinima']") as HTMLInputElement;
   const stock = form.querySelector("input[name='stock']") as HTMLInputElement;
+  const campoPaquete = form.querySelector(".campo-paquete") as HTMLLabelElement | null;
+  const unidadesPorPaquete = form.querySelector("input[name='unidadesPorPaquete']") as HTMLInputElement;
 
   const aplicarValores = () => {
     if (tipo.value === "PESO") {
@@ -101,6 +109,9 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
       fraccion.min = "0.001";
       stock.step = "0.001";
       stock.min = "0.001";
+      // El empaquetado solo tiene sentido para productos por unidad
+      if (campoPaquete) campoPaquete.classList.add("hidden");
+      unidadesPorPaquete.value = "";
     } else {
       unidad.value = "u";
       fraccion.value = "1";
@@ -108,11 +119,26 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
       fraccion.min = "1";
       stock.step = "1";
       stock.min = "0";
+      if (campoPaquete) campoPaquete.classList.remove("hidden");
     }
   };
 
   tipo.addEventListener("change", aplicarValores);
   aplicarValores();
+}
+
+// ---------- DESGLOSE PAQUETE/SUELTAS ----------
+function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
+  const upp = producto?.unidadesPorPaquete;
+  if (!upp || upp < 2 || esProductoPesable(producto!)) return null;
+  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
+}
+
+function formatearStockConPaquete(producto: Producto): string {
+  const base = `${producto.stock} ${obtenerUnidad(producto)}`;
+  const desglose = desglosePaquete(producto.stock, producto);
+  if (!desglose) return base;
+  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
 }
 
 // ---------- AUTOCÁLCULO CREAR ----------
@@ -160,6 +186,9 @@ function crearCard(prod: Producto): HTMLDivElement {
   if (prod.stock < 10) card.classList.add("stock-bajo");
 
   card.innerHTML = `
+    <label class="producto-check">
+      <input type="checkbox" class="chk-seleccionar" data-id="${prod.id}" ${seleccionados.has(prod.id!) ? "checked" : ""} title="Seleccionar para imprimir cartel">
+    </label>
     <div class="producto-menu-container">
       <button class="btn-menu" data-id="${prod.id}"></button>
       <div class="producto-menu-dropdown">
@@ -174,128 +203,114 @@ function crearCard(prod: Producto): HTMLDivElement {
     <div class="producto-info">
       <div class="producto-nombre">${prod.nombre}</div>
       <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
-      <div class="producto-stock">Stock: ${prod.stock} ${obtenerUnidad(prod)}</div>
+      <div class="producto-stock">Stock: ${formatearStockConPaquete(prod)}</div>
     </div>
   `;
   return card;
 }
 
-// ---------- IMPRIMIR CARTEL DE PRODUCTO ----------
-function imprimirCartelProducto(prod: Producto) {
+// ---------- CARTEL DE PRECIO (ETIQUETA ESTILO GRILLA SIMPLE) ----------
+function construirEtiquetaHtml(prod: Producto): string {
+  const precio = prod.precioVenta.toFixed(2).replace(".", ",");
+
+  return `
+    <div class="etiqueta">
+      <div class="etiqueta-nombre">${prod.nombre}</div>
+      <div class="etiqueta-precio">${precio}</div>
+      ${prod.codigoBarras ? `<div class="etiqueta-codigo">${prod.codigoBarras}</div>` : ""}
+    </div>
+  `;
+}
+
+const ESTILOS_ETIQUETAS = `
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body { padding: 8mm; }
+  .hoja-etiquetas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .etiqueta {
+    border: 1px dashed #cbd5e1;
+    min-height: 32mm;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .etiqueta-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .etiqueta-precio {
+    font-size: 32px;
+    font-weight: 800;
+    color: #111;
+    line-height: 1;
+  }
+  .etiqueta-codigo {
+    font-size: 11px;
+    color: #6b7280;
+    letter-spacing: 0.5px;
+  }
+  @media print {
+    @page { margin: 10mm; size: A4 portrait; }
+    body { padding: 0; }
+  }
+`;
+
+function imprimirEtiquetas(lista: Producto[]) {
+  if (lista.length === 0) return;
+
   const ventana = window.open("", "_blank");
   if (!ventana) return;
 
-  const unidad = obtenerUnidad(prod);
-  const precio = prod.precioVenta.toFixed(2);
-  const categoria = categorias.find(c => c.id === prod.categoriaId)?.nombre ?? "";
-  const ahora = new Date().toLocaleString("es-AR", {
-    dateStyle: "long",
-    timeStyle: "short"
-  });
+  const etiquetasHtml = lista.map(construirEtiquetaHtml).join("");
 
   ventana.document.write(`<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cartel — ${prod.nombre}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      height: 100%;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #fff;
-      print-color-adjust: exact;
-      -webkit-print-color-adjust: exact;
-    }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .cartel {
-      width: 100%;
-      max-width: 480px;
-      border: 3px solid #0288d1;
-      border-radius: 20px;
-      padding: 32px 28px;
-      text-align: center;
-    }
-    .cartel-marca {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #0288d1;
-      margin-bottom: 6px;
-    }
-    .cartel-categoria {
-      font-size: 12px;
-      color: #90a4ae;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 18px;
-    }
-    .cartel-nombre {
-      font-size: 30px;
-      font-weight: 800;
-      color: #212529;
-      line-height: 1.2;
-      margin-bottom: 24px;
-      word-break: break-word;
-    }
-    .cartel-precio {
-      font-size: 72px;
-      font-weight: 900;
-      color: #0288d1;
-      line-height: 1;
-    }
-    .cartel-precio span {
-      font-size: 32px;
-      vertical-align: super;
-    }
-    .cartel-unidad {
-      font-size: 16px;
-      font-weight: 600;
-      color: #546e7a;
-      margin-top: 8px;
-      margin-bottom: 20px;
-    }
-    .cartel-codigo {
-      font-size: 13px;
-      letter-spacing: 2px;
-      color: #78909c;
-      border-top: 1px dashed #cfd8dc;
-      padding-top: 12px;
-      margin-top: 4px;
-    }
-    .cartel-fecha {
-      font-size: 10px;
-      color: #b0bec5;
-      margin-top: 10px;
-    }
-    @media print {
-      @page { margin: 15mm; size: A5 portrait; }
-      body { padding: 0; }
-      .cartel { border-width: 2px; }
-    }
-  </style>
+  <title>Carteles de precio</title>
+  <style>${ESTILOS_ETIQUETAS}</style>
 </head>
 <body>
-  <div class="cartel">
-    <div class="cartel-marca">🏪 DespensaFamily</div>
-    ${categoria ? `<div class="cartel-categoria">${categoria}</div>` : ""}
-    <div class="cartel-nombre">${prod.nombre}</div>
-    <div class="cartel-precio"><span>$</span>${precio}</div>
-    <div class="cartel-unidad">por ${unidad}</div>
-    ${prod.codigoBarras ? `<div class="cartel-codigo">${prod.codigoBarras}</div>` : ""}
-    <div class="cartel-fecha">Impreso el ${ahora}</div>
+  <div class="hoja-etiquetas">
+    ${etiquetasHtml}
   </div>
 </body>
 </html>`);
 
   ventana.document.close();
   ventana.print();
+}
+
+// ---------- SELECCIÓN DE PRODUCTOS PARA IMPRIMIR ----------
+function actualizarBarraSeleccion() {
+  const cantidad = seleccionados.size;
+  contadorSeleccion.textContent = `${cantidad} seleccionado${cantidad === 1 ? "" : "s"}`;
+  barraSeleccion.classList.toggle("hidden", cantidad === 0);
+}
+
+function limpiarSeleccion() {
+  seleccionados.clear();
+  productosGrid.querySelectorAll<HTMLInputElement>(".chk-seleccionar").forEach(chk => {
+    chk.checked = false;
+  });
+  actualizarBarraSeleccion();
 }
 
 // ---------- RENDER GRID CON SECCIONES POR CATEGORÍA ----------
@@ -360,7 +375,7 @@ productosGrid.addEventListener("click", (e) => {
     const id = Number(btn.dataset.id);
     cerrarTodosLosMenus();
     const prod = productos.find(p => p.id === id);
-    if (prod) imprimirCartelProducto(prod);
+    if (prod) imprimirEtiquetas([prod]);
   }
 
   // BOTÓN ELIMINAR
@@ -384,6 +399,34 @@ productosGrid.addEventListener("click", (e) => {
     // Toggle este menú
     dropdown.classList.toggle('active');
   }
+});
+
+// CHECKBOX DE SELECCIÓN PARA IMPRIMIR CARTELES
+productosGrid.addEventListener("change", (e) => {
+  const target = e.target as HTMLElement;
+  if (!target.classList.contains("chk-seleccionar")) return;
+
+  const chk = target as HTMLInputElement;
+  const id = Number(chk.dataset.id);
+
+  if (chk.checked) {
+    seleccionados.add(id);
+  } else {
+    seleccionados.delete(id);
+  }
+
+  actualizarBarraSeleccion();
+});
+
+// BARRA DE SELECCIÓN: IMPRIMIR CARTELES SELECCIONADOS
+btnImprimirSeleccionados.addEventListener("click", () => {
+  const lista = productos.filter(p => seleccionados.has(p.id!));
+  imprimirEtiquetas(lista);
+});
+
+// BARRA DE SELECCIÓN: CANCELAR
+btnCancelarSeleccion.addEventListener("click", () => {
+  limpiarSeleccion();
 });
 
 // Cerrar cualquier menú abierto al clickear fuera de él
@@ -511,6 +554,9 @@ formCrear.addEventListener("submit", async e => {
     tipoCantidad: formCrear.tipoCantidad.value,
     unidadMedida: formCrear.unidadMedida.value,
     fraccionMinima: Number(formCrear.fraccionMinima.value),
+    unidadesPorPaquete: formCrear.unidadesPorPaquete.value
+      ? Number(formCrear.unidadesPorPaquete.value)
+      : undefined,
     codigoBarras: formCrear.codigoBarras.value || undefined,
     proveedor: formCrear.proveedor.value || undefined,
     categoriaId: Number(formCrear.categoriaId.value)
@@ -566,6 +612,7 @@ function abrirEditarProducto(id: number) {
   formEditar.unidadMedida.value = obtenerUnidad(productoActual);
   formEditar.fraccionMinima.value = obtenerFraccionMinima(productoActual).toString();
   formEditar.tipoCantidad.dispatchEvent(new Event("change"));
+  formEditar.unidadesPorPaquete.value = productoActual.unidadesPorPaquete?.toString() || "";
   formEditar.codigoBarras.value = productoActual.codigoBarras || "";
   formEditar.proveedor.value = productoActual.proveedor || "";
   formEditar.categoriaId.value =
@@ -598,6 +645,9 @@ formEditar.addEventListener("submit", async e => {
     tipoCantidad: formEditar.tipoCantidad.value,
     unidadMedida: formEditar.unidadMedida.value,
     fraccionMinima: Number(formEditar.fraccionMinima.value),
+    unidadesPorPaquete: formEditar.unidadesPorPaquete.value
+      ? Number(formEditar.unidadesPorPaquete.value)
+      : undefined,
     codigoBarras: formEditar.codigoBarras.value || undefined,
     proveedor: formEditar.proveedor.value || undefined,
     categoriaId: Number(formEditar.categoriaId.value)
@@ -627,6 +677,8 @@ formEditar.addEventListener("submit", async e => {
 async function eliminarProducto(id: number) {
   if (!confirm("¿Eliminar producto?")) return;
   await deleteProducto(id);
+  seleccionados.delete(id);
+  actualizarBarraSeleccion();
   cargarProductos();
 }
 

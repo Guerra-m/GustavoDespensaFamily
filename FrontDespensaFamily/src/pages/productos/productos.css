@@ -283,6 +283,74 @@ h2 {
 }
 
 /* ==============================
+   CHECKBOX DE SELECCIÓN (IMPRIMIR CARTELES)
+============================== */
+.producto-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  margin: 0;
+}
+
+.producto-check input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #0288d1;
+  margin: 0;
+}
+
+/* ==============================
+   BARRA FLOTANTE DE SELECCIÓN
+============================== */
+.barra-seleccion {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #212529;
+  color: #ffffff;
+  padding: 14px 22px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 1500;
+}
+
+.barra-seleccion.hidden {
+  display: none;
+}
+
+.barra-seleccion #contador-seleccion {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.barra-seleccion #btn-imprimir-seleccionados {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+}
+
+.barra-seleccion #btn-cancelar-seleccion {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ==============================
    MENÚ DE TRES PUNTOS
 ============================== */
 .producto-menu-container {
