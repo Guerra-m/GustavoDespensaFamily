@@ -142,14 +142,6 @@
     </div>
   </div>
 
-  <script type="module">
-    fetch("../../components/navbar/navbar.html")
-      .then(res => res.text())
-      .then(html => {
-        const container = document.getElementById("navbar-container");
-        if (container) container.innerHTML = html;
-      });
-  </script>
   <script type="module" src="../../components/navbar/navbar.ts"></script>
   <script type="module" src="./ventas.ts"></script>
 </body>

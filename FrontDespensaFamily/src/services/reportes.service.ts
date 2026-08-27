@@ -23,10 +23,11 @@ export async function getProductosMasVendidos(desde?: string, hasta?: string): P
   return res.json();
 }
 
-export async function getMovimientos(desde?: string, hasta?: string): Promise<Movimiento[]> {
+export async function getMovimientos(desde?: string, hasta?: string, tipo?: "COMPRA" | "VENTA"): Promise<Movimiento[]> {
   const params = new URLSearchParams();
   if (desde && desde.trim() !== "") params.append("desde", desde);
   if (hasta && hasta.trim() !== "") params.append("hasta", hasta);
+  if (tipo) params.append("tipo", tipo);
 
   const url = params.toString() ? `${BASE_URL}/movimientos?${params.toString()}` : `${BASE_URL}/movimientos`;
   const res = await fetch(url, { headers: getAuthHeaders() });

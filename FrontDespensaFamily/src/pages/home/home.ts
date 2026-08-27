@@ -4,6 +4,7 @@ checkAdmin();
 import { getVentas } from "../../services/ventas.service";
 import { getCompras, getCompraDetalle } from "../../services/compras.service";
 import { getProductos } from "../../services/productos.service";
+import { getProductosMasVendidos, getResumenVentas, getMovimientos, getProductosBajoStock } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
 
 // ---------------- DOM ----------------
@@ -16,6 +17,7 @@ const tablaUltimasVentas = document.querySelector("#tabla-ultimas-ventas tbody")
 const tablaUltimasCompras = document.querySelector("#tabla-ultimas-compras tbody") as HTMLTableSectionElement;
 
 const canvasVentas = document.getElementById("ventas-chart") as HTMLCanvasElement;
+const canvasTopProductos = document.getElementById("top-productos-chart") as HTMLCanvasElement;
 
 // ---------------- ESTADO ----------------
 let productos: any[] = [];
@@ -37,21 +39,16 @@ async function cargarKPIs() {
     const hoyStr = getHoyLocal();
 
     // Ventas hoy
-    const ventasHoy = ventas.filter(v => v.fechaHora.split("T")[0] === hoyStr);
-    const totalVentasHoy = ventasHoy.reduce((acc, v) => acc + v.total, 0);
-    kpiVentas.textContent = `$${totalVentasHoy.toLocaleString()}`;
+    const resumenHoy = await getResumenVentas("dia");
+    kpiVentas.textContent = `$${resumenHoy.totalVentas.toLocaleString()}`;
 
     // Compras hoy
-    const comprasHoy = compras.filter(c => c.fechaHora.split("T")[0] === hoyStr);
-    let totalComprasHoy = 0;
-    for (const c of comprasHoy) {
-      const detalle = await getCompraDetalle(c.id!);
-      totalComprasHoy += detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
-    }
+    const movimientosComprasHoy = await getMovimientos(hoyStr, hoyStr, "COMPRA");
+    const totalComprasHoy = movimientosComprasHoy.reduce((acc, m) => acc + m.subtotal, 0);
     kpiCompras.textContent = `$${totalComprasHoy.toLocaleString()}`;
 
     // Stock bajo
-    const bajoStock = productos.filter(p => p.stock <= 5);
+    const bajoStock = await getProductosBajoStock();
     kpiStockBajo.textContent = `${bajoStock.length}`;
 
     // Productos totales
@@ -125,11 +122,50 @@ function renderVentasChart() {
   });
 }
 
+function formatFechaLocal(fecha: Date): string {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
+}
+
+// Gráfico de top productos vendidos (últimos 30 días)
+async function renderTopProductosChart() {
+  try {
+    const hoy = new Date();
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hoy.getDate() - 30);
+
+    const top = await getProductosMasVendidos(formatFechaLocal(hace30Dias), formatFechaLocal(hoy));
+    const top5 = top.slice(0, 5);
+
+    new Chart(canvasTopProductos, {
+      type: 'bar',
+      data: {
+        labels: top5.map(p => p.nombre),
+        datasets: [{
+          label: 'Unidades vendidas',
+          data: top5.map(p => p.cantidadVendida),
+          backgroundColor: 'rgba(2, 136, 209, 0.6)',
+          borderColor: 'rgba(2, 136, 209, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 // ---------------- INIT ----------------
 async function initHome() {
   await cargarKPIs();
   await cargarUltimas();
   renderVentasChart();
+  await renderTopProductosChart();
 }
 
 initHome();

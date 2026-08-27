@@ -9,6 +9,7 @@ import com.guerram.DespensaFamily.model.Usuario;
 import com.guerram.DespensaFamily.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,9 @@ public class UsuarioService  {
 
 
     public UsuarioDTO obtenerPerfil() {
-        Usuario usuario = usuarioRepository.findAll().get(0);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         return Mapper.toDTO(usuario);
     }
 

@@ -42,10 +42,16 @@
     </div>
   </div>
 
-  <!-- 📊 Gráfico de ventas por día -->
-  <section>
-    <h2>Ventas últimos 7 días</h2>
-    <canvas id="ventas-chart" width="400" height="200"></canvas>
+  <!-- 📊 Gráficos -->
+  <section class="graficos">
+    <div class="grafico-box">
+      <h2>📈 Ventas últimos 7 días</h2>
+      <canvas id="ventas-chart" width="400" height="200"></canvas>
+    </div>
+    <div class="grafico-box">
+      <h2>🏆 Top productos vendidos (últimos 30 días)</h2>
+      <canvas id="top-productos-chart" width="400" height="200"></canvas>
+    </div>
   </section>
 
   <!-- 🛒 Últimas ventas y compras -->
@@ -79,19 +85,6 @@
     </div>
   </section>
   </main>
-
-  <!-- CARGA NAVBAR -->
-  <script type="module">
-  fetch("../../components/navbar/navbar.html")
-    .then(res => res.text())
-    .then(html => {
-      const container = document.getElementById("navbar-container");
-      if (container) {
-        container.innerHTML = html;
-      }
-    });
-</script>
-
 
   <script type="module" src="../../components/navbar/navbar.ts"></script>
   <script type="module" src="./home.ts"></script>

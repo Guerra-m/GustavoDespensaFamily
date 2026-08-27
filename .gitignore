@@ -36,3 +36,13 @@ build/
 backend.bat
 close_all.bat
 start_all.txt
+build.bat
+iniciar.bat
+*.log
+
+# Frontend build output empaquetado dentro del jar (se genera con build.bat)
+DespensaFamily/src/main/resources/static/
+
+# Herramientas locales de Claude Code
+.claude/skills/*/node_modules/
+.claude/skills/*/screenshots/

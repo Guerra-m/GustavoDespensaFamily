@@ -108,8 +108,32 @@ section h2::before {
   font-size: 24px;
 }
 
-section:has(#ventas-chart) h2::before {
-  content: '📈';
+/* Grid de gráficos lado a lado */
+.graficos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 32px;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.grafico-box {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.grafico-box h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
 }
 
 .ultimas-ventas h2::before {

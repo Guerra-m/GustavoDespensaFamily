@@ -1,0 +1,10 @@
+{
+  "name": "run-despensafamily-driver",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Playwright driver used by the run-despensafamily skill to drive the DespensaFamily web app. Not part of the shipped app.",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

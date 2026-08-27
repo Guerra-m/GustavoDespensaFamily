@@ -13,15 +13,40 @@
 </head>
 <body>
   <div id="navbar-container"></div>
-  <script type="module">
-fetch("../../components/navbar/navbar.html")
-  .then(res => res.text())
-  .then(html => {
-    const container = document.getElementById("navbar-container");
-    if(container) container.innerHTML = html;
-  });
-</script>
-<script type="module" src="../../components/navbar/navbar.ts"></script>
-<script type="module" src="./perfil.ts"></script>
+
+  <main class="content">
+    <div class="perfil-container">
+      <h1>Mi Perfil</h1>
+
+      <section class="perfil-datos">
+        <div class="perfil-avatar">👤</div>
+        <div class="perfil-info">
+          <h2 id="perfil-nombre">Cargando...</h2>
+          <p><span class="etiqueta">Usuario</span><span id="perfil-username">—</span></p>
+          <p><span class="etiqueta">Rol</span><span id="perfil-rol">—</span></p>
+        </div>
+      </section>
+
+      <section class="perfil-password">
+        <h2>Cambiar contraseña</h2>
+        <form id="form-password">
+          <label>Contraseña actual
+            <input type="password" id="password-actual" required autocomplete="current-password">
+          </label>
+          <label>Contraseña nueva
+            <input type="password" id="password-nueva" required autocomplete="new-password" minlength="4">
+          </label>
+          <label>Confirmar contraseña nueva
+            <input type="password" id="password-confirmar" required autocomplete="new-password" minlength="4">
+          </label>
+          <p id="mensaje-password" class="mensaje"></p>
+          <button type="submit">Guardar cambios</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./perfil.ts"></script>
 </body>
 </html>

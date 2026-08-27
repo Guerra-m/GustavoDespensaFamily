@@ -1,0 +1,153 @@
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.perfil-container {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+h1::before {
+  content: '⚙️';
+  font-size: 36px;
+}
+
+.perfil-datos,
+.perfil-password {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.perfil-datos {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.perfil-avatar {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.3);
+}
+
+.perfil-info h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 10px;
+}
+
+.perfil-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #495057;
+  display: flex;
+  gap: 8px;
+}
+
+.perfil-info .etiqueta {
+  font-weight: 600;
+  color: #868e96;
+  min-width: 62px;
+}
+
+.perfil-password h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.perfil-password label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.perfil-password input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.perfil-password input:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+.perfil-password button[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.3);
+  transition: all 0.3s ease;
+}
+
+.perfil-password button[type="submit"]:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  transform: translateY(-2px);
+}
+
+.mensaje {
+  min-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+
+.mensaje.ok { color: #2e7d32; }
+.mensaje.error { color: #d32f2f; }
+
+@media (max-width: 1024px) {
+  .content { margin-left: 0; }
+}
+
+@media (max-width: 768px) {
+  .content { padding: 20px; padding-top: 80px; }
+  h1 { font-size: 24px; }
+  .perfil-datos { flex-direction: column; text-align: center; }
+}

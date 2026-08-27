@@ -20,7 +20,10 @@
   <h1>Gestión de Productos</h1>
 
   <!-- Buscador -->
-  <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
+  <div class="productos-toolbar">
+    <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
+    <button type="button" id="btn-modo-seleccion">🖨️ Seleccionar para imprimir</button>
+  </div>
 
   <!-- Grid de productos con scroll -->
   <div class="productos-grid-wrapper">
@@ -214,14 +217,6 @@
 
 </main>
 
-<script type="module">
-fetch("../../components/navbar/navbar.html")
-  .then(res => res.text())
-  .then(html => {
-    const container = document.getElementById("navbar-container");
-    if(container) container.innerHTML = html;
-  });
-</script>
 <script type="module" src="../../components/navbar/navbar.ts"></script>
 <script type="module" src="./productos.ts"></script>
 </body>

@@ -1,5 +1,39 @@
 import { isAdmin, clearAuth } from "../../services/auth.service";
 
+const NAVBAR_HTML = `
+<div class="navbar-overlay" id="navbarOverlay"></div>
+
+<button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+  <div class="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</button>
+
+<nav class="navbar" id="navbar">
+  <div class="navbar-header">
+    <span class="logo">🏪</span>
+    <h1>Despensa Family</h1>
+  </div>
+
+  <ul class="nav-links">
+    <li class="nav-admin-only"><a href="../../pages/home/home.html"><span>🏠</span> Inicio</a></li>
+    <li><a href="../../pages/ventas/ventas.html"><span>💰</span> Ventas</a></li>
+    <li><a href="../../pages/productos/productos.html"><span>📦</span> Productos</a></li>
+    <li><a href="../../pages/categorias/categorias.html"><span>🗂</span> Categorías</a></li>
+    <li><a href="../../pages/compras/compras.html"><span>🛒</span> Compras</a></li>
+    <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span>📊</span> Reportes</a></li>
+    <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span>👥</span> Usuarios</a></li>
+    <li><a href="../../pages/perfil/perfil.html"><span>👤</span> Mi Perfil</a></li>
+    <li class="logout"><a href="#logout"><span>🚪</span> Cerrar sesión</a></li>
+  </ul>
+
+  <div class="navbar-footer">
+    © 2025 Despensa Family
+  </div>
+</nav>`;
+
 function initNavbar() {
   const toggle = document.getElementById("menuToggle") as HTMLButtonElement;
   const navbar = document.getElementById("navbar") as HTMLElement;
@@ -68,17 +102,6 @@ function initNavbar() {
 
 const container = document.getElementById("navbar-container");
 if (container) {
-  const observer = new MutationObserver((mutations, obs) => {
-    if (container.querySelector("#navbar")) {
-      initNavbar();
-      obs.disconnect();
-    }
-  });
-  observer.observe(container, { childList: true });
-} else {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initNavbar);
-  } else {
-    initNavbar();
-  }
+  container.innerHTML = NAVBAR_HTML;
+  initNavbar();
 }

@@ -35,6 +35,7 @@ const barraSeleccion = document.getElementById("barra-seleccion") as HTMLDivElem
 const contadorSeleccion = document.getElementById("contador-seleccion") as HTMLSpanElement;
 const btnImprimirSeleccionados = document.getElementById("btn-imprimir-seleccionados") as HTMLButtonElement;
 const btnCancelarSeleccion = document.getElementById("btn-cancelar-seleccion") as HTMLButtonElement;
+const btnModoSeleccion = document.getElementById("btn-modo-seleccion") as HTMLButtonElement;
 
 // ---------- INPUTS PRECIO ----------
 const inputCostoCrear = formCrear.querySelector(
@@ -313,6 +314,24 @@ function limpiarSeleccion() {
   actualizarBarraSeleccion();
 }
 
+function salirModoSeleccion() {
+  productosGrid.classList.remove("modo-seleccion");
+  btnModoSeleccion.classList.remove("activo");
+  btnModoSeleccion.textContent = "🖨️ Seleccionar para imprimir";
+  limpiarSeleccion();
+}
+
+btnModoSeleccion.addEventListener("click", () => {
+  const activando = !productosGrid.classList.contains("modo-seleccion");
+  if (activando) {
+    productosGrid.classList.add("modo-seleccion");
+    btnModoSeleccion.classList.add("activo");
+    btnModoSeleccion.textContent = "Cancelar selección";
+  } else {
+    salirModoSeleccion();
+  }
+});
+
 // ---------- RENDER GRID CON SECCIONES POR CATEGORÍA ----------
 function renderProductos(lista: Producto[]) {
   productosGrid.innerHTML = "";
@@ -422,11 +441,12 @@ productosGrid.addEventListener("change", (e) => {
 btnImprimirSeleccionados.addEventListener("click", () => {
   const lista = productos.filter(p => seleccionados.has(p.id!));
   imprimirEtiquetas(lista);
+  salirModoSeleccion();
 });
 
 // BARRA DE SELECCIÓN: CANCELAR
 btnCancelarSeleccion.addEventListener("click", () => {
-  limpiarSeleccion();
+  salirModoSeleccion();
 });
 
 // Cerrar cualquier menú abierto al clickear fuera de él
