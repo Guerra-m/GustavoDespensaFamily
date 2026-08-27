@@ -83,8 +83,16 @@ const inputPrecioCosto = document.getElementById("precioCosto") as HTMLInputElem
 
 const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const tablaDetalles = document.getElementById("tabla-detalles") as HTMLTableElement;
+const toast = document.getElementById("toast") as HTMLDivElement;
 
 // ---------------- FUNCIONES ----------------
+
+function mostrarToast(mensaje: string, error = false) {
+  toast.textContent = mensaje;
+  toast.classList.remove("hidden", "error");
+  if (error) toast.classList.add("error");
+  setTimeout(() => toast.classList.add("hidden"), 3000);
+}
 
 // Cargar compras
 async function cargarCompras() {
@@ -94,7 +102,7 @@ async function cargarCompras() {
     renderCompras(comprasOrdenadas);
   } catch (error) {
     console.error(error);
-    alert("Error al cargar compras");
+    mostrarToast("Error al cargar compras", true);
   }
 }
 
@@ -152,7 +160,7 @@ async function cargarProductos() {
     });
   } catch (error) {
     console.error(error);
-    alert("Error al cargar productos");
+    mostrarToast("Error al cargar productos", true);
   }
 }
 
@@ -164,12 +172,12 @@ btnAgregar.addEventListener("click", () => {
   const producto = productos.find(p => p.id === productoId);
 
   if (!productoId || cantidadIngresada <= 0 || precioIngresado < 0 || !producto) {
-    alert("Datos inválidos");
+    mostrarToast("Datos inválidos", true);
     return;
   }
 
   if (!esProductoPesable(producto) && !Number.isInteger(cantidadIngresada)) {
-    alert("Este producto se compra por unidad, la cantidad debe ser entera");
+    mostrarToast("Este producto se compra por unidad, la cantidad debe ser entera", true);
     return;
   }
 
@@ -227,12 +235,12 @@ formCompra.addEventListener("submit", async e => {
   const proveedor = inputProveedor.value.trim();
 
   if (!proveedor) {
-    alert("El proveedor es obligatorio");
+    mostrarToast("El proveedor es obligatorio", true);
     return;
   }
 
   if (detallesCompra.length === 0) {
-    alert("Debe agregar al menos un producto");
+    mostrarToast("Debe agregar al menos un producto", true);
     return;
   }
 
@@ -243,7 +251,7 @@ formCompra.addEventListener("submit", async e => {
 
   try {
     await createCompra(compra);
-    alert("Compra registrada correctamente");
+    mostrarToast("Compra registrada correctamente");
 
     detallesCompra = [];
     renderDetalles();
@@ -251,7 +259,7 @@ formCompra.addEventListener("submit", async e => {
     cargarCompras();
   } catch (error) {
     console.error(error);
-    alert("Error al registrar compra");
+    mostrarToast("Error al registrar compra", true);
   }
 });
 

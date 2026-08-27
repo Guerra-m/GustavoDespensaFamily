@@ -207,6 +207,30 @@ section {
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: #43a047;
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 2500;
+  animation: slideInToast 0.3s ease;
+}
+
+.toast.error { background: #e53935; }
+.toast.hidden { display: none; }
+
+@keyframes slideInToast {
+  from { transform: translateX(120px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
 /* TABLAS */
 table {
   width: 100%;
