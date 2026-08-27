@@ -1,8 +1,29 @@
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
 .usuarios-container {
   max-width: 960px;
   margin: 0 auto;
   padding: 0 8px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.tabla-scroll #tabla-usuarios {
+  box-shadow: none;
+  min-width: 560px;
 }
 
 .usuarios-container h1 {
@@ -238,6 +259,7 @@
 }
 
 .modal-eliminar-content {
+  box-sizing: border-box;
   background: #fff;
   border-radius: 16px;
   padding: 32px;
@@ -361,8 +383,36 @@
   transform: none;
 }
 
-@media (max-width: 680px) {
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+    padding: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  .usuarios-container h1 {
+    font-size: 24px;
+  }
+
   .form-grid { grid-template-columns: 1fr; }
   #form-crear-usuario { padding: 20px; }
   .modal-eliminar-content { margin: 16px; padding: 24px; }
+}
+
+@media (max-width: 480px) {
+  .usuarios-container h1 {
+    font-size: 20px;
+  }
+
+  #tabla-usuarios th,
+  #tabla-usuarios td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
 }

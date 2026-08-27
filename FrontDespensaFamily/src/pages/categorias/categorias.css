@@ -62,15 +62,21 @@ h2 {
 }
 
 /* TABLA */
+.tabla-scroll {
+  overflow-x: auto;
+  border-radius: 12px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 #tabla-categorias {
   width: 100%;
+  min-width: 480px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 40px;
   background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 #tabla-categorias thead {
@@ -257,6 +263,7 @@ form button[type="submit"]:active {
 }
 
 .modal-content {
+  box-sizing: border-box;
   background: #ffffff;
   padding: 32px;
   width: 90%;

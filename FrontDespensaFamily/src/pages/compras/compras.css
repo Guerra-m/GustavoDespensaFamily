@@ -119,6 +119,7 @@ button {
 
 /* Contenido del modal */
 .modal-content {
+  box-sizing: border-box;
   background-color: #fff;
   padding: 20px;
   border-radius: 10px;
@@ -442,6 +443,7 @@ button:not(.menu-toggle):active {
 }
 
 .modal-content {
+  box-sizing: border-box;
   background: #ffffff;
   padding: 32px;
   border-radius: 16px;
@@ -659,8 +661,19 @@ table {
 .tabla-scroll {
   max-height: 350px;   /* ajustá a gusto */
   overflow-y: auto;
+  overflow-x: auto;
   position: relative;
   border-radius: 12px;
+}
+
+.tabla-scroll table {
+  min-width: 480px;
+}
+
+/* Las tablas simples dentro de modales achican con el resto del modal,
+   no necesitan el ancho mínimo de las tablas con botones de acción */
+.modal-content .tabla-scroll table {
+  min-width: 0;
 }
 
 /* Header fijo */

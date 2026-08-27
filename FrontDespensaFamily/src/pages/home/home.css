@@ -267,6 +267,15 @@ canvas {
     font-size: 18px;
   }
 
+  .graficos {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .grafico-box {
+    padding: 20px;
+  }
+
   .ultimas {
     grid-template-columns: 1fr;
     gap: 20px;

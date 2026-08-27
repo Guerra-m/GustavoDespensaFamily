@@ -670,6 +670,7 @@ form input[type="file"]::file-selector-button:hover {
 }
 
 .modal-content {
+  box-sizing: border-box;
   background: #ffffff;
   padding: 32px;
   width: 90%;
