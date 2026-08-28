@@ -342,6 +342,52 @@ label input:focus {
   margin-bottom: 24px;
 }
 
+.producto-buscar-container {
+  position: relative;
+}
+
+/* Reemplaza el <select> de 2000+ <option> por un input con autocompletado
+   filtrado (mismo criterio que ya usa ventas.ts): buscar es mucho más rápido
+   que escrollear una lista nativa larguísima. */
+.dropdown-productos {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #ffffff;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.dropdown-productos.hidden {
+  display: none;
+}
+
+.dropdown-productos .dropdown-item {
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.dropdown-productos .dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-productos .dropdown-item:hover {
+  background: #f0f8ff;
+}
+
+.dropdown-productos .dropdown-sin-resultados {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
 .detalle-compra select,
 .detalle-compra input {
   padding: 12px 14px;
@@ -568,7 +614,10 @@ button:not(.menu-toggle):active {
 }
 }
 /* RESPONSIVE */
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
+   navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
+   donde el sidebar ya está visible pero el contenido no le dejó margen. */
+@media (max-width: 1023px) {
   .content {
     margin-left: 0;
   }

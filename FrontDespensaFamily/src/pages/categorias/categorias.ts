@@ -10,6 +10,7 @@ import {
 } from "../../services/categorias.service";
 import { getProductos, updateProducto } from "../../services/productos.service";
 import type { Producto } from "../../models/Producto";
+import { confirmar } from "../../services/confirm.service";
 
 // DOM
 const tbody = document.querySelector("#tabla-categorias tbody") as HTMLTableSectionElement;
@@ -109,7 +110,7 @@ formEditar.addEventListener("submit", async e => {
 
 // Eliminar
 async function eliminarCategoria(id: number) {
-  if (!confirm("¿Eliminar categoría?")) return;
+  if (!(await confirmar("¿Eliminar categoría?"))) return;
   await deleteCategoria(id);
   cargarCategorias();
 }

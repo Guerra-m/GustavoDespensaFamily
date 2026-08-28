@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Productos | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <!-- estilos globales -->
   <link rel="stylesheet" href="../../style.css" />
   <!-- estilos del navbar -->
@@ -13,22 +14,33 @@
 </head>
 <body>
   <div id="navbar-container"></div>
+  <div id="toast" class="toast hidden"></div>
 
 <main class="content">
   <div class="productos-container">
 
   <h1>Gestión de Productos</h1>
 
-  <!-- Buscador -->
-  <div class="productos-toolbar">
-    <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
-    <button type="button" id="btn-modo-seleccion">🖨️ Seleccionar para imprimir</button>
-  </div>
+  <div class="productos-layout">
+    <!-- Índice por categoría: se resalta sola la categoría a la vista
+         mientras se scrollea la grilla (ver renderIndiceCategorias en
+         productos.ts) -->
+    <aside class="productos-indice" id="productos-indice"></aside>
 
-  <!-- Grid de productos con scroll -->
-  <div class="productos-grid-wrapper">
-    <div id="productos-grid">
-      <!-- Tarjetas de productos se generarán dinámicamente -->
+    <div class="productos-main">
+      <!-- Buscador -->
+      <div class="productos-toolbar">
+        <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
+        <button type="button" id="btn-crear-producto">➕ Crear Producto</button>
+        <button type="button" id="btn-modo-seleccion">🖨️ Seleccionar para imprimir</button>
+      </div>
+
+      <!-- Grid de productos con scroll -->
+      <div class="productos-grid-wrapper" id="productos-grid-wrapper">
+        <div id="productos-grid">
+          <!-- Tarjetas de productos se generarán dinámicamente -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -39,90 +51,107 @@
     <button type="button" id="btn-cancelar-seleccion">Cancelar</button>
   </div>
 
-  <!-- Formulario Crear Producto -->
-  <form id="form-crear">
-  <h2>Crear Producto</h2>
+  <!-- MODAL CREAR PRODUCTO — queda abierto después de crear (no se cierra
+       solo) para poder cargar varios productos seguidos sin reabrir el
+       modal cada vez; "Cerrar" es explícito. -->
+  <div id="modal-crear" class="modal hidden">
+    <div class="modal-content">
+      <h2>Crear Producto</h2>
+      <p class="modal-crear-ayuda">💡 Después de crear, el formulario se limpia y el modal queda abierto para seguir cargando — tocá "Cerrar" cuando termines.</p>
 
-  <label>
-    Nombre
-    <input type="text" name="nombre" required />
-  </label>
+      <form id="form-crear">
 
-  <label>
-    Precio de Costo
-    <input type="number" name="precioCosto" />
-  </label>
+  <fieldset class="form-grid">
+    <legend>Identificación</legend>
+    <label>
+      Nombre
+      <input type="text" name="nombre" required />
+    </label>
 
-  <label>
-    % Ganancia
-    <input type="number" name="porcentajeGanancia" value="30" min="0" />
-  </label>
+    <label>
+      Código de Barras
+      <input type="text" name="codigoBarras" />
+    </label>
 
+    <label>
+      Proveedor
+      <input type="text" name="proveedor" />
+    </label>
+
+    <label>
+      Categoría
+      <select name="categoriaId" required>
+        <option value="">Seleccione categoría</option>
+      </select>
+    </label>
+  </fieldset>
+
+  <fieldset class="form-grid">
+    <legend>Precios</legend>
+    <label>
+      Precio de Costo
+      <input type="number" name="precioCosto" />
+    </label>
+
+    <label>
+      % Ganancia
+      <input type="number" name="porcentajeGanancia" value="30" min="0" />
+    </label>
+
+    <label>
+      Precio de Venta
+      <input type="number" name="precioVenta" required />
+    </label>
+  </fieldset>
   <p class="info-ganancia">
     💡 El precio de venta se calcula sumando un
     <strong><span class="valor-ganancia">30</span>%</strong> de ganancia
   </p>
 
-  <label>
-    Precio de Venta
-    <input type="number" name="precioVenta" required />
-  </label>
+  <fieldset class="form-grid">
+    <legend>Inventario</legend>
+    <label>
+      Stock
+      <input type="number" name="stock" required />
+    </label>
 
-  <label>
-    Stock
-    <input type="number" name="stock" required />
-  </label>
+    <label>
+      Tipo de venta
+      <select name="tipoCantidad" required>
+        <option value="UNIDAD">Por unidad</option>
+        <option value="PESO">Por peso</option>
+      </select>
+    </label>
 
-  <label>
-    Tipo de venta
-    <select name="tipoCantidad" required>
-      <option value="UNIDAD">Por unidad</option>
-      <option value="PESO">Por peso</option>
-    </select>
-  </label>
+    <label>
+      Unidad de medida
+      <select name="unidadMedida" required>
+        <option value="u">u</option>
+        <option value="kg">kg</option>
+      </select>
+    </label>
 
-  <label>
-    Unidad de medida
-    <select name="unidadMedida" required>
-      <option value="u">u</option>
-      <option value="kg">kg</option>
-    </select>
-  </label>
+    <label>
+      Fracción mínima
+      <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
+    </label>
 
-  <label>
-    Fracción mínima
-    <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
-  </label>
+    <label class="campo-paquete">
+      Unidades por paquete (opcional)
+      <input type="number" name="unidadesPorPaquete" min="2" step="1" placeholder="Ej: 8" />
+    </label>
 
-  <label class="campo-paquete">
-    Unidades por paquete (opcional)
-    <input type="number" name="unidadesPorPaquete" min="2" step="1" placeholder="Ej: 8" />
-  </label>
-
-  <label>
-    Código de Barras
-    <input type="text" name="codigoBarras" />
-  </label>
-
-  <label>
-    Proveedor
-    <input type="text" name="proveedor" />
-  </label>
-
-  <label>
-    Categoría
-    <select name="categoriaId" required>
-      <option value="">Seleccione categoría</option>
-    </select>
-  </label>
-  <label>
-  Imagen (opcional)
-  <input type="file" name="imagen" accept="image/*" />
-</label>
-
+    <label>
+      Imagen (opcional)
+      <input type="file" name="imagen" accept="image/*" />
+    </label>
+  </fieldset>
 
   <button type="submit">Crear</button>
-</form>
+      </form>
+      <button type="button" id="btn-cerrar-crear">Cerrar</button>
+    </div>
+  </div>
 
 <!-- MODAL EDITAR PRODUCTO -->
 <div id="modal-editar" class="modal hidden">
@@ -131,80 +160,89 @@
 
     <form id="form-editar">
 
-      <label>
-        Nombre
-        <input type="text" name="nombre" required />
-      </label>
+      <fieldset class="form-grid">
+        <legend>Identificación</legend>
+        <label>
+          Nombre
+          <input type="text" name="nombre" required />
+        </label>
 
-      <label>
-  Precio de Costo
-  <input type="number" name="precioCosto" />
-</label>
+        <label>
+          Código de Barras
+          <input type="text" name="codigoBarras" />
+        </label>
 
-<label>
-  % Ganancia
-  <input type="number" name="porcentajeGanancia" min="0" />
-</label>
+        <label>
+          Proveedor
+          <input type="text" name="proveedor" />
+        </label>
 
-<p class="info-ganancia">
-  💡 El precio de venta se calcula sumando un
-  <strong><span class="valor-ganancia">30</span>%</strong> de ganancia
-</p>
+        <label>
+          Categoría
+          <select name="categoriaId" required></select>
+        </label>
+      </fieldset>
 
-<label>
-  Precio de Venta
-  <input type="number" name="precioVenta" required />
-</label>
+      <fieldset class="form-grid">
+        <legend>Precios</legend>
+        <label>
+          Precio de Costo
+          <input type="number" name="precioCosto" />
+        </label>
 
-      <label>
-        Stock
-        <input type="number" name="stock" required />
-      </label>
+        <label>
+          % Ganancia
+          <input type="number" name="porcentajeGanancia" min="0" />
+        </label>
 
-      <label>
-        Tipo de venta
-        <select name="tipoCantidad" required>
-          <option value="UNIDAD">Por unidad</option>
-          <option value="PESO">Por peso</option>
-        </select>
-      </label>
+        <label>
+          Precio de Venta
+          <input type="number" name="precioVenta" required />
+        </label>
+      </fieldset>
+      <p class="info-ganancia">
+        💡 El precio de venta se calcula sumando un
+        <strong><span class="valor-ganancia">30</span>%</strong> de ganancia
+      </p>
 
-      <label>
-        Unidad de medida
-        <select name="unidadMedida" required>
-          <option value="u">u</option>
-          <option value="kg">kg</option>
-        </select>
-      </label>
+      <fieldset class="form-grid">
+        <legend>Inventario</legend>
+        <label>
+          Stock
+          <input type="number" name="stock" required />
+        </label>
 
-      <label>
-        Fracción mínima
-        <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
-      </label>
+        <label>
+          Tipo de venta
+          <select name="tipoCantidad" required>
+            <option value="UNIDAD">Por unidad</option>
+            <option value="PESO">Por peso</option>
+          </select>
+        </label>
 
-      <label class="campo-paquete">
-        Unidades por paquete (opcional)
-        <input type="number" name="unidadesPorPaquete" min="2" step="1" placeholder="Ej: 8" />
-      </label>
+        <label>
+          Unidad de medida
+          <select name="unidadMedida" required>
+            <option value="u">u</option>
+            <option value="kg">kg</option>
+          </select>
+        </label>
 
-      <label>
-        Código de Barras
-        <input type="text" name="codigoBarras" />
-      </label>
+        <label>
+          Fracción mínima
+          <input type="number" name="fraccionMinima" min="0.001" step="0.001" value="1" required />
+        </label>
 
-      <label>
-        Proveedor
-        <input type="text" name="proveedor" />
-      </label>
+        <label class="campo-paquete">
+          Unidades por paquete (opcional)
+          <input type="number" name="unidadesPorPaquete" min="2" step="1" placeholder="Ej: 8" />
+        </label>
 
-      <label>
-        Categoría
-        <select name="categoriaId" required></select>
-      </label>
-      <label>
-  Cambiar imagen (opcional)
-  <input type="file" name="imagen" accept="image/*" />
-</label>
+        <label>
+          Cambiar imagen (opcional)
+          <input type="file" name="imagen" accept="image/*" />
+        </label>
+      </fieldset>
 
       <button type="submit">Guardar cambios</button>
       <button type="button" id="btn-cancelar">Cancelar</button>

@@ -12,6 +12,7 @@ import com.guerram.DespensaFamily.repository.ProductoRepository;
 import com.guerram.DespensaFamily.repository.VentaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,7 +24,16 @@ public class VentaService {
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
+    private final PromocionService promocionService;
 
+    // @Transactional: registrar una venta es leer stock + escribir stock +
+    // crear detalles en un solo paso atómico. Sin esto, dos ventas
+    // concurrentes del mismo producto podían dejar el stock inconsistente o
+    // colisionar en un deadlock de MySQL sin ningún manejo. Combinado con
+    // @Version en Producto, un conflicto real ahora tira
+    // ObjectOptimisticLockingFailureException en vez de corromper datos — la
+    // reintenta el controller (ver OptimisticRetry), no este método.
+    @Transactional
     public VentaDTO registrarVenta(List<DetalleVentaRequestDTO> detallesDTO) {
 
         Venta venta = new Venta();
@@ -64,7 +74,7 @@ public class VentaService {
             dv.setCantidad(cantidad);
             dv.setPrecioUnitario(producto.getPrecioVenta());
             dv.setPrecioCosto(producto.getPrecioCosto());
-            dv.setSubtotal(producto.getPrecioVenta() * cantidad);
+            dv.setSubtotal(calcularSubtotal(producto, cantidad));
             dv.setVenta(venta);
 
             total += dv.getSubtotal();
@@ -77,6 +87,25 @@ public class VentaService {
         ventaRepository.save(venta);
 
         return Mapper.toDTO(venta);
+    }
+
+    // Aplica el combo activo del producto (si existe) al precio de la línea.
+    // Solo lectura de Promocion — no agrega otra escritura concurrente al lado
+    // del @Version de Producto ya estabilizado.
+    private double calcularSubtotal(Producto producto, double cantidad) {
+        if ("UNIDAD".equals(producto.getTipoCantidad())) {
+            var promo = promocionService.promoActivaPara(producto.getId());
+            if (promo.isPresent()) {
+                int lleva = promo.get().getCantidadLleva();
+                int paga = promo.get().getCantidadPaga();
+                long cant = (long) cantidad;
+                long grupos = cant / lleva;
+                long resto = cant % lleva;
+                long unidadesAPagar = grupos * paga + resto;
+                return unidadesAPagar * producto.getPrecioVenta();
+            }
+        }
+        return producto.getPrecioVenta() * cantidad;
     }
 
     public List<VentaDTO> listarVentas() {
@@ -100,6 +129,7 @@ public class VentaService {
         return Mapper.toVentaDetalleResponse(venta);
     }
 
+    @Transactional
     public void anularVenta(Long id) {
 
         Venta venta = ventaRepository.findById(id)

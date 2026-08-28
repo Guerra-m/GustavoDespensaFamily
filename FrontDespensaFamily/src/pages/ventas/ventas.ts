@@ -4,11 +4,14 @@ checkAuth();
 import { getProductos } from "../../services/productos.service";
 import { getVentas, createVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
 import { getCategorias } from "../../services/categorias.service";
+import { getPromociones } from "../../services/promociones.service";
 import type { Categoria } from "../../models/Categoria";
 import type { Producto } from "../../models/Producto";
+import type { Promocion } from "../../models/Promocion";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
 import { Html5Qrcode } from "html5-qrcode";
+import { confirmar } from "../../services/confirm.service";
 
 /* =======================
    ELEMENTOS DEL DOM
@@ -28,13 +31,16 @@ const detalleVentaId = document.getElementById("detalle-venta-id") as HTMLSpanEl
 const detalleTotal = document.getElementById("detalle-total") as HTMLSpanElement;
 const btnCerrarDetalle = document.getElementById("btn-cerrar-detalle") as HTMLButtonElement;
 
+const modalVentasRegistradas = document.getElementById("modal-ventas-registradas") as HTMLDivElement;
+const btnVerVentasRegistradas = document.getElementById("btn-ver-ventas-registradas") as HTMLButtonElement;
+const btnCerrarVentasRegistradas = document.getElementById("btn-cerrar-ventas-registradas") as HTMLButtonElement;
+
 const btnScanCamara = document.getElementById("btn-scan-camara") as HTMLButtonElement;
 const modalScan = document.getElementById("modal-scan") as HTMLDivElement;
 const btnCerrarScan = document.getElementById("btn-cerrar-scan") as HTMLButtonElement;
 
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
-const categoriasSection = document.getElementById("categorias-section") as HTMLDivElement;
 const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
 
 const toast = document.getElementById("toast") as HTMLDivElement;
@@ -44,6 +50,7 @@ const selectCliente = document.getElementById("select-cliente") as HTMLSelectEle
 ======================= */
 let productos: Producto[] = [];
 let categorias: Categoria[] = [];
+let promosPorProducto: Map<number, Promocion> = new Map();
 let carrito: DetalleVentaRequest[] = [];
 let html5QrCode: Html5Qrcode;
 let escaneando = false;
@@ -68,10 +75,18 @@ function configurarInputCantidad(producto: Producto) {
   const step = fraccionMinima(producto);
   inputCantidad.step = step.toString();
   inputCantidad.min = step.toString();
-  inputCantidad.placeholder = esProductoPesable(producto)
-    ? `Cantidad en ${unidadProducto(producto)}`
-    : "Cantidad en unidades";
-  inputCantidad.value = step.toString();
+
+  if (esProductoPesable(producto)) {
+    // A propósito SIN precargar: si dejáramos fraccionMinima (~0.001kg) acá,
+    // un Enter en el buscador terminaba agregando "0.001 kg" antes de que el
+    // vendedor pudiera tipear el peso real. Queda vacío + placeholder claro
+    // para que sea evidente qué hay que escribir.
+    inputCantidad.placeholder = `Ingresá el peso en ${unidadProducto(producto)}`;
+    inputCantidad.value = "";
+  } else {
+    inputCantidad.placeholder = "Cantidad en unidades";
+    inputCantidad.value = step.toString();
+  }
 }
 
 function formatearCantidad(cantidad: number, producto?: Producto) {
@@ -97,12 +112,34 @@ function formatearCantidadConPaquete(cantidad: number, producto?: Producto): str
    CARGA DE DATOS
 ======================= */
 async function cargarProductos() {
-  [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
+  const [productosData, categoriasData, promociones] = await Promise.all([
+    getProductos(),
+    getCategorias(),
+    getPromociones().catch(() => []) // no bloquea Ventas si falla (ej. red)
+  ]);
+  productos = productosData;
+  categorias = categoriasData;
   productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  promosPorProducto = new Map(
+    promociones.filter(p => p.activo).map(p => [p.productoId, p])
+  );
   renderFiltrosCategorias();
   renderProductosGrid();
-  renderCategoriasSection();
+}
+
+// Mismo cálculo que el backend (VentaService.calcularSubtotal) — solo para
+// el preview del carrito antes de confirmar. La fuente de verdad real es
+// siempre la respuesta del backend al registrar la venta.
+function subtotalConPromo(producto: Producto, cantidad: number): number {
+  const promo = promosPorProducto.get(producto.id!);
+  if (promo && producto.tipoCantidad === "UNIDAD") {
+    const grupos = Math.floor(cantidad / promo.cantidadLleva);
+    const resto = cantidad % promo.cantidadLleva;
+    const unidadesAPagar = grupos * promo.cantidadPaga + resto;
+    return unidadesAPagar * producto.precioVenta;
+  }
+  return producto.precioVenta * cantidad;
 }
 
 async function cargarVentas() {
@@ -128,7 +165,7 @@ async function cargarVentas() {
     const btnAnular = tr.querySelector(".btn-anular") as HTMLButtonElement;
     btnAnular.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (confirm(`¿Seguro que desea anular la venta #${v.id}?`)) {
+      if (await confirmar(`¿Seguro que desea anular la venta #${v.id}?`)) {
         await anularVenta(v.id!);
         cargarVentas();
       }
@@ -154,9 +191,12 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
   if (prod.stock < 10) card.classList.add("stock-bajo");
   if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
 
+  const promo = promosPorProducto.get(prod.id!);
+
   card.innerHTML = `
     <div class="producto-imagen">
       ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">` : ""}
+      ${promo ? `<span class="promo-badge">${promo.cantidadLleva}x${promo.cantidadPaga}</span>` : ""}
     </div>
     <div class="producto-info">
       <div class="producto-nombre">${prod.nombre}</div>
@@ -164,8 +204,27 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
       <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
   `;
-  card.addEventListener("click", () => seleccionarProducto(prod));
+  card.addEventListener("click", () => {
+    if (esProductoPesable(prod)) {
+      // Por peso: hace falta que el vendedor tipee la cantidad exacta, un
+      // click no alcanza. Mismo comportamiento que antes.
+      seleccionarProducto(prod);
+      return;
+    }
+
+    // Por unidad: click = +1 directo al carrito (patrón "tap to add" de
+    // POS), sin pasar por el buscador/Enter. Click repetido va sumando.
+    agregarAlCarrito(prod.id!, 1);
+    flashCard(card);
+    const item = carrito.find(i => i.productoId === prod.id);
+    mostrarToast(`${prod.nombre} agregado (x${item?.cantidad ?? 1})`);
+  });
   return card;
+}
+
+function flashCard(card: HTMLDivElement) {
+  card.classList.add("agregado-flash");
+  setTimeout(() => card.classList.remove("agregado-flash"), 350);
 }
 
 function renderFiltrosCategorias() {
@@ -226,45 +285,6 @@ function renderProductosGrid(filtro: string = "") {
   productosFiltrados.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
 }
 
-function renderCategoriasSection() {
-  categoriasSection.innerHTML = "";
-
-  categorias.forEach(cat => {
-    const prods = productos.filter(p => p.categoriaId === cat.id);
-    if (prods.length === 0) return;
-
-    const bloque = document.createElement("div");
-    bloque.className = "categoria-bloque";
-
-    const titulo = document.createElement("h2");
-    titulo.className = "categoria-bloque-titulo";
-    titulo.textContent = cat.nombre;
-    bloque.appendChild(titulo);
-
-    const grid = document.createElement("div");
-    grid.className = "categoria-grid";
-    prods.forEach(prod => grid.appendChild(crearProductoCard(prod)));
-    bloque.appendChild(grid);
-
-    categoriasSection.appendChild(bloque);
-  });
-
-  const sinCat = productos.filter(p => !categorias.some(c => c.id === p.categoriaId));
-  if (sinCat.length > 0) {
-    const bloque = document.createElement("div");
-    bloque.className = "categoria-bloque";
-    const titulo = document.createElement("h2");
-    titulo.className = "categoria-bloque-titulo";
-    titulo.textContent = "Sin categoría";
-    bloque.appendChild(titulo);
-    const grid = document.createElement("div");
-    grid.className = "categoria-grid";
-    sinCat.forEach(prod => grid.appendChild(crearProductoCard(prod)));
-    bloque.appendChild(grid);
-    categoriasSection.appendChild(bloque);
-  }
-}
-
 function seleccionarProducto(producto: Producto) {
   productoSeleccionado = producto;
   inputBuscarProducto.value = producto.nombre;
@@ -288,7 +308,7 @@ function renderCarrito() {
 
   carrito.forEach((item, index) => {
     const prod = productos.find(p => p.id === item.productoId)!;
-    const subtotal = prod.precioVenta * item.cantidad;
+    const subtotal = subtotalConPromo(prod, item.cantidad);
     total += subtotal;
 
     const tr = document.createElement("tr");
@@ -313,6 +333,20 @@ function renderCarrito() {
   });
 }
 
+// Agrega cantidad al carrito, sumando a la línea existente si el producto
+// ya estaba (reescanear/re-clickear el mismo producto no debe crear una
+// fila duplicada). Usado tanto por btnAgregar como por el click directo en
+// las cards de productos por unidad.
+function agregarAlCarrito(productoId: number, cantidad: number) {
+  const existente = carrito.find(item => item.productoId === productoId);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({ productoId, cantidad });
+  }
+  renderCarrito();
+}
+
 // Descuenta localmente lo vendido, sin volver a pedir todo el listado
 // al backend: la venta ya restó el stock ahí, acá solo reflejamos ese
 // mismo descuento en el array que tenemos en memoria.
@@ -322,26 +356,32 @@ function actualizarStockLocal(itemsVendidos: DetalleVentaRequest[]) {
     if (prod) prod.stock -= item.cantidad;
   });
   renderProductosGrid(inputBuscarProducto.value);
-  renderCategoriasSection();
 }
 
 /* =======================
    FUNCIONES CLAVE
 ======================= */
 
-// Atajo tipo caja de supermercado: "3x<código>" agrega 3 unidades en
-// vez de 1. Los códigos de barra reales son puramente numéricos, así
-// que esto nunca choca con un escaneo normal (de teclado o cámara).
+// Atajo tipo caja de supermercado: "3x<código>" agrega 3 unidades en vez de
+// 1, y "1.5x<código>" permite pedir un peso fraccionario para productos por
+// peso (antes solo aceptaba enteros). Los códigos de barra reales son
+// puramente numéricos, así que esto nunca choca con un escaneo normal (de
+// teclado o cámara).
 function extraerMultiplicador(codigo: string): { multiplicador: number | null; codigoBarras: string } {
-  const match = codigo.match(/^(\d+)x(.+)$/i);
+  const match = codigo.match(/^(\d+(?:\.\d+)?)x(.+)$/i);
   if (!match) return { multiplicador: null, codigoBarras: codigo };
   return { multiplicador: Number(match[1]), codigoBarras: match[2].trim() };
 }
 
-async function procesarCodigoEscaneado(codigo: string) {
+// Devuelve el producto encontrado (y el multiplicador, si se usó el atajo
+// Nx<código>) o null si no existe. Antes esta función mostraba el toast de
+// "no encontrado" Y el caller (el handler de Enter) mostraba OTRO toast
+// igual al ver que no había producto seleccionado — quedaba duplicado. Ahora
+// hay un solo punto que decide y avisa: acá.
+async function procesarCodigoEscaneado(codigo: string): Promise<{ producto: Producto; multiplicador: number | null } | null> {
   codigo = codigo.trim();
 
-  if (!codigo) return;
+  if (!codigo) return null;
 
   if (!escaneando) escaneando = true;
 
@@ -352,7 +392,10 @@ async function procesarCodigoEscaneado(codigo: string) {
 
   if (!producto) {
     mostrarToast("Producto no encontrado", true);
-    return;
+    // Selecciona el texto para que el próximo escaneo/tipeo lo sobrescriba
+    // directo, sin tener que borrarlo a mano.
+    inputBuscarProducto.select();
+    return null;
   }
 
   seleccionarProducto(producto);
@@ -363,6 +406,7 @@ async function procesarCodigoEscaneado(codigo: string) {
   }
 
   await cerrarScanner();
+  return { producto, multiplicador };
 }
 
 async function abrirDetalleVenta(ventaId: number) {
@@ -445,16 +489,16 @@ async function cerrarScanner() {
 btnAgregar.addEventListener("click", () => {
   const productoId = Number(inputBuscarProducto.dataset.id);
   const cantidad = Number(inputCantidad.value);
-  if (!productoId || cantidad <= 0) return alert("Seleccione un producto válido y cantidad");
+  if (!productoId || cantidad <= 0) { mostrarToast("Seleccione un producto válido y cantidad", true); return; }
 
   const producto = productos.find(p => p.id === productoId);
   if (!producto) return;
   if (!esProductoPesable(producto) && !Number.isInteger(cantidad)) {
-    return alert("Este producto se vende por unidad, la cantidad debe ser entera");
+    mostrarToast("Este producto se vende por unidad, la cantidad debe ser entera", true);
+    return;
   }
 
-  carrito.push({ productoId, cantidad });
-  renderCarrito();
+  agregarAlCarrito(productoId, cantidad);
 
   inputBuscarProducto.value = "";
   inputCantidad.value = "";
@@ -470,9 +514,18 @@ btnAgregar.addEventListener("click", () => {
 });
 
 btnConfirmar.addEventListener("click", async () => {
-  if (!carrito.length) return alert("No hay productos en la venta");
+  if (!carrito.length) { mostrarToast("No hay productos en la venta", true); return; }
 
-  const ventaCreada = await createVenta({ detalles: carrito });
+  let ventaCreada;
+  try {
+    ventaCreada = await createVenta({ detalles: carrito });
+  } catch (error) {
+    // Antes esto quedaba sin manejar: la venta fallaba en silencio, sin
+    // toast ni error visible, y el carrito quedaba "colgado". Ahora se
+    // avisa y el carrito se conserva intacto para poder reintentar.
+    mostrarToast((error as Error).message || "Error al registrar venta", true);
+    return;
+  }
 
   actualizarStockLocal(carrito);
   carrito = [];
@@ -482,25 +535,42 @@ btnConfirmar.addEventListener("click", async () => {
   await imprimirTicket(ventaCreada);
 
   mostrarToast("Venta registrada exitosamente");
+  inputBuscarProducto.focus();
 });
 
 btnCerrarDetalle.addEventListener("click", () => modalDetalle.classList.add("hidden"));
+
+btnVerVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.remove("hidden"));
+btnCerrarVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.add("hidden"));
 
 inputBuscarProducto.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
 
-  const codigo = inputBuscarProducto.value.trim();
+  let producto: Producto | null = null;
+  let multiplicador: number | null = null;
 
   if (!inputBuscarProducto.dataset.id) {
-    await procesarCodigoEscaneado(codigo);
+    const resultado = await procesarCodigoEscaneado(inputBuscarProducto.value.trim());
+    if (!resultado) return; // procesarCodigoEscaneado ya mostró el toast de "no encontrado"
+    producto = resultado.producto;
+    multiplicador = resultado.multiplicador;
+  } else {
+    producto = productos.find(p => p.id === Number(inputBuscarProducto.dataset.id)) ?? null;
   }
 
-  if (inputBuscarProducto.dataset.id) {
-    btnAgregar.click();
-  } else {
-    mostrarToast("Producto no encontrado", true);
+  if (!producto) return;
+
+  // Por peso, sin cantidad explícita vía Nx<código>: no agregar solo con la
+  // fracción mínima. Dejamos el input de cantidad enfocado (ya vacío, ver
+  // configurarInputCantidad) para que el vendedor tipee el peso real y lo
+  // confirme con un segundo Enter ahí.
+  if (esProductoPesable(producto) && !multiplicador) {
+    inputCantidad.focus();
+    return;
   }
+
+  btnAgregar.click();
 });
 
 // Enter en "Cantidad" agrega al carrito, igual que tocar "Agregar"
@@ -509,6 +579,23 @@ inputCantidad.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
   btnAgregar.click();
+});
+
+// Atajo para confirmar la venta sin mouse. Ctrl+Enter a propósito (no un
+// Enter solo): un Enter suelto es fácil de disparar sin querer navegando el
+// resto de la pantalla con teclado, y confirmar una venta por accidente es
+// mucho peor que agregar un producto de más.
+document.addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey && e.key === "Enter")) return;
+  if (!carrito.length) return;
+  if (!modalDetalle.classList.contains("hidden")) return;
+  if (modalVentasRegistradas && !modalVentasRegistradas.classList.contains("hidden")) return;
+  // Hay un producto (típicamente por peso) seleccionado pero todavía no
+  // agregado al carrito: forzar a terminar de cargarlo antes de confirmar.
+  if (productoSeleccionado && inputBuscarProducto.dataset.id) return;
+
+  e.preventDefault();
+  btnConfirmar.click();
 });
 
 // btnScanCamara.addEventListener("click", abrirScanner);

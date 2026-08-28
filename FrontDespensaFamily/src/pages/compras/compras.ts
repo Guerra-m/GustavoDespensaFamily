@@ -77,7 +77,8 @@ const tablaCompras = document.getElementById("tabla-compras") as HTMLTableElemen
 const formCompra = document.getElementById("form-compra") as HTMLFormElement;
 
 const inputProveedor = document.getElementById("proveedor") as HTMLInputElement;
-const selectProducto = document.getElementById("producto") as HTMLSelectElement;
+const inputBuscarProducto = document.getElementById("input-buscar-producto") as HTMLInputElement;
+const dropdownProductos = document.getElementById("dropdown-productos") as HTMLDivElement;
 const inputCantidad = document.getElementById("cantidad") as HTMLInputElement;
 const inputPrecioCosto = document.getElementById("precioCosto") as HTMLInputElement;
 
@@ -150,23 +151,56 @@ function agregarEventosDetalle() {
 async function cargarProductos() {
   try {
     productos = await getProductos();
-    selectProducto.innerHTML = "<option value=''>Seleccione producto</option>";
-
-    productos.forEach(p => {
-      const option = document.createElement("option");
-      option.value = p.id!.toString();
-      option.textContent = p.nombre;
-      selectProducto.appendChild(option);
-    });
   } catch (error) {
     console.error(error);
     mostrarToast("Error al cargar productos", true);
   }
 }
 
+// ---------------- BUSCADOR DE PRODUCTOS (reemplaza el <select> nativo) ----------------
+function renderDropdownProductos(filtro: string) {
+  const texto = filtro.toLowerCase().trim();
+  if (!texto) {
+    dropdownProductos.classList.add("hidden");
+    dropdownProductos.innerHTML = "";
+    return;
+  }
+
+  const coincidencias = productos.filter(p =>
+    p.nombre.toLowerCase().includes(texto) ||
+    p.codigoBarras?.toLowerCase().includes(texto)
+  ).slice(0, 50); // tope razonable de sugerencias visibles, no hace falta más
+
+  dropdownProductos.innerHTML = "";
+
+  if (coincidencias.length === 0) {
+    dropdownProductos.innerHTML = `<div class="dropdown-sin-resultados">No se encontraron productos</div>`;
+  } else {
+    coincidencias.forEach(p => {
+      const item = document.createElement("div");
+      item.className = "dropdown-item";
+      item.textContent = p.nombre;
+      item.addEventListener("click", () => seleccionarProductoCompra(p));
+      dropdownProductos.appendChild(item);
+    });
+  }
+
+  dropdownProductos.classList.remove("hidden");
+}
+
+function seleccionarProductoCompra(producto: Producto) {
+  inputBuscarProducto.value = producto.nombre;
+  inputBuscarProducto.dataset.id = producto.id!.toString();
+  configurarInputCantidadCompra(producto);
+  inputCantidad.value = fraccionMinima(producto).toString();
+  dropdownProductos.classList.add("hidden");
+  dropdownProductos.innerHTML = "";
+  inputCantidad.focus();
+}
+
 // Agregar detalle
 btnAgregar.addEventListener("click", () => {
-  const productoId = Number(selectProducto.value);
+  const productoId = Number(inputBuscarProducto.dataset.id);
   const cantidadIngresada = Number(inputCantidad.value);
   const precioIngresado = Number(inputPrecioCosto.value);
   const producto = productos.find(p => p.id === productoId);
@@ -194,8 +228,11 @@ btnAgregar.addEventListener("click", () => {
   detallesCompra.push({ productoId, cantidad, precioCosto });
   renderDetalles();
 
+  inputBuscarProducto.value = "";
+  delete inputBuscarProducto.dataset.id;
   inputCantidad.value = "";
   inputPrecioCosto.value = "";
+  inputBuscarProducto.focus();
 });
 
 // Render detalles
@@ -314,12 +351,21 @@ btnCerrarDetalleCompra.addEventListener("click", () => {
     modalDetalleCompra.classList.add("hidden");
 });
 
-selectProducto.addEventListener("change", () => {
-  const productoId = Number(selectProducto.value);
-  const producto = productos.find(p => p.id === productoId);
-  if (!producto) return;
+inputBuscarProducto.addEventListener("input", () => {
+  // Escribir de nuevo invalida la selección anterior hasta que se elija
+  // un ítem de la lista otra vez.
+  delete inputBuscarProducto.dataset.id;
+  renderDropdownProductos(inputBuscarProducto.value);
+});
 
-  configurarInputCantidadCompra(producto);
-  inputCantidad.value = fraccionMinima(producto).toString();
+inputBuscarProducto.addEventListener("focus", () => {
+  if (inputBuscarProducto.value.trim()) renderDropdownProductos(inputBuscarProducto.value);
+});
+
+document.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (!target.closest(".producto-buscar-container")) {
+    dropdownProductos.classList.add("hidden");
+  }
 });
 

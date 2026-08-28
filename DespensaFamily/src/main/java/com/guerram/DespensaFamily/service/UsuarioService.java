@@ -32,8 +32,17 @@ public class UsuarioService  {
     }
 
     // CAMBIAR CONTRASEÑA
-    public Usuario cambiarPassword(Long id, String passwordActual, String nuevaPassword) {
-        Usuario usuario = usuarioRepository.findById(id)
+    // IDOR (AUTZ-02): antes recibía el id del path y confiaba en él para
+    // decidir SOBRE QUIÉN actuar — cualquier usuario autenticado podía
+    // cambiar la contraseña de otro con solo cambiar el id en la URL
+    // (probando que conociera la contraseña actual de esa otra cuenta). El
+    // filtro de "dueño" ahora va en la misma resolución del usuario, no se
+    // compara después: se ignora cualquier id que venga del cliente y se
+    // resuelve siempre el usuario autenticado desde el token, igual que
+    // obtenerPerfil().
+    public Usuario cambiarPassword(String passwordActual, String nuevaPassword) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {

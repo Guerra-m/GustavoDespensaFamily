@@ -142,7 +142,8 @@ h1::before {
 .mensaje.ok { color: #2e7d32; }
 .mensaje.error { color: #d32f2f; }
 
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir con el breakpoint de navbar.css */
+@media (max-width: 1023px) {
   .content { margin-left: 0; }
 }
 

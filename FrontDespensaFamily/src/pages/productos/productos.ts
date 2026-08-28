@@ -12,9 +12,13 @@ import {
 } from "../../services/productos.service";
 
 import { getCategorias } from "../../services/categorias.service";
+import { confirmar } from "../../services/confirm.service";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
+const productosGridWrapper = document.getElementById("productos-grid-wrapper") as HTMLDivElement | null;
+const indiceCategorias = document.getElementById("productos-indice") as HTMLDivElement;
+const toast = document.getElementById("toast") as HTMLDivElement;
 
 const formCrear = document.getElementById("form-crear") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar") as HTMLFormElement;
@@ -30,6 +34,10 @@ const selectEditar = formEditar.querySelector(
 
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
 const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement;
+
+const modalCrear = document.getElementById("modal-crear") as HTMLDivElement;
+const btnCrearProducto = document.getElementById("btn-crear-producto") as HTMLButtonElement;
+const btnCerrarCrear = document.getElementById("btn-cerrar-crear") as HTMLButtonElement;
 
 const barraSeleccion = document.getElementById("barra-seleccion") as HTMLDivElement;
 const contadorSeleccion = document.getElementById("contador-seleccion") as HTMLSpanElement;
@@ -77,6 +85,13 @@ let productoActual: Producto | null = null;
 let seleccionados = new Set<number>();
 
 // ---------- UTIL ----------
+function mostrarToast(mensaje: string, error = false) {
+  toast.textContent = mensaje;
+  toast.classList.remove("hidden");
+  toast.classList.toggle("error", error);
+  setTimeout(() => toast.classList.add("hidden"), 2500);
+}
+
 function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);
 }
@@ -190,12 +205,14 @@ function crearCard(prod: Producto): HTMLDivElement {
     <label class="producto-check">
       <input type="checkbox" class="chk-seleccionar" data-id="${prod.id}" ${seleccionados.has(prod.id!) ? "checked" : ""} title="Seleccionar para imprimir cartel">
     </label>
-    <div class="producto-menu-container">
-      <button class="btn-menu" data-id="${prod.id}"></button>
-      <div class="producto-menu-dropdown">
-        <button class="btn-editar-menu" data-id="${prod.id}">Editar</button>
-        <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
-        <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+    <div class="producto-acciones">
+      <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar">✏️</button>
+      <div class="producto-menu-container">
+        <button class="btn-menu" data-id="${prod.id}"></button>
+        <div class="producto-menu-dropdown">
+          <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
+          <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+        </div>
       </div>
     </div>
     <div class="producto-imagen">
@@ -358,9 +375,10 @@ function renderProductos(lista: Producto[]) {
       return a.nombre.localeCompare(b.nombre, "es");
     });
 
-  gruposOrdenados.forEach(([, { nombre, prods }]) => {
+  gruposOrdenados.forEach(([key, { nombre, prods }]) => {
     const seccion = document.createElement("div");
     seccion.className = "prod-cat-seccion";
+    seccion.id = `cat-${key}`;
 
     const titulo = document.createElement("div");
     titulo.className = "prod-cat-titulo";
@@ -374,17 +392,65 @@ function renderProductos(lista: Producto[]) {
 
     productosGrid.appendChild(seccion);
   });
+
+  renderIndiceCategorias(gruposOrdenados.map(([key, { nombre }]) => ({ key, nombre })));
+}
+
+// ---------- ÍNDICE POR CATEGORÍA (scroll-spy) ----------
+// Barra lateral fija con las categorías presentes en el listado actual;
+// se resalta sola la categoría que está a la vista mientras se scrollea
+// la grilla, para no perder de vista "por dónde vas" en un catálogo de
+// miles de productos.
+let observerIndice: IntersectionObserver | null = null;
+
+function renderIndiceCategorias(items: { key: string; nombre: string }[]) {
+  if (!indiceCategorias) return;
+  indiceCategorias.innerHTML = "";
+
+  items.forEach(({ key, nombre }) => {
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "indice-cat-link";
+    link.textContent = nombre;
+    link.dataset.target = `cat-${key}`;
+    link.addEventListener("click", () => {
+      document.getElementById(`cat-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    indiceCategorias.appendChild(link);
+  });
+
+  observerIndice?.disconnect();
+  if (!productosGridWrapper || items.length === 0) return;
+
+  observerIndice = new IntersectionObserver(
+    (entries) => {
+      // De las secciones visibles, la más arriba dentro del scroll marca
+      // la categoría "activa" del momento.
+      const visibles = entries
+        .filter(e => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visibles.length === 0) return;
+
+      const idActivo = visibles[0].target.id;
+      indiceCategorias.querySelectorAll<HTMLButtonElement>(".indice-cat-link").forEach(link => {
+        link.classList.toggle("activo", link.dataset.target === idActivo);
+      });
+    },
+    { root: productosGridWrapper, rootMargin: "0px 0px -70% 0px", threshold: 0 }
+  );
+
+  document.querySelectorAll(".prod-cat-seccion").forEach(sec => observerIndice!.observe(sec));
 }
 
 // ---------- DELEGACIÓN DE EVENTOS PARA EL MENÚ ----------
 productosGrid.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
 
-  // BOTÓN EDITAR
-  if (target.closest('.btn-editar-menu')) {
-    const btn = target.closest('.btn-editar-menu') as HTMLElement;
+  // BOTÓN EDITAR (visible directo en la card, no adentro del menú de 3
+  // puntos — es la acción más frecuente, no tiene sentido esconderla)
+  if (target.closest('.btn-editar-rapido')) {
+    const btn = target.closest('.btn-editar-rapido') as HTMLElement;
     const id = Number(btn.dataset.id);
-    cerrarTodosLosMenus();
     abrirEditarProducto(id);
   }
 
@@ -554,8 +620,28 @@ async function cargarCategorias() {
 // ---------- CARGAR PRODUCTOS ----------
 async function cargarProductos() {
   productos = await getProductos();
+  // Reaplica el filtro de búsqueda actual en vez de mostrar siempre todo:
+  // antes, crear/editar/eliminar volvía a traer los productos y perdía el
+  // texto ya tipeado en el buscador (la lista volvía a verse completa sin
+  // avisar, aunque el input seguía mostrando el texto de búsqueda).
+  aplicarFiltro();
+}
+
+// ---------- BUSCAR (filtra sobre el estado actual de `productos`) ----------
+function aplicarFiltro() {
+  const q = inputBuscar.value.toLowerCase().trim();
+
+  if (!q) {
+    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    return;
+  }
+
   renderProductos(
-    [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre))
+    productos.filter(p =>
+      p.nombre.toLowerCase().includes(q) ||
+      p.codigoBarras?.includes(q) ||
+      categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
+    )
   );
 }
 
@@ -600,9 +686,14 @@ formCrear.addEventListener("submit", async e => {
     (formCrear.fraccionMinima as HTMLInputElement).value = "1";
     (formCrear.tipoCantidad as HTMLSelectElement).dispatchEvent(new Event("change"));
     cargarProductos();
+    mostrarToast("Producto creado correctamente");
+    // El modal NO se cierra solo a propósito: para cargar varios productos
+    // seguidos no hace falta reabrirlo cada vez, solo tocar "Cerrar" al
+    // terminar. Refocar el primer campo para poder tipear el siguiente ya.
+    (formCrear.nombre as HTMLInputElement).focus();
   } catch (err) {
     console.error(err);
-    alert("Error al crear producto");
+    mostrarToast("Error al crear producto", true);
   }
 });
 
@@ -648,6 +739,16 @@ btnCancelar.addEventListener("click", () => {
   formEditar.reset();
 });
 
+// ---------- MODAL CREAR ----------
+btnCrearProducto.addEventListener("click", () => {
+  modalCrear.classList.remove("hidden");
+  (formCrear.nombre as HTMLInputElement).focus();
+});
+
+btnCerrarCrear.addEventListener("click", () => {
+  modalCrear.classList.add("hidden");
+});
+
 // ---------- GUARDAR EDICIÓN ----------
 formEditar.addEventListener("submit", async e => {
   e.preventDefault();
@@ -687,38 +788,25 @@ formEditar.addEventListener("submit", async e => {
     modal.classList.add("hidden");
     productoActual = null;
     cargarProductos();
+    mostrarToast("Producto actualizado correctamente");
   } catch (err) {
     console.error(err);
-    alert("Error al actualizar producto");
+    mostrarToast("Error al actualizar producto", true);
   }
 });
 
 // ---------- ELIMINAR ----------
 async function eliminarProducto(id: number) {
-  if (!confirm("¿Eliminar producto?")) return;
+  if (!(await confirmar("¿Eliminar producto?"))) return;
   await deleteProducto(id);
   seleccionados.delete(id);
   actualizarBarraSeleccion();
   cargarProductos();
+  mostrarToast("Producto eliminado");
 }
 
 // ---------- BUSCAR ----------
-inputBuscar.addEventListener("input", () => {
-  const q = inputBuscar.value.toLowerCase().trim();
-
-  if (!q) {
-    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    return;
-  }
-
-  renderProductos(
-    productos.filter(p =>
-      p.nombre.toLowerCase().includes(q) ||
-      p.codigoBarras?.includes(q) ||
-      categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
-    )
-  );
-});
+inputBuscar.addEventListener("input", aplicarFiltro);
 
 // ---------- RECALCULAR ----------
 function recalcularVenta(

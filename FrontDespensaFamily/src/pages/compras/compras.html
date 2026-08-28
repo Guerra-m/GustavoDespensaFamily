@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Compras | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- estilos globales -->
   <link rel="stylesheet" href="../../style.css" />
@@ -56,9 +57,10 @@
 
           <div class="detalle-compra">
 
-            <select id="producto">
-              <option value="">Seleccione producto</option>
-            </select>
+            <div class="producto-buscar-container">
+              <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" />
+              <div id="dropdown-productos" class="dropdown-productos hidden"></div>
+            </div>
 
             <input
               type="number"

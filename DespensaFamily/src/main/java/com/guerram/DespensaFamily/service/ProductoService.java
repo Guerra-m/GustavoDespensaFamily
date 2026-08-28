@@ -15,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,16 +47,31 @@ public class ProductoService {
         productoRepository.save(producto);
         return Mapper.toDTO(producto);
     }
+    // Lista blanca de tipos de imagen soportados. Deliberadamente sin SVG:
+    // un SVG puede llevar <script> embebido (UPL-08), no es un formato
+    // seguro para aceptar de un usuario y servirlo después tal cual.
+    private static final Map<String, String> EXTENSIONES_PERMITIDAS = Map.of(
+            "image/jpeg", ".jpg",
+            "image/png", ".png",
+            "image/webp", ".webp",
+            "image/gif", ".gif"
+    );
+
     private String guardarImagen(MultipartFile imagen) throws IOException {
-         final Path ruta = Paths.get("C:/uploads/productos");
+        final Path ruta = Paths.get("C:/uploads/productos");
 
-
-        if (!imagen.getContentType().startsWith("image/")) {
-            throw new RuntimeException("El archivo no es una imagen");
+        String extension = EXTENSIONES_PERMITIDAS.get(imagen.getContentType());
+        if (extension == null) {
+            throw new RuntimeException("El archivo no es una imagen soportada (jpg, png, webp o gif)");
         }
 
-        String nombreArchivo = System.currentTimeMillis() + "_" + imagen.getOriginalFilename();
-
+        // Path traversal (UPL-03): el nombre que manda el cliente NUNCA se
+        // usa para la ruta física — antes `imagen.getOriginalFilename()` iba
+        // directo al nombre de archivo, así que un nombre con "../" escribía
+        // fuera de la carpeta esperada. El servidor genera su propio nombre;
+        // si en algún momento hace falta el nombre original, se guarda aparte
+        // como metadata, nunca para resolver una ruta.
+        String nombreArchivo = UUID.randomUUID() + extension;
 
         if (!Files.exists(ruta)) {
             Files.createDirectories(ruta);

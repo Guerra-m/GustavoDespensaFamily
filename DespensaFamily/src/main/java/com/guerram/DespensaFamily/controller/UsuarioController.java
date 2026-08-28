@@ -22,9 +22,13 @@ public class UsuarioController {
     }
 
     // CAMBIAR PASSWORD
+    // {id} se ignora a propósito para decidir sobre quién actuar (ver
+    // UsuarioService.cambiarPassword) — el usuario objetivo siempre se
+    // resuelve del token, nunca del path. Se mantiene en la ruta sin
+    // cambios para no tocar el contrato que ya usa el frontend.
     @PatchMapping("/{id}/password")
-    public LoginResponseDTO cambiarPassword(@PathVariable Long id, @RequestBody CambiarPasswordDTO request) {
-        usuarioService.cambiarPassword(id, request.getPasswordActual(), request.getPasswordNueva());
+    public LoginResponseDTO cambiarPassword(@PathVariable Long id, @Valid @RequestBody CambiarPasswordDTO request) {
+        usuarioService.cambiarPassword(request.getPasswordActual(), request.getPasswordNueva());
         return new LoginResponseDTO("Contraseña cambiada correctamente", null, null);
     }
 

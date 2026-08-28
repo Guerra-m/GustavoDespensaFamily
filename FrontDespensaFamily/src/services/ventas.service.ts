@@ -16,7 +16,16 @@ export async function createVenta(venta: VentaRequest): Promise<Venta> {
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(venta)
   });
-  if (!res.ok) throw new Error("Error al registrar venta");
+  if (!res.ok) {
+    // El backend devuelve { error: "..." } (ver GlobalExceptionHandler),
+    // con 409 específicamente cuando otra venta/compra tocó el mismo
+    // producto al mismo tiempo (conflicto de stock, no un bug).
+    const body = await res.json().catch(() => null);
+    const mensaje = body?.error || "Error al registrar venta";
+    const error = new Error(mensaje) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
+  }
   return res.json();
 }
 

@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ventas | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <!-- estilos globales -->
   <link rel="stylesheet" href="../../style.css" />
   <!-- estilos del navbar -->
@@ -28,7 +29,7 @@
     <option value="consumidor_final">Consumidor final</option>
   </select>
 </div>
-    <a href="#ventas-registradas">Ir a ventas registro</a>
+    <button type="button" id="btn-ver-ventas-registradas">Ventas Registradas</button>
   </div>
 
   <hr />
@@ -83,29 +84,32 @@
 
   </div>
 
-  <!-- BLOQUES POR CATEGORÍA -->
-  <div id="categorias-section"></div>
-
-  <!-- ABAJO -->
-  <h1 id="ventas-registradas">Ventas Registradas</h1>
-
-  <div class="tabla-scroll">
-    <table id="tabla-ventas-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Fecha</th>
-          <th>Total</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-ventas"></tbody>
-    </table>
-  </div>
-
 </div>
 
   </main>
+
+  <!-- Modal Ventas Registradas (antes era un link-ancla al fondo de la
+       página; con el catálogo completo esa página llegaba a tener cientos
+       de miles de píxeles de alto) -->
+  <div id="modal-ventas-registradas" class="modal hidden">
+    <div class="modal-content">
+      <h2>Ventas Registradas</h2>
+      <div class="tabla-scroll">
+        <table id="tabla-ventas-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Total</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-ventas"></tbody>
+        </table>
+      </div>
+      <button type="button" id="btn-cerrar-ventas-registradas">Cerrar</button>
+    </div>
+  </div>
 
   <!-- Modal Detalle de Venta -->
   <div id="modal-detalle" class="modal hidden">

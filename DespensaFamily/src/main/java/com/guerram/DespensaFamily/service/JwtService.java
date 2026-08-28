@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -13,11 +14,17 @@ import java.util.Map;
 @Service
 public class JwtService {
 
-    private static final String SECRET = "despensafamily-super-secret-key-256-bits-long!!xx";
+    // Definido en application.properties (jwt.secret), con override por
+    // variable de entorno JWT_SECRET. Cualquier despliegue real debe setear
+    // esa variable con un valor propio — nunca depender del default de
+    // desarrollo que trae application.properties.
+    @Value("${jwt.secret}")
+    private String secret;
+
     private static final long EXPIRATION_MS = 24 * 60 * 60 * 1000L;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     public String generateToken(String username, String rol) {

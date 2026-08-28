@@ -229,7 +229,10 @@ canvas {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
+   navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
+   donde el sidebar ya está visible pero el contenido no le dejó margen. */
+@media (max-width: 1023px) {
   .content {
     margin-left: 0;
     padding: 30px;

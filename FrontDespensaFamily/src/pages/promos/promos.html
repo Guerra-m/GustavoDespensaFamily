@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promociones | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="../../style.css" />
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <link rel="stylesheet" href="./promos.css" />
+</head>
+
+<body>
+  <div id="navbar-container"></div>
+  <main class="content">
+    <div class="promos-container">
+
+      <h1>Promociones</h1>
+
+      <div id="toast" class="toast hidden"></div>
+
+      <!-- TABLA -->
+      <div class="tabla-scroll">
+        <table id="tabla-promos">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Combo</th>
+              <th>Activo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- FORM CREAR -->
+      <form id="form-crear-promo">
+        <h2>Crear Promoción</h2>
+
+        <label>
+          Producto
+          <div class="producto-buscar-container">
+            <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" required />
+            <div id="dropdown-productos" class="dropdown-productos hidden"></div>
+          </div>
+        </label>
+
+        <label>
+          Lleva
+          <input type="number" name="cantidadLleva" min="2" step="1" placeholder="Ej: 3" required />
+        </label>
+
+        <label>
+          Paga
+          <input type="number" name="cantidadPaga" min="1" step="1" placeholder="Ej: 2" required />
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" name="activo" checked />
+          Activa
+        </label>
+
+        <button type="submit">Crear</button>
+      </form>
+
+      <!-- MODAL EDITAR -->
+      <div id="modal-editar" class="modal hidden">
+        <div class="modal-content">
+          <h2>Editar Promoción</h2>
+
+          <form id="form-editar-promo">
+            <label>Producto <span id="editar-producto-nombre" class="producto-fijo"></span></label>
+
+            <label>
+              Lleva
+              <input type="number" name="cantidadLleva" min="2" step="1" required />
+            </label>
+
+            <label>
+              Paga
+              <input type="number" name="cantidadPaga" min="1" step="1" required />
+            </label>
+
+            <label class="checkbox-label">
+              <input type="checkbox" name="activo" />
+              Activa
+            </label>
+
+            <button type="submit">Guardar</button>
+            <button type="button" id="btn-cancelar">Cancelar</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./promos.ts"></script>
+</body>
+
+</html>

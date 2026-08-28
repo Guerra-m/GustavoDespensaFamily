@@ -1,0 +1,113 @@
+/* Estilos globales compartidos por toda la app. Antes este archivo estaba
+   vacío y cada página copiaba su propio .toast/.hidden — de acá en más,
+   lo que es realmente común vive acá una sola vez. */
+
+.hidden { display: none !important; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: #43a047;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 3000;
+  animation: slideInToast 0.3s ease;
+  font-weight: 600;
+}
+
+.toast.error {
+  background: #e53935;
+}
+
+@keyframes slideInToast {
+  from { transform: translateX(400px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ── TABLA CON ALTO CONTROLADO (default para páginas que no definen el
+   suyo propio; Compras/Ventas ya traen el suyo más específico y ese gana) ── */
+.tabla-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: 12px;
+}
+
+.tabla-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+}
+
+/* ── MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo) ──
+   Inyectado por navbar.ts en todas las páginas; se controla desde
+   services/confirm.service.ts. Nombres de clase propios (.confirm-modal-*)
+   para no chocar con los distintos .modal/.modal-content que ya define
+   cada página. */
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+}
+
+.confirm-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.confirm-modal-mensaje {
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: #2c3e50;
+  line-height: 1.4;
+}
+
+.confirm-modal-acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-modal-acciones button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+#confirm-modal-cancelar {
+  background: #e9ecef;
+  color: #495057;
+}
+
+#confirm-modal-cancelar:hover {
+  background: #dee2e6;
+}
+
+#confirm-modal-aceptar {
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  color: white;
+}
+
+#confirm-modal-aceptar:hover {
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+}

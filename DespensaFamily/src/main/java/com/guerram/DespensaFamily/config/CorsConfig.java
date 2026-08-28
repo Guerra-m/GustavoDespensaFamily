@@ -18,9 +18,16 @@ public class CorsConfig {
                                 "http://localhost:5173",
                                 "http://192.168.100.6:5173"
                         )
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        // Faltaba PATCH: /usuario/{id}/password y
+                        // /productos/{id}/stock-precio son PATCH reales y el
+                        // navegador los bloqueaba en preflight.
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(true);
+                        // La auth es Bearer token en localStorage, no cookies
+                        // (confirmado: ningún fetch del frontend usa
+                        // credentials:"include") — allowCredentials(true) solo
+                        // ampliaba la superficie sin necesidad (API-06).
+                        .allowCredentials(false);
             }
         };
     }

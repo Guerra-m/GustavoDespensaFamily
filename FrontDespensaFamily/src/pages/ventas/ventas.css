@@ -108,6 +108,17 @@ input[type="number"] {
   font-size: 14px;
 }
 
+#btn-ver-ventas-registradas {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: white;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+#btn-ver-ventas-registradas:hover {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
 /* BOTONES */
 button:not(.menu-toggle) {
   padding: 14px 24px;
@@ -267,8 +278,11 @@ button.btn-imprimir:hover {
 
 #productos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  /* Cards chicas: prioriza cantidad de productos visibles (velocidad de
+     reconocimiento del vendedor) por sobre el tamaño tipo e-commerce que
+     tenía antes (200px → 2-4 columnas a 1440px). */
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
 }
 
 .sin-resultados {
@@ -346,6 +360,18 @@ button.btn-imprimir:hover {
   box-shadow: 0 4px 12px rgba(67, 160, 71, 0.3);
 }
 
+/* Feedback breve al hacer click-to-add en una card de producto por unidad
+   (no bloquea la interacción, solo confirma visualmente que sumó). */
+.producto-card.agregado-flash {
+  animation: flash-agregado 0.35s ease;
+}
+
+@keyframes flash-agregado {
+  0% { transform: scale(1); border-color: #43a047; box-shadow: 0 4px 12px rgba(67, 160, 71, 0.35); }
+  50% { transform: scale(1.04); border-color: #43a047; box-shadow: 0 6px 16px rgba(67, 160, 71, 0.45); }
+  100% { transform: scale(1); }
+}
+
 /* CONTENEDOR DE IMAGEN - PROPORCIÓN FIJA */
 .producto-imagen {
   position: relative;
@@ -362,7 +388,7 @@ button.btn-imprimir:hover {
   width: 100%;
   height: 100%;
   object-fit: contain; /* Mantiene proporción sin recortar */
-  padding: 12px; /* Espaciado interno para que no toque los bordes */
+  padding: 6px; /* Espaciado interno para que no toque los bordes */
 }
 
 /* Placeholder para productos sin imagen */
@@ -381,6 +407,20 @@ button.btn-imprimir:hover {
   z-index: 1;
 }
 
+.promo-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  background: linear-gradient(135deg, #ff7043 0%, #e64a19 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
 /* Si no hay imagen, mostrar el emoji */
 .producto-imagen:not(:has(img))::after {
   display: block;
@@ -391,19 +431,19 @@ button.btn-imprimir:hover {
 }
 
 .producto-info {
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
 }
 
 .producto-nombre {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: #2c3e50;
-  line-height: 1.4;
-  min-height: 40px;
+  line-height: 1.3;
+  min-height: 34px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -412,8 +452,8 @@ button.btn-imprimir:hover {
 }
 
 .producto-precio {
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 17px;
+  font-weight: 600;
   color: #2c3e50;
   margin-top: 4px;
 }
@@ -773,6 +813,13 @@ hr {
   min-width: 480px;
 }
 
+/* La tabla del carrito vive dentro de .carrito (flex:1, columna angosta a
+   propósito). El min-width general de 480px la forzaba a no encogerse,
+   dejando el split real ~50/50 con .registrar en vez del 75/25 esperado. */
+.carrito .tabla-scroll table {
+  min-width: 300px;
+}
+
 /* Las tablas simples dentro de modales achican con el resto del modal,
    no necesitan el ancho mínimo de las tablas con botones de acción */
 .modal-content .tabla-scroll table {
@@ -798,18 +845,35 @@ hr {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
+   navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
+   donde el sidebar ya está visible pero el contenido no le dejó margen. */
+@media (max-width: 1023px) {
   .content {
     margin-left: 0;
   }
 
   #productos-grid,
   .categoria-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
+  /* Antes ocupaban hasta 3 filas completas antes de mostrar la primera
+     card (13 categorías envolviendo con flex-wrap). Con scroll horizontal
+     queda en una sola fila. */
+  #filtros-categorias {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filtro-cat-btn {
+    flex-shrink: 0;
+  }
+
   .content {
     padding: 20px;
     padding-top: 80px;
@@ -817,8 +881,8 @@ hr {
 
   #productos-grid,
   .categoria-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
   }
   
   .producto-precio {
@@ -891,6 +955,7 @@ hr {
 /* COLUMNA IZQUIERDA */
 .registrar {
   flex: 3;
+  min-width: 0;
   background: white;
   padding: 20px;
   border-radius: 12px;
@@ -906,6 +971,12 @@ hr {
 /* COLUMNA DERECHA */
 .carrito {
   flex: 1;
+  /* Sin esto, un ítem flex nunca se achica por debajo del ancho mínimo de
+     su contenido (la tabla), sin importar flex-grow — por eso .carrito
+     terminaba más ancho que .registrar pese al 3:1 esperado. La tabla
+     sigue scrolleando horizontalmente adentro si hace falta (.tabla-scroll
+     ya tiene overflow-x:auto). */
+  min-width: 0;
   background: white;
   padding: 20px;
   border-radius: 12px;

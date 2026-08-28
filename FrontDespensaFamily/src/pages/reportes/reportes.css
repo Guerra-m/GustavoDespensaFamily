@@ -96,6 +96,7 @@ section:hover {
 /* LABELS Y FILTROS */
 label {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-right: 20px;
@@ -348,7 +349,10 @@ tbody:empty::after {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
+   navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
+   donde el sidebar ya está visible pero el contenido no le dejó margen. */
+@media (max-width: 1023px) {
   .content {
     margin-left: 0;
   }

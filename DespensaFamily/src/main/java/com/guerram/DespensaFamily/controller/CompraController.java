@@ -5,6 +5,7 @@ import com.guerram.DespensaFamily.dto.CompraDetalleResponseDTO;
 import com.guerram.DespensaFamily.dto.CompraRequestDTO;
 import com.guerram.DespensaFamily.dto.DetalleCompraDTO;
 import com.guerram.DespensaFamily.service.CompraService;
+import com.guerram.DespensaFamily.util.OptimisticRetry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class CompraController {
 
     @PostMapping
     public CompraDTO registrarCompra(@Valid  @RequestBody CompraRequestDTO request) {
-        return compraService.registrarCompra(request);
+        return OptimisticRetry.ejecutar(() -> compraService.registrarCompra(request));
     }
 
 

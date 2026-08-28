@@ -1,7 +1,21 @@
 import { isAdmin, clearAuth } from "../../services/auth.service";
+import { confirmar } from "../../services/confirm.service";
 
 const NAVBAR_HTML = `
 <div class="navbar-overlay" id="navbarOverlay"></div>
+
+<!-- Modal de confirmación genérico, compartido por toda la app (ver
+     services/confirm.service.ts) — se inyecta acá porque el navbar ya está
+     presente en todas las páginas. -->
+<div id="confirm-modal" class="confirm-modal hidden">
+  <div class="confirm-modal-content">
+    <p id="confirm-modal-mensaje"></p>
+    <div class="confirm-modal-acciones">
+      <button type="button" id="confirm-modal-cancelar">Cancelar</button>
+      <button type="button" id="confirm-modal-aceptar">Aceptar</button>
+    </div>
+  </div>
+</div>
 
 <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
   <div class="hamburger">
@@ -23,6 +37,7 @@ const NAVBAR_HTML = `
     <li><a href="../../pages/productos/productos.html"><span>📦</span> Productos</a></li>
     <li><a href="../../pages/categorias/categorias.html"><span>🗂</span> Categorías</a></li>
     <li><a href="../../pages/compras/compras.html"><span>🛒</span> Compras</a></li>
+    <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span>🏷️</span> Promos</a></li>
     <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span>📊</span> Reportes</a></li>
     <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span>👥</span> Usuarios</a></li>
     <li><a href="../../pages/perfil/perfil.html"><span>👤</span> Mi Perfil</a></li>
@@ -82,9 +97,9 @@ function initNavbar() {
 
   // Logout
   const logoutLink = document.querySelector<HTMLAnchorElement>(".logout a");
-  logoutLink?.addEventListener("click", (e) => {
+  logoutLink?.addEventListener("click", async (e) => {
     e.preventDefault();
-    if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+    if (await confirmar("¿Estás seguro que deseas cerrar sesión?")) {
       clearAuth();
       window.location.href = "../../pages/login/login.html";
     }

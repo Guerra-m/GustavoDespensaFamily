@@ -9,6 +9,7 @@ import com.guerram.DespensaFamily.repository.CompraRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,6 +22,9 @@ public class CompraService {
     private final CompraRepository compraRepository;
     private final ProductoRepository productoRepository;
 
+    // Ver comentario equivalente en VentaService.registrarVenta: mismo
+    // riesgo de concurrencia sobre producto.stock, misma solución.
+    @Transactional
     public CompraDTO registrarCompra(CompraRequestDTO request) {
 
         Compra compra = new Compra();

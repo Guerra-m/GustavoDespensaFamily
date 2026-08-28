@@ -49,4 +49,10 @@ public class Producto {
 
 
     private boolean activo = true;//Borrado lógico
+
+    // Locking optimista: evita perder actualizaciones de stock cuando dos
+    // ventas/compras concurrentes tocan el mismo producto (ver VentaService/
+    // CompraService, que reintentan sobre ObjectOptimisticLockingFailureException).
+    @Version
+    private Long version;
 }

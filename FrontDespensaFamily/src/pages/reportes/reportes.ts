@@ -13,6 +13,15 @@ import {
 import Chart from "chart.js/auto";
 
 // ---------------- DOM ----------------
+const toast = document.getElementById("toast") as HTMLDivElement;
+
+function mostrarToast(mensaje: string, error = false) {
+  toast.textContent = mensaje;
+  toast.classList.remove("hidden");
+  toast.classList.toggle("error", error);
+  setTimeout(() => toast.classList.add("hidden"), 2500);
+}
+
 const tablaBajoStock = document.getElementById("tabla-bajo-stock") as HTMLTableElement;
 const tablaMasVendidos = document.getElementById("tabla-mas-vendidos") as HTMLTableElement;
 const tablaMovimientos = document.getElementById("tabla-movimientos") as HTMLTableElement;
@@ -75,12 +84,14 @@ async function cargarProductosBajoStock() {
     tbody.innerHTML = "";
     productos.forEach(p => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p.id}</td><td>${p.nombre}</td><td>${p.stock}</td>`;
+      // .toFixed acá: el stock viaja como double y arrastra basura de
+      // punto flotante (ej "3.4619999999999997") si se muestra crudo.
+      tr.innerHTML = `<td>${p.id}</td><td>${p.nombre}</td><td>${p.stock.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
   } catch (err) {
     console.error(err);
-    alert("Error al cargar productos bajo stock");
+    mostrarToast("Error al cargar productos bajo stock", true);
   }
 }
 
@@ -94,14 +105,14 @@ async function cargarProductosMasVendidos() {
     tbody.innerHTML = "";
     productos.forEach(p => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p.productoId}</td><td>${p.nombre}</td><td>${p.cantidadVendida}</td>`;
+      tr.innerHTML = `<td>${p.productoId}</td><td>${p.nombre}</td><td>${p.cantidadVendida.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 
     renderMasVendidosChart(productos);
   } catch (err) {
     console.error(err);
-    alert("Error al obtener productos más vendidos");
+    mostrarToast("Error al obtener productos más vendidos", true);
   }
 }
 
@@ -136,7 +147,7 @@ async function cargarVentasPorCategoria() {
     const desde = inputCatDesde.value;
     const hasta = inputCatHasta.value;
     if (!desde || !hasta) {
-      alert("Seleccioná desde y hasta");
+      mostrarToast("Seleccioná desde y hasta", true);
       return;
     }
 
@@ -145,14 +156,14 @@ async function cargarVentasPorCategoria() {
     tbody.innerHTML = "";
     categorias.forEach(c => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${c.categoriaNombre}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida}</td>`;
+      tr.innerHTML = `<td>${c.categoriaNombre}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 
     renderVentasPorCategoriaChart(categorias);
   } catch (err) {
     console.error(err);
-    alert("Error al obtener ventas por categoría");
+    mostrarToast("Error al obtener ventas por categoría", true);
   }
 }
 
@@ -188,7 +199,7 @@ async function cargarGanancia() {
     const desde = inputGanDesde.value;
     const hasta = inputGanHasta.value;
     if (!desde || !hasta) {
-      alert("Seleccioná desde y hasta");
+      mostrarToast("Seleccioná desde y hasta", true);
       return;
     }
 
@@ -204,7 +215,7 @@ async function cargarGanancia() {
     renderGananciaChart(datos);
   } catch (err) {
     console.error(err);
-    alert("Error al obtener la ganancia en el tiempo");
+    mostrarToast("Error al obtener la ganancia en el tiempo", true);
   }
 }
 
@@ -251,14 +262,14 @@ async function cargarMovimientos() {
     tbody.innerHTML = "";
     [...movimientos].reverse().forEach(m => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${m.fecha}</td><td>${m.productoNombre}</td><td>${m.cantidad}</td><td>${m.tipo}</td>`;
+      tr.innerHTML = `<td>${m.fecha}</td><td>${m.productoNombre}</td><td>${m.cantidad.toFixed(2)}</td><td>${m.tipo}</td>`;
       tbody.appendChild(tr);
     });
 
     renderMovimientosChart(movimientos);
   } catch (err) {
     console.error(err);
-    alert("Error al obtener movimientos");
+    mostrarToast("Error al obtener movimientos", true);
   }
 }
 
@@ -315,7 +326,7 @@ async function cargarResumen() {
     `;
   } catch (err) {
     console.error(err);
-    alert("Error al cargar resumen");
+    mostrarToast("Error al cargar resumen", true);
   }
 }
 

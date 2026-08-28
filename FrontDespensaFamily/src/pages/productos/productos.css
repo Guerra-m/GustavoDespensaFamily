@@ -81,6 +81,91 @@ h2 {
   color: #adb5bd;
 }
 
+/* LAYOUT: índice de categorías + contenido */
+.productos-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.productos-indice {
+  flex: 0 0 180px;
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 700px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* !important acá porque la regla genérica button:not(.menu-toggle):not(...)
+   más abajo en este mismo archivo es más específica (varios :not()) que
+   .indice-cat-link sola, y ganaría el padding/margin/sombra por defecto de
+   los botones normales de la página en vez de este estilo compacto de
+   índice lateral. */
+.indice-cat-link {
+  background: none !important;
+  border: none !important;
+  border-left: 3px solid transparent !important;
+  text-align: left !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0 !important;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
+}
+
+.indice-cat-link:hover {
+  background: #f0f8ff !important;
+  color: #0288d1;
+  transform: none !important;
+}
+
+.indice-cat-link.activo {
+  background: #e3f2fd !important;
+  border-left-color: #0288d1 !important;
+  color: #0288d1;
+  font-weight: 700;
+}
+
+.productos-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .productos-layout {
+    flex-direction: column;
+  }
+
+  .productos-indice {
+    position: static;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-height: none;
+    width: 100%;
+  }
+
+  .indice-cat-link {
+    border-left: none !important;
+    border-bottom: 3px solid transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    flex-shrink: 0;
+  }
+
+  .indice-cat-link.activo {
+    border-left-color: transparent !important;
+    border-bottom-color: #0288d1 !important;
+  }
+}
+
 /* CONTENEDOR CON SCROLL */
 .productos-grid-wrapper {
   max-height: 700px;
@@ -137,8 +222,10 @@ h2 {
 
 .prod-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
+  /* Cards chicas: prioriza cantidad de productos visibles por sobre el
+     tamaño tipo e-commerce que tenía antes (240px → 2-4 columnas a 1440px). */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
 }
 
 .prod-sin-resultados {
@@ -184,7 +271,7 @@ h2 {
   width: 100%;
   height: 100%;
   object-fit: contain; /* Mantiene proporción sin recortar */
-  padding: 16px; /* Espaciado interno */
+  padding: 8px; /* Espaciado interno */
 }
 
 /* Placeholder para productos sin imagen */
@@ -214,19 +301,19 @@ h2 {
 
 /* CONTENIDO DE LA TARJETA */
 .producto-info {
-  padding: 16px;
+  padding: 10px;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .producto-nombre {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: #2c3e50;
-  line-height: 1.4;
-  min-height: 40px;
+  line-height: 1.3;
+  min-height: 34px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -247,8 +334,8 @@ h2 {
 }
 
 .producto-precio {
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 17px;
+  font-weight: 600;
   color: #2c3e50;
   margin-top: 4px;
 }
@@ -293,6 +380,17 @@ h2 {
 
 .productos-toolbar input {
   flex: 1;
+}
+
+#btn-crear-producto {
+  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 #btn-modo-seleccion {
@@ -385,11 +483,43 @@ h2 {
 /* ==============================
    MENÚ DE TRES PUNTOS
 ============================== */
-.producto-menu-container {
+/* Editar es la acción más frecuente sobre un producto — antes vivía
+   adentro del menú de 3 puntos (2 clicks para llegar), ahora tiene su
+   propio botón visible al lado del menú (que queda solo para lo
+   secundario: imprimir cartel, eliminar). */
+.producto-acciones {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 20; /* Mayor z-index */
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-editar-rapido {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-editar-rapido:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.producto-menu-container {
+  position: relative;
 }
 
 .btn-menu {
@@ -548,6 +678,37 @@ button:not(.menu-toggle):not(.btn-menu):not(.btn-editar-menu):not(.btn-eliminar-
   transform: translateY(0);
 }
 
+/* Formulario de alta/edición a 2 columnas agrupadas por fieldset (mismo
+   patrón .form-grid que ya usa Usuarios), en vez de 11 campos apilados en
+   una sola columna larguísima. */
+form fieldset.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+  border: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+form fieldset.form-grid legend {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #0288d1;
+  padding: 0 0 8px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #e3f2fd;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  form fieldset.form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* FORMULARIO CREAR */
 form {
   border: 2px solid #e9ecef;
@@ -669,6 +830,15 @@ form input[type="file"]::file-selector-button:hover {
   display: none;
 }
 
+.modal-crear-ayuda {
+  background: #e3f2fd;
+  color: #01579b;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
 .modal-content {
   box-sizing: border-box;
   background: #ffffff;
@@ -746,14 +916,17 @@ form input[type="file"]::file-selector-button:hover {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1024px) {
+/* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
+   navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
+   donde el sidebar ya está visible pero el contenido no le dejó margen. */
+@media (max-width: 1023px) {
   .content {
     margin-left: 0;
   }
 
   .prod-cat-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
   }
 }
 
@@ -780,8 +953,8 @@ form input[type="file"]::file-selector-button:hover {
   }
 
   .prod-cat-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
   }
 
   .producto-precio {

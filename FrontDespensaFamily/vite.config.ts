@@ -13,6 +13,7 @@ export default defineConfig({
         compras: resolve(__dirname, 'src/pages/compras/compras.html'),
         perfil: resolve(__dirname, 'src/pages/perfil/perfil.html'),
         productos: resolve(__dirname, 'src/pages/productos/productos.html'),
+        promos: resolve(__dirname, 'src/pages/promos/promos.html'),
         reportes: resolve(__dirname, 'src/pages/reportes/reportes.html'),
         usuarios: resolve(__dirname, 'src/pages/usuarios/usuarios.html'),
         ventas: resolve(__dirname, 'src/pages/ventas/ventas.html'),
