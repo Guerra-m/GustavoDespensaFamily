@@ -35,6 +35,9 @@ public class LauncherDeEscritorio {
     @Value("${server.port:8080}")
     private final int puerto;
 
+    /** Margen para que el apagado ordenado termine antes de cortar por lo sano. */
+    private static final int SEGUNDOS_PARA_CERRAR = 8;
+
     private TrayIcon iconoBandeja;
 
     /**
@@ -94,6 +97,23 @@ public class LauncherDeEscritorio {
         if (iconoBandeja != null) {
             SystemTray.getSystemTray().remove(iconoBandeja);
         }
+
+        // Red de seguridad: si el apagado ordenado se cuelga (Tomcat esperando
+        // pedidos en curso, el pool de conexiones, un hilo no-daemon de AWT),
+        // el usuario ve que el icono desaparecio pero el programa sigue vivo.
+        // Pasados unos segundos se corta por lo sano.
+        Thread garantia = new Thread(() -> {
+            try {
+                Thread.sleep(SEGUNDOS_PARA_CERRAR * 1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            Runtime.getRuntime().halt(0);
+        }, "cierre-forzado");
+        garantia.setDaemon(true);
+        garantia.start();
+
         System.exit(0);
     }
 
