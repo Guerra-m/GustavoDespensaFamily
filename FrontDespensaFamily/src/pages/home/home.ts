@@ -11,6 +11,7 @@ import Chart from "chart.js/auto";
 const kpiVentas = document.getElementById("kpi-ventas") as HTMLParagraphElement;
 const kpiCompras = document.getElementById("kpi-compras") as HTMLParagraphElement;
 const kpiStockBajo = document.getElementById("kpi-stock-bajo") as HTMLParagraphElement;
+const kpiCardStockBajo = document.getElementById("kpi-card-stock-bajo") as HTMLAnchorElement;
 const kpiProductos = document.getElementById("kpi-productos") as HTMLParagraphElement;
 
 const tablaUltimasVentas = document.querySelector("#tabla-ultimas-ventas tbody") as HTMLTableSectionElement;
@@ -47,9 +48,12 @@ async function cargarKPIs() {
     const totalComprasHoy = movimientosComprasHoy.reduce((acc, m) => acc + m.subtotal, 0);
     kpiCompras.textContent = `$${totalComprasHoy.toLocaleString()}`;
 
-    // Stock bajo
+    // Stock bajo: se resalta la tarjeta en naranja solo cuando hay algo
+    // que atender — si no, compite visualmente con métricas que no piden
+    // ninguna acción.
     const bajoStock = await getProductosBajoStock();
     kpiStockBajo.textContent = `${bajoStock.length}`;
+    kpiCardStockBajo.classList.toggle("kpi-card--alerta", bajoStock.length > 0);
 
     // Productos totales
     kpiProductos.textContent = `${productos.length}`;

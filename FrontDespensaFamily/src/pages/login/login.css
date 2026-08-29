@@ -24,7 +24,7 @@ body {
 .login-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(160deg, #0288d1 0%, #01579b 65%, #013a68 100%);
+  background: linear-gradient(160deg, var(--color-primario-dark) 0%, var(--color-primario-oscuro) 65%, #013a68 100%);
   color: #ffffff;
   padding: 48px 56px;
   display: flex;
@@ -148,9 +148,17 @@ body {
 
 .feature-icon {
   display: block;
-  font-size: 22px;
-  margin-bottom: 6px;
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 6px;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
 }
+
+.feature-icon--stock { --icono: url('/icons/package.svg'); }
+.feature-icon--ahorro { --icono: url('/icons/piggy-bank.svg'); }
+.feature-icon--familia { --icono: url('/icons/users.svg'); }
 
 /* ══════════════════════════════════════
    PANEL DERECHO — FORMULARIO
@@ -181,14 +189,14 @@ body {
   gap: 10px;
   font-weight: 800;
   font-size: 17px;
-  color: #01579b;
+  color: var(--color-primario-oscuro);
   margin-bottom: 28px;
 }
 
 .mobile-brand .brand-icon {
   width: 38px;
   height: 38px;
-  background: linear-gradient(145deg, #0288d1 0%, #01579b 100%);
+  background: linear-gradient(145deg, var(--color-primario-dark) 0%, var(--color-primario-oscuro) 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -256,13 +264,13 @@ body {
 
 .field input:focus {
   outline: none;
-  border-color: #0288d1;
+  border-color: var(--color-primario-dark);
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(2, 136, 209, 0.1);
 }
 
 .field:focus-within .field-icon {
-  color: #0288d1;
+  color: var(--color-primario-dark);
 }
 
 /* ── Botón ── */
@@ -273,7 +281,7 @@ button[type="submit"] {
   font-size: 16px;
   font-weight: 700;
   font-family: inherit;
-  background: linear-gradient(135deg, #0288d1 0%, #01579b 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, var(--color-primario-oscuro) 100%);
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -325,7 +333,7 @@ button[type="submit"]:disabled {
   min-height: 20px;
   font-size: 13px;
   font-weight: 600;
-  color: #e53935;
+  color: var(--color-peligro);
   text-align: center;
   border-radius: 8px;
   padding: 0;

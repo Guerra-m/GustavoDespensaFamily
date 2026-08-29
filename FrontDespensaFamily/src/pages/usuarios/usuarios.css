@@ -37,8 +37,13 @@
 }
 
 .usuarios-container h1::before {
-  content: '👥';
-  font-size: 32px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/users.svg') center / contain no-repeat;
+  mask: url('/icons/users.svg') center / contain no-repeat;
 }
 
 /* ── FORMULARIO ── */
@@ -91,7 +96,7 @@
 #form-crear-usuario input:focus,
 #form-crear-usuario select:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15);
 }
 
@@ -108,7 +113,7 @@
 
 #form-crear-usuario button[type="submit"] {
   padding: 12px 28px;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -121,7 +126,7 @@
 }
 
 #form-crear-usuario button[type="submit"]:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(2, 136, 209, 0.4);
 }
@@ -152,7 +157,7 @@
 #tabla-usuarios th {
   padding: 14px 18px;
   text-align: left;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -175,15 +180,8 @@
 #tabla-usuarios tbody tr:hover { background: #f8f9fa; }
 
 /* ── BADGES ── */
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
+/* La base (.badge) vive en style.css, compartida con .badge-estado de
+   Promos: mismo componente visual, distinto color según el dato. */
 .badge-admin {
   background: #e3f2fd;
   color: #1565c0;
@@ -197,9 +195,9 @@
 /* ── BOTÓN ELIMINAR ── */
 .btn-eliminar {
   padding: 6px 16px;
-  border: 2px solid #ef5350;
+  border: 2px solid var(--color-peligro-claro);
   background: transparent;
-  color: #ef5350;
+  color: var(--color-peligro-claro);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
@@ -209,7 +207,7 @@
 }
 
 .btn-eliminar:hover {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: #fff;
   transform: translateY(-1px);
 }
@@ -219,7 +217,7 @@
   position: fixed;
   bottom: 28px;
   right: 28px;
-  background: #43a047;
+  background: var(--color-exito);
   color: #fff;
   padding: 14px 22px;
   border-radius: 10px;
@@ -230,7 +228,7 @@
   animation: slideInToast 0.3s ease;
 }
 
-.toast.error { background: #e53935; }
+.toast.error { background: var(--color-peligro); }
 .toast.hidden { display: none; }
 
 @keyframes slideInToast {
@@ -277,7 +275,7 @@
 .modal-eliminar-content h2 {
   font-size: 20px;
   font-weight: 700;
-  color: #e53935;
+  color: var(--color-peligro);
   margin: 0 0 12px 0;
 }
 
@@ -319,12 +317,12 @@
 
 .modal-eliminar-content input[type="password"]:focus {
   outline: none;
-  border-color: #ef5350;
+  border-color: var(--color-peligro-claro);
   box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.12);
 }
 
 .modal-error {
-  color: #e53935 !important;
+  color: var(--color-peligro) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   margin-top: 6px !important;
@@ -359,7 +357,7 @@
 
 .btn-modal-confirmar {
   padding: 10px 22px;
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -372,7 +370,7 @@
 }
 
 .btn-modal-confirmar:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(229, 57, 53, 0.4);
 }

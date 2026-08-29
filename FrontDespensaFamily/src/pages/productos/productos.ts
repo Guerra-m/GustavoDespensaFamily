@@ -207,7 +207,7 @@ function crearCard(prod: Producto): HTMLDivElement {
       <input type="checkbox" class="chk-seleccionar" data-id="${prod.id}" ${seleccionados.has(prod.id!) ? "checked" : ""} title="Seleccionar para imprimir cartel">
     </label>
     <div class="producto-acciones">
-      <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar">✏️</button>
+      <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
       <div class="producto-menu-container">
         <button class="btn-menu" data-id="${prod.id}"></button>
         <div class="producto-menu-dropdown">
@@ -335,7 +335,7 @@ function limpiarSeleccion() {
 function salirModoSeleccion() {
   productosGrid.classList.remove("modo-seleccion");
   btnModoSeleccion.classList.remove("activo");
-  btnModoSeleccion.textContent = "🖨️ Seleccionar para imprimir";
+  btnModoSeleccion.innerHTML = `<span class="icon" style="--icono:url('/icons/printer.svg')"></span> Seleccionar para imprimir`;
   limpiarSeleccion();
 }
 

@@ -120,7 +120,7 @@ function renderPromociones() {
     tr.innerHTML = `
       <td>${promo.productoNombre ?? `Producto ${promo.productoId}`}</td>
       <td>${promo.cantidadLleva}x${promo.cantidadPaga}</td>
-      <td>${promo.activo ? "✅" : "—"}</td>
+      <td><span class="badge-estado ${promo.activo ? "badge-estado--activo" : "badge-estado--inactivo"}">${promo.activo ? "Activo" : "Inactivo"}</span></td>
       <td>
         <button class="editar" data-id="${promo.id}">Editar</button>
         <button class="eliminar" data-id="${promo.id}">Eliminar</button>

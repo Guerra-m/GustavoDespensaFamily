@@ -1,13 +1,16 @@
+/* Los colores de marca viven en style.css (--color-primario, etc.), que
+   carga antes en el <head> de cada página. Acá solo quedan los que son
+   propios de este componente. */
 :root {
-  --color-principal: #4fc3f7;
-  --color-principal-dark: #0288d1;
-  --color-blanco: #ffffff;
+  --color-principal: var(--color-primario, #4fc3f7);
+  --color-principal-dark: var(--color-primario-dark, #0288d1);
+  --color-blanco: var(--color-superficie, #ffffff);
   --color-hover: #81d4fa;
   --color-active: rgba(255,255,255,0.25);
-  --color-logout-hover: #ef5350;
+  --color-logout-hover: var(--color-peligro-claro, #ef5350);
   --navbar-width: 260px;
   --transition-speed: 0.3s;
-  --shadow: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow: var(--sombra-md, 0 2px 8px rgba(0,0,0,0.15));
 }
 
 /* ===============================
@@ -129,6 +132,20 @@
 .logo {
   font-size: 28px;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.logo .icon {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+/* Los íconos de los links (ver style.css) heredan el color del texto:
+   blancos sobre el celeste del sidebar, sin necesitar una versión aparte. */
+.nav-links li a .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .navbar-header h1 {

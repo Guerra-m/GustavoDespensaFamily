@@ -27,21 +27,21 @@ const NAVBAR_HTML = `
 
 <nav class="navbar" id="navbar">
   <div class="navbar-header">
-    <span class="logo">🏪</span>
+    <span class="logo"><span class="icon" style="--icono:url('/icons/store.svg')"></span></span>
     <h1>Despensa Family</h1>
   </div>
 
   <ul class="nav-links">
-    <li class="nav-admin-only"><a href="../../pages/home/home.html"><span>🏠</span> Inicio</a></li>
-    <li><a href="../../pages/ventas/ventas.html"><span>💰</span> Ventas</a></li>
-    <li><a href="../../pages/productos/productos.html"><span>📦</span> Productos</a></li>
-    <li><a href="../../pages/categorias/categorias.html"><span>🗂</span> Categorías</a></li>
-    <li><a href="../../pages/compras/compras.html"><span>🛒</span> Compras</a></li>
-    <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span>🏷️</span> Promos</a></li>
-    <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span>📊</span> Reportes</a></li>
-    <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span>👥</span> Usuarios</a></li>
-    <li><a href="../../pages/perfil/perfil.html"><span>👤</span> Mi Perfil</a></li>
-    <li class="logout"><a href="#logout"><span>🚪</span> Cerrar sesión</a></li>
+    <li class="nav-admin-only"><a href="../../pages/home/home.html"><span class="icon" style="--icono:url('/icons/house.svg')"></span> Inicio</a></li>
+    <li><a href="../../pages/ventas/ventas.html"><span class="icon" style="--icono:url('/icons/shopping-cart.svg')"></span> Ventas</a></li>
+    <li><a href="../../pages/productos/productos.html"><span class="icon" style="--icono:url('/icons/package.svg')"></span> Productos</a></li>
+    <li><a href="../../pages/categorias/categorias.html"><span class="icon" style="--icono:url('/icons/layers.svg')"></span> Categorías</a></li>
+    <li><a href="../../pages/compras/compras.html"><span class="icon" style="--icono:url('/icons/shopping-bag.svg')"></span> Compras</a></li>
+    <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span class="icon" style="--icono:url('/icons/tag.svg')"></span> Promos</a></li>
+    <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span class="icon" style="--icono:url('/icons/bar-chart-3.svg')"></span> Reportes</a></li>
+    <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span class="icon" style="--icono:url('/icons/users.svg')"></span> Usuarios</a></li>
+    <li><a href="../../pages/perfil/perfil.html"><span class="icon" style="--icono:url('/icons/user.svg')"></span> Mi Perfil</a></li>
+    <li class="logout"><a href="#logout"><span class="icon" style="--icono:url('/icons/log-out.svg')"></span> Cerrar sesión</a></li>
   </ul>
 
   <div class="navbar-footer">

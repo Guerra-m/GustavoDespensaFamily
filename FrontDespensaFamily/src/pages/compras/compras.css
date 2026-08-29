@@ -101,7 +101,7 @@ button {
 }
 
 .btn-quitar:hover {
-  background-color: #d32f2f;
+  background-color: var(--color-peligro-dark);
 }
 /* Modal general */
 .modal {
@@ -160,7 +160,7 @@ button {
 }
 
 /* TÍTULOS */
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -172,8 +172,13 @@ h1 {
 
 
 .content h1::before {
-  content: '💰';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/shopping-bag.svg') center / contain no-repeat;
+  mask: url('/icons/shopping-bag.svg') center / contain no-repeat;
 }
 
 
@@ -187,15 +192,19 @@ h2 {
   gap: 10px;
 }
 
-section:first-of-type h2::before {
-  content: '📋';
-  font-size: 26px;
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
 }
 
-section:last-of-type h2::before {
-  content: '➕';
-  font-size: 26px;
-}
+section:first-of-type h2::before { --icono: url('/icons/clipboard-list.svg'); }
+section:last-of-type h2::before { --icono: url('/icons/plus.svg'); }
 
 /* SECCIONES */
 section {
@@ -212,7 +221,7 @@ section {
   position: fixed;
   bottom: 28px;
   right: 28px;
-  background: #43a047;
+  background: var(--color-exito);
   color: #fff;
   padding: 14px 22px;
   border-radius: 10px;
@@ -223,7 +232,7 @@ section {
   animation: slideInToast 0.3s ease;
 }
 
-.toast.error { background: #e53935; }
+.toast.error { background: var(--color-peligro); }
 .toast.hidden { display: none; }
 
 @keyframes slideInToast {
@@ -244,7 +253,7 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }
 
 th {
@@ -330,7 +339,7 @@ label input {
 
 label input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -402,7 +411,7 @@ label input:focus {
 .detalle-compra select:focus,
 .detalle-compra input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -441,14 +450,14 @@ button:not(.menu-toggle):active {
 }
 
 #btn-agregar {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   padding: 12px 20px;
   box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
 
 #btn-agregar:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 .btn-guardar {
@@ -456,17 +465,17 @@ button:not(.menu-toggle):active {
   margin-top: 20px;
   padding: 14px;
   font-size: 16px;
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
 }
 
 .btn-guardar:hover {
-  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
 }
 
 .btn-quitar {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
   padding: 8px 16px;
   font-size: 13px;
@@ -474,7 +483,7 @@ button:not(.menu-toggle):active {
 }
 
 .btn-quitar:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
 }
 
 /* TABLA DE DETALLES (dentro del form) */
@@ -548,10 +557,7 @@ button:not(.menu-toggle):active {
   gap: 10px;
 }
 
-.modal-content h2::before {
-  content: '📄';
-  font-size: 26px;
-}
+.modal-content h2::before { --icono: url('/icons/file-text.svg'); }
 
 .modal-content p {
   margin-bottom: 12px;
@@ -569,7 +575,7 @@ button:not(.menu-toggle):active {
   font-weight: 700;
   font-size: 20px;
   margin-top: 20px;
-  color: #43a047;
+  color: var(--color-exito);
 }
 
 .modal-content table {
@@ -629,7 +635,7 @@ button:not(.menu-toggle):active {
     padding-top: 80px;
   }
 
-  h1 {
+  .content h1 {
     font-size: 24px;
   }
 
@@ -674,12 +680,13 @@ button:not(.menu-toggle):active {
 }
 
 @media (max-width: 480px) {
-  h1 {
+  .content h1 {
     font-size: 20px;
   }
 
   h1::before {
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 
   table {
@@ -754,5 +761,5 @@ table {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }

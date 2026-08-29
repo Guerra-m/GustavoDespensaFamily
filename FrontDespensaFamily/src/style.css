@@ -2,7 +2,99 @@
    vacío y cada página copiaba su propio .toast/.hidden — de acá en más,
    lo que es realmente común vive acá una sola vez. */
 
+/* ============================================================
+   TOKENS DE DISEÑO
+   ============================================================
+   Se cargan primero en cada página (menos login, que tiene su propia
+   estética de bienvenida) para que todo lo demás pueda usar estas
+   variables en vez de repetir el mismo azul o el mismo radio a mano en
+   12 archivos distintos.
+
+   Los valores no son nuevos: son los colores y radios que ya estaban
+   repetidos en navbar.css, ventas.css, productos.css, etc. Este archivo
+   les pone nombre, no les cambia el significado.
+   ============================================================ */
+:root {
+  /* Marca */
+  --color-primario: #4fc3f7;
+  --color-primario-dark: #0288d1;
+  --color-primario-oscuro: #01579b;
+
+  /* Estado */
+  --color-exito: #43a047;
+  --color-exito-claro: #66bb6a;
+  --color-exito-dark: #388e3c;
+  --color-peligro: #e53935;
+  --color-peligro-claro: #ef5350;
+  --color-peligro-dark: #d32f2f;
+  --color-advertencia: #ff6b00;
+  --color-advertencia-claro: #fff3e0;
+
+  /* Neutros */
+  --color-texto: #2c3e50;
+  --color-texto-tenue: #64748b;
+  --color-borde: #e2e8f0;
+  --color-fondo: #f4f6f8;
+  --color-superficie: #ffffff;
+
+  /* Tipografía */
+  --fuente-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* Espaciado (escala de 4px) */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 20px;
+  --espacio-6: 24px;
+  --espacio-8: 32px;
+
+  /* Radios */
+  --radio-sm: 8px;
+  --radio-md: 12px;
+  --radio-lg: 16px;
+  --radio-pill: 999px;
+
+  /* Sombras */
+  --sombra-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --sombra-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --sombra-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
 .hidden { display: none !important; }
+
+/* ============================================================
+   ICONOS
+   ============================================================
+   Reemplazan los emoji que se usaban como iconos (🏠💰📦🖨️...): un emoji
+   se ve distinto según la fuente del sistema y no tiene la seriedad de un
+   ícono de verdad. Los SVG viven en /public/icons (lucide-static, trazo
+   monocromático) y se aplican como máscara: así heredan el color del
+   texto (currentColor) en vez de quedar pegados a un color fijo, y sirven
+   igual en claro/oscuro sin tener dos versiones del archivo.
+
+   Uso, para un <span> suelto:
+     <span class="icon" style="--icono: url('/icons/house.svg')"></span>
+   o, dentro de un ::before que ya existe (necesita su propio content:'';
+   la clase .icon no sirve ahí, ver la nota debajo):
+     .algo::before { content: ''; ...mask: var(--icono); }
+     .algo::before { --icono: url('/icons/house.svg'); }
+
+   Nota: .icon NO lleva `content: ''`, aunque un ::before sí lo necesite
+   para existir. Ese mismo `content` puesto en un elemento real (no un
+   ::before) hace que Chromium lo trate como contenido reemplazado (como
+   una <img>): adentro de un flex container el ancho explícito se ignora
+   y el span queda en 0px aunque el alto sí se respete — así se encontró,
+   con el lápiz de "Editar" invisible en Productos. */
+.icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.2em;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
+}
 
 /* ── TOAST ── */
 .toast {
@@ -41,8 +133,55 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario, #4fc3f7) 0%, var(--color-primario-dark, #0288d1) 100%);
   color: white;
+}
+
+/* ── ESTADO VACÍO DE TABLA ──
+   Antes cada página lo resolvía (o no) por su cuenta: el dashboard mostraba
+   "No hay datos disponibles" en Últimas Compras, pero la tabla de Compras
+   registradas quedaba directamente en blanco, sin ningún mensaje. Puesto acá
+   una sola vez, alcanza con que la página deje el <tbody> vacío (ya es lo que
+   hacen todas cuando no hay filas) para que el mensaje aparezca solo. */
+.tabla-scroll tbody:empty::after {
+  content: 'No hay datos disponibles';
+  display: block;
+  text-align: center;
+  padding: 40px;
+  color: #adb5bd;
+  font-style: italic;
+}
+
+/* ── BADGE DE ESTADO ── */
+/* Antes vivía duplicado en usuarios.css (.badge-admin/.badge-empleado); acá
+   queda la base para que cualquier página la reuse con su propio color
+   (ver .badge-estado--activo, usado en Promos en vez de "✅" vs "—"). */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radio-pill);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radio-pill);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.badge-estado--activo {
+  background: #e8f5e9;
+  color: var(--color-exito-dark);
+}
+
+.badge-estado--inactivo {
+  background: #f1f3f5;
+  color: var(--color-texto-tenue);
 }
 
 /* ── MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo) ──

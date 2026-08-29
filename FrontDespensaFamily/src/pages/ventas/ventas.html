@@ -77,9 +77,14 @@
         </table>
       </div>
 
-      <h3>Total: $<span id="total">0</span></h3>
-
-      <button id="btn-confirmar">Confirmar Venta</button>
+      <!-- Separado en su propio contenedor para poder fijarlo abajo de la
+           pantalla en celular (ver .carrito-resumen en ventas.css): antes,
+           en una vendedora móvil, el total y "Confirmar Venta" quedaban al
+           final de todo el catálogo de productos. -->
+      <div class="carrito-resumen">
+        <h3>Total: $<span id="total">0</span></h3>
+        <button id="btn-confirmar">Confirmar Venta</button>
+      </div>
     </div>
 
   </div>

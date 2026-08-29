@@ -21,7 +21,7 @@ a {
 }
 
 /* TÍTULOS */
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -32,8 +32,13 @@ h1 {
 }
 
 .content h1::before {
-  content: '💰';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/shopping-cart.svg') center / contain no-repeat;
+  mask: url('/icons/shopping-cart.svg') center / contain no-repeat;
 }
 
 h2 {
@@ -49,13 +54,19 @@ h2 {
 }
 
 h2::before {
-  content: '🛒';
-  font-size: 26px;
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono, url('/icons/shopping-cart.svg')) center / contain no-repeat;
+  mask: var(--icono, url('/icons/shopping-cart.svg')) center / contain no-repeat;
 }
 
-#productos-section h2::before {
-  content: '📦';
-}
+#productos-section h2::before { --icono: url('/icons/package.svg'); }
+#modal-ventas-registradas h2::before { --icono: url('/icons/clipboard-list.svg'); }
+#modal-detalle h2::before { --icono: url('/icons/file-text.svg'); }
 
 h3 {
   font-size: 22px;
@@ -82,7 +93,7 @@ input[type="number"] {
 .ventas-container > select:focus,
 .ventas-container > input[type="number"]:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -109,14 +120,14 @@ input[type="number"] {
 }
 
 #btn-ver-ventas-registradas {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   padding: 10px 18px;
   font-size: 14px;
 }
 
 #btn-ver-ventas-registradas:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 /* BOTONES */
@@ -153,18 +164,18 @@ button:not(.menu-toggle):active {
 }
 
 #btn-agregar {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   width: 100%;
   margin-bottom: 30px;
 }
 
 #btn-agregar:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 #btn-confirmar {
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   width: 100%;
   margin-top: 20px;
@@ -172,11 +183,11 @@ button:not(.menu-toggle):active {
 }
 
 #btn-confirmar:hover {
-  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
 }
 
 button.btn-anular {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
   transition: all 0.2s ease;
@@ -185,7 +196,7 @@ button.btn-anular {
 }
 
 button.btn-anular:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
   box-shadow: 0 6px 14px rgba(211, 47, 47, 0.5);
   transform: translateY(-2px);
 }
@@ -225,14 +236,14 @@ button.btn-imprimir:hover {
 }
 
 .filtro-cat-btn:hover {
-  border-color: #4fc3f7 !important;
-  color: #0288d1 !important;
+  border-color: var(--color-primario) !important;
+  color: var(--color-primario-dark) !important;
   background: #e3f2fd !important;
   transform: none !important;
 }
 
 .filtro-cat-btn.activo {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%) !important;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%) !important;
   border-color: transparent !important;
   color: #fff !important;
   box-shadow: 0 2px 8px rgba(2,136,209,0.3) !important;
@@ -310,7 +321,7 @@ button.btn-imprimir:hover {
 .categoria-bloque-titulo {
   font-size: 18px;
   font-weight: 700;
-  color: #0288d1;
+  color: var(--color-primario-dark);
   margin: 0 0 16px 0;
   padding: 0 0 12px 0;
   border-bottom: 2px solid #e9ecef;
@@ -324,7 +335,7 @@ button.btn-imprimir:hover {
   display: inline-block;
   width: 4px;
   height: 20px;
-  background: linear-gradient(180deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(180deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   border-radius: 2px;
 }
 
@@ -351,11 +362,11 @@ button.btn-imprimir:hover {
 .producto-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
 }
 
 .producto-card.seleccionado {
-  border-color: #43a047;
+  border-color: var(--color-exito);
   background: #f1f8f4;
   box-shadow: 0 4px 12px rgba(67, 160, 71, 0.3);
 }
@@ -367,8 +378,8 @@ button.btn-imprimir:hover {
 }
 
 @keyframes flash-agregado {
-  0% { transform: scale(1); border-color: #43a047; box-shadow: 0 4px 12px rgba(67, 160, 71, 0.35); }
-  50% { transform: scale(1.04); border-color: #43a047; box-shadow: 0 6px 16px rgba(67, 160, 71, 0.45); }
+  0% { transform: scale(1); border-color: var(--color-exito); box-shadow: 0 4px 12px rgba(67, 160, 71, 0.35); }
+  50% { transform: scale(1.04); border-color: var(--color-exito); box-shadow: 0 6px 16px rgba(67, 160, 71, 0.45); }
   100% { transform: scale(1); }
 }
 
@@ -393,13 +404,16 @@ button.btn-imprimir:hover {
 
 /* Placeholder para productos sin imagen */
 .producto-imagen::after {
-  content: '📦';
+  content: '';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 48px;
-  color: #cbd5e0;
+  width: 48px;
+  height: 48px;
+  background-color: #cbd5e0;
+  -webkit-mask: url('/icons/package.svg') center / contain no-repeat;
+  mask: url('/icons/package.svg') center / contain no-repeat;
   z-index: 0;
 }
 
@@ -474,7 +488,7 @@ button.btn-imprimir:hover {
 }
 
 .producto-card.stock-bajo .producto-stock {
-  color: #ff6b00;
+  color: var(--color-advertencia);
   font-weight: 600;
 }
 
@@ -488,7 +502,7 @@ button.btn-imprimir:hover {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: #43a047;
+  background: var(--color-exito);
   color: white;
   width: 24px;
   height: 24px;
@@ -517,7 +531,7 @@ table {
 th {
   padding: 16px;
   text-align: center;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #ffffff;
   font-weight: 600;
   font-size: 14px;
@@ -545,7 +559,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* Tabla detalle de venta (carrito) */
 #tabla-detalle button {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
   padding: 8px 16px;
   font-size: 13px;
@@ -553,7 +567,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 #tabla-detalle button:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
 }
 
 /* Filas clickeables */
@@ -561,7 +575,7 @@ tbody tr:last-child td { border-bottom: none; }
 #tabla-ventas-table tbody tr:hover { background-color: #e3f2fd; }
 
 /* Total destacado */
-#total { font-weight: 700; color: #43a047; font-size: 24px; }
+#total { font-weight: 700; color: var(--color-exito); font-size: 24px; }
 
 /* Separador */
 hr {
@@ -627,7 +641,7 @@ hr {
   position: fixed;
   top: 80px;
   right: 20px;
-  background: #43a047;
+  background: var(--color-exito);
   color: white;
   padding: 16px 24px;
   border-radius: 10px;
@@ -638,7 +652,7 @@ hr {
 }
 
 .toast.error {
-  background: #e53935;
+  background: var(--color-peligro);
 }
 
 @keyframes slideInToast {
@@ -760,7 +774,7 @@ hr {
 
 #input-buscar-producto:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -895,7 +909,7 @@ hr {
 }
 
 @media (max-width: 480px) {
-  h1 {
+  .content h1 {
     font-size: 20px;
   }
 
@@ -905,7 +919,8 @@ hr {
   }
   
   h1::before {
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
   
   .acciones-busqueda {
@@ -983,10 +998,52 @@ hr {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
+/* Total + Confirmar Venta. En desktop es el pie normal de la columna del
+   carrito; en celular (ver @media abajo) se despega y queda fijo abajo de
+   la pantalla, porque ahí el carrito queda debajo de todo el catálogo. */
+.carrito-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.carrito-resumen h3 {
+  margin: 0;
+  white-space: nowrap;
+}
+
 /* RESPONSIVE (celular) */
 @media (max-width: 900px) {
   .ventas-main {
     flex-direction: column;
+    /* Deja lugar para la barra fija de abajo, si no el último producto del
+       catálogo queda tapado detrás. */
+    padding-bottom: 84px;
+  }
+
+  /* El carrito completo (con la tabla de ítems) sigue en su lugar en el
+     flujo normal: se llega scrolleando, igual que antes. Lo único que se
+     fija es el total y el botón de confirmar, que es lo que hace falta ver
+     sin importar en qué parte del catálogo esté la vendedora. */
+  .carrito-resumen {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    background: var(--color-superficie, #fff);
+    padding: var(--espacio-3) var(--espacio-4);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .carrito-resumen h3 {
+    font-size: 16px;
+  }
+
+  .carrito-resumen button {
+    flex: 1;
+    max-width: 220px;
   }
 }
 /* SELECT CLIENTE EN HEADER */
@@ -1003,6 +1060,6 @@ hr {
 
 .ventas-header select:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
 }

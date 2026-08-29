@@ -12,7 +12,7 @@
   margin: 0 auto;
 }
 
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -22,9 +22,14 @@ h1 {
   gap: 12px;
 }
 
-h1::before {
-  content: '⚙️';
-  font-size: 36px;
+.content h1::before {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/user.svg') center / contain no-repeat;
+  mask: url('/icons/user.svg') center / contain no-repeat;
 }
 
 .perfil-datos,
@@ -48,7 +53,7 @@ h1::before {
   height: 72px;
   min-width: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,14 +114,14 @@ h1::before {
 
 .perfil-password input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
 .perfil-password button[type="submit"] {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -128,7 +133,7 @@ h1::before {
 }
 
 .perfil-password button[type="submit"]:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
   transform: translateY(-2px);
 }
 
@@ -140,7 +145,7 @@ h1::before {
 }
 
 .mensaje.ok { color: #2e7d32; }
-.mensaje.error { color: #d32f2f; }
+.mensaje.error { color: var(--color-peligro-dark); }
 
 /* 1023px, no 1024: tiene que coincidir con el breakpoint de navbar.css */
 @media (max-width: 1023px) {
@@ -149,6 +154,6 @@ h1::before {
 
 @media (max-width: 768px) {
   .content { padding: 20px; padding-top: 80px; }
-  h1 { font-size: 24px; }
+  .content h1 { font-size: 24px; }
   .perfil-datos { flex-direction: column; text-align: center; }
 }

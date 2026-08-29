@@ -31,8 +31,8 @@
       <!-- Buscador -->
       <div class="productos-toolbar">
         <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
-        <button type="button" id="btn-crear-producto">➕ Crear Producto</button>
-        <button type="button" id="btn-modo-seleccion">🖨️ Seleccionar para imprimir</button>
+        <button type="button" id="btn-crear-producto"><span class="icon" style="--icono:url('/icons/plus.svg')"></span> Crear Producto</button>
+        <button type="button" id="btn-modo-seleccion"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Seleccionar para imprimir</button>
       </div>
 
       <!-- Grid de productos con scroll -->
@@ -47,7 +47,7 @@
   <!-- Barra flotante de selección para imprimir carteles -->
   <div id="barra-seleccion" class="barra-seleccion hidden">
     <span id="contador-seleccion">0 seleccionados</span>
-    <button type="button" id="btn-imprimir-seleccionados">🖨️ Imprimir carteles</button>
+    <button type="button" id="btn-imprimir-seleccionados"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Imprimir carteles</button>
     <button type="button" id="btn-cancelar-seleccion">Cancelar</button>
   </div>
 

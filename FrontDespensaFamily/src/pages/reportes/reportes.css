@@ -21,7 +21,7 @@
 }
 
 /* TÍTULOS */
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -32,8 +32,13 @@ h1 {
 }
 
 .content h1::before {
-  content: '💰';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/bar-chart-3.svg') center / contain no-repeat;
+  mask: url('/icons/bar-chart-3.svg') center / contain no-repeat;
 }
 
 h2 {
@@ -47,50 +52,73 @@ h2 {
 }
 
 /* Iconos específicos para cada sección */
-section:nth-of-type(1) h2::before {
-  content: '⚠️';
-  font-size: 24px;
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
 }
 
-section:nth-of-type(2) h2::before {
-  content: '🏆';
-  font-size: 24px;
-}
-
-section:nth-of-type(3) h2::before {
-  content: '🗂️';
-  font-size: 24px;
-}
-
-section:nth-of-type(4) h2::before {
-  content: '💹';
-  font-size: 24px;
-}
-
-section:nth-of-type(5) h2::before {
-  content: '📦';
-  font-size: 24px;
-}
-
-section:nth-of-type(6) h2::before {
-  content: '📈';
-  font-size: 24px;
-}
+.reporte-bajo-stock h2::before { --icono: url('/icons/triangle-alert.svg'); }
+.reporte-mas-vendidos h2::before { --icono: url('/icons/trophy.svg'); }
+.reporte-ventas-categoria h2::before { --icono: url('/icons/layers.svg'); }
+.reporte-ganancia h2::before { --icono: url('/icons/trending-up.svg'); }
+.reporte-movimientos h2::before { --icono: url('/icons/history.svg'); }
+.reporte-resumen h2::before { --icono: url('/icons/clipboard-list.svg'); }
 
 /* SECCIONES */
+/* De a dos por fila en vez de una sola columna larga: son 6 reportes
+   independientes, no un relato que haya que leer de arriba a abajo, así
+   que no ganan nada ocupando todo el ancho. minmax(480px, 1fr) es lo
+   mínimo donde un gráfico + su tabla siguen siendo legibles; por debajo
+   de eso (ver @media abajo) vuelve a una sola columna. */
+.reportes-grid {
+  display: grid;
+  /* min(480px, 100%) y no 480px a secas: minmax() no encoge una columna
+     por debajo de su mínimo aunque el contenedor sea más angosto, así
+     que en celular cada sección quedaba forzada a 480px y se salía de
+     la pantalla (scroll horizontal). Con min(), el mínimo cede cuando
+     el 100% del contenedor es menor. */
+  grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
+  gap: 32px;
+  align-items: start;
+}
+
 section {
-  margin-bottom: 32px;
+  margin-bottom: 0;
   border: 2px solid #e9ecef;
   padding: 32px;
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 section:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Única sección con jerarquía distinta: es la única que pide una acción
+   (reponer stock), y solo cuando de verdad hay algo que atender. :has()
+   evita depender de reportes.ts para saber si la tabla vino vacía — el
+   estilo sigue al dato, no hay nada que sincronizar a mano. */
+/* Necesita su propio margen: al quedar afuera de .reportes-grid, el gap
+   de la grilla ya no se lo da. */
+.reporte-bajo-stock {
+  margin-bottom: 32px;
+}
+
+.reporte-bajo-stock:has(tbody tr) {
+  border-color: rgba(255, 107, 0, 0.4);
+}
+
+.reporte-bajo-stock:has(tbody tr) h2 {
+  color: var(--color-advertencia);
 }
 
 /* LABELS Y FILTROS */
@@ -122,7 +150,7 @@ select {
 input[type="date"]:focus,
 select:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -160,7 +188,7 @@ button:not(.menu-toggle):active {
 #btn-ventas-categoria,
 #btn-ganancia,
 #btn-movimientos {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
@@ -169,17 +197,17 @@ button:not(.menu-toggle):active {
 #btn-ventas-categoria:hover,
 #btn-ganancia:hover,
 #btn-movimientos:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 #btn-resumen {
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(102, 187, 106, 0.3);
 }
 
 #btn-resumen:hover {
-  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
 }
 
 /* GRÁFICOS */
@@ -209,7 +237,7 @@ table {
 }
 /* Header general de tablas */
 table thead th {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #ffffff;
   font-weight: 600;
   font-size: 14px;
@@ -364,7 +392,7 @@ tbody:empty::after {
     padding-top: 80px;
   }
 
-  h1 {
+  .content h1 {
     font-size: 24px;
   }
 
@@ -417,12 +445,13 @@ tbody:empty::after {
 }
 
 @media (max-width: 480px) {
-  h1 {
+  .content h1 {
     font-size: 20px;
   }
 
   h1::before {
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 
   h2 {
@@ -459,7 +488,7 @@ tbody:empty::after {
   z-index: 10;
 
   /* fondo obligatorio en th */
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #ffffff;
 }
 /* CONTENEDOR CON SCROLL REAL */
@@ -476,7 +505,7 @@ tbody:empty::after {
   top: 0;
   z-index: 100;
 
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #ffffff;
 }
 /* ── ENCABEZADO DE IMPRESIÓN (oculto en pantalla) ── */
@@ -488,7 +517,7 @@ tbody:empty::after {
 .print-header-logo {
   width: 52px;
   height: 52px;
-  background: #0288d1;
+  background: var(--color-primario-dark);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -539,6 +568,12 @@ tbody:empty::after {
     -webkit-print-color-adjust: exact;
   }
 
+  /* La grilla de 2 columnas es para la pantalla; en papel cada sección
+     vuelve a ocupar todo el ancho, una debajo de la otra. */
+  .reportes-grid {
+    display: block;
+  }
+
   /* ── Ocultar todo lo que no debe imprimirse ── */
   #navbar-container,
   .navbar,
@@ -564,14 +599,14 @@ tbody:empty::after {
     gap: 16px;
     padding: 0 0 16px 0;
     margin-bottom: 24px;
-    border-bottom: 3px solid #0288d1;
+    border-bottom: 3px solid var(--color-primario-dark);
     page-break-after: avoid;
   }
 
   .print-header-logo {
     width: 52px;
     height: 52px;
-    background: #0288d1 !important;
+    background: var(--color-primario-dark) !important;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -586,7 +621,7 @@ tbody:empty::after {
   .print-header-empresa {
     font-size: 22px;
     font-weight: 800;
-    color: #0288d1 !important;
+    color: var(--color-primario-dark) !important;
   }
 
   .print-header-subtitulo {
@@ -635,7 +670,7 @@ tbody:empty::after {
   h2 {
     font-size: 13px !important;
     font-weight: 700 !important;
-    color: #0288d1 !important;
+    color: var(--color-primario-dark) !important;
     margin: 0 0 12px 0 !important;
     padding-bottom: 8px !important;
     border-bottom: 1px solid #e0e0e0 !important;
@@ -656,7 +691,7 @@ tbody:empty::after {
 
   th {
     background-color: #e3f2fd !important;
-    color: #01579b !important;
+    color: var(--color-primario-oscuro) !important;
     font-size: 10px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
@@ -700,7 +735,7 @@ tbody:empty::after {
     border-radius: 8px !important;
     padding: 14px 20px !important;
     font-size: 13px !important;
-    color: #01579b !important;
+    color: var(--color-primario-oscuro) !important;
     box-shadow: none !important;
     display: block !important;
     min-height: auto !important;

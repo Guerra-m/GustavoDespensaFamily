@@ -30,11 +30,16 @@
   <main class="content">
     <div class="page-top-bar">
       <h1>Reportes</h1>
-      <button id="btn-imprimir">🖨️ Imprimir Reporte</button>
+      <button id="btn-imprimir"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Imprimir Reporte</button>
     </div>
 
-    <!-- Productos bajo stock -->
-    <section>
+    <!-- Bajo Stock va afuera de la grilla, de ancho completo: es la única
+         sección que alerta y pide una acción (reponer), no solo informa.
+         El resto se agrupa de a dos por fila en pantallas anchas (ver
+         .reportes-grid en reportes.css) — la versión anterior era una sola
+         columna de 6 tarjetas idénticas, con mucho espacio vacío alrededor
+         de gráficos chicos y sin ninguna jerarquía entre ellas. -->
+    <section class="reporte-bajo-stock">
       <h2>Productos con Bajo Stock</h2>
       <div class="tabla-scroll">
         <table id="tabla-bajo-stock">
@@ -50,8 +55,10 @@
       </div>
     </section>
 
+    <div class="reportes-grid">
+
     <!-- Productos más vendidos -->
-    <section>
+    <section class="reporte-mas-vendidos">
       <h2>Productos Más Vendidos</h2>
       <label>
         Desde: <input type="date" id="fecha-desde" />
@@ -76,7 +83,7 @@
     </section>
 
     <!-- Ventas por categoría -->
-    <section>
+    <section class="reporte-ventas-categoria">
       <h2>Ventas por Categoría</h2>
       <label>
         Desde: <input type="date" id="cat-desde" />
@@ -101,7 +108,7 @@
     </section>
 
     <!-- Ganancia en el tiempo -->
-    <section>
+    <section class="reporte-ganancia">
       <h2>Ganancia en el Tiempo</h2>
       <label>
         Desde: <input type="date" id="gan-desde" />
@@ -126,7 +133,7 @@
     </section>
 
     <!-- Movimientos por fecha -->
- <section id="seccion-movimientos">
+ <section id="seccion-movimientos" class="reporte-movimientos">
   <h2>Movimientos</h2>
 
   <div class="filtros">
@@ -134,7 +141,7 @@
     Desde: <input type="date" id="mov-desde" />
     Hasta: <input type="date" id="mov-hasta" />
     <button id="btn-movimientos">Buscar</button>
-  <button id="btn-imprimir-movimientos">🖨️ Imprimir Movimientos</button>
+  <button id="btn-imprimir-movimientos"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Imprimir Movimientos</button>
   </label>
   </div>
 
@@ -160,7 +167,7 @@
 
 
     <!-- Resumen -->
-    <section>
+    <section class="reporte-resumen">
       <h2>Resumen</h2>
       <select id="select-periodo">
         <option value="dia">Diario</option>
@@ -170,6 +177,8 @@
       <button id="btn-resumen">Ver Resumen</button>
       <div id="resumen-container"></div>
     </section>
+
+    </div>
 
   </main>
 <script type="module" src="../../components/navbar/navbar.ts"></script>
