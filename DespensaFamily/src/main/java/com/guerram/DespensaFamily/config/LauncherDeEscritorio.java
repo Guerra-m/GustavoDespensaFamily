@@ -74,10 +74,21 @@ public class LauncherDeEscritorio {
             menu.addSeparator();
             menu.add(salir);
 
-            iconoBandeja = new TrayIcon(dibujarIcono(), "DespensaFamily", menu);
+            iconoBandeja = new TrayIcon(dibujarIcono(),
+                    "DespensaFamily esta funcionando\nClic derecho: abrir, respaldar o salir", menu);
             iconoBandeja.setImageAutoSize(true);
             iconoBandeja.addActionListener(e -> Escritorio.abrirNavegador(puerto));
             SystemTray.getSystemTray().add(iconoBandeja);
+
+            // Windows 11 esconde los iconos nuevos detras de la flecha de la
+            // bandeja, asi que nadie lo encuentra solo. El aviso aparece una vez
+            // al arrancar y senala donde vive el programa: sin esto la unica
+            // forma de cerrarlo es el Administrador de tareas.
+            avisar("DespensaFamily esta funcionando",
+                    "Cerrar el navegador no cierra el programa. "
+                            + "Para cerrarlo, clic derecho en este icono y elegi Salir. "
+                            + "Si no lo ves, esta detras de la flecha de la barra de tareas.");
+
         } catch (Exception e) {
             // Sin bandeja la app igual funciona: no vale la pena tirarla abajo.
             System.out.println("No se pudo crear el icono de la bandeja: " + e.getMessage());
