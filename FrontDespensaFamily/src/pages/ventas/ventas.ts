@@ -12,6 +12,7 @@ import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
+import { formatearCantidad, redondearCantidad } from "../../utils/format";
 
 /* =======================
    ELEMENTOS DEL DOM
@@ -89,10 +90,9 @@ function configurarInputCantidad(producto: Producto) {
   }
 }
 
-function formatearCantidad(cantidad: number, producto?: Producto) {
-  if (!producto) return cantidad.toString();
-  if (esProductoPesable(producto)) return `${cantidad.toFixed(3)} ${unidadProducto(producto)}`;
-  return `${cantidad} ${unidadProducto(producto)}`;
+function formatearCantidadConUnidad(cantidad: number, producto?: Producto) {
+  if (!producto) return formatearCantidad(cantidad);
+  return `${formatearCantidad(cantidad)} ${unidadProducto(producto)}`;
 }
 
 function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
@@ -102,7 +102,7 @@ function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: num
 }
 
 function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
-  const base = formatearCantidad(cantidad, producto);
+  const base = formatearCantidadConUnidad(cantidad, producto);
   const desglose = desglosePaquete(cantidad, producto);
   if (!desglose) return base;
   return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
@@ -353,7 +353,7 @@ function agregarAlCarrito(productoId: number, cantidad: number) {
 function actualizarStockLocal(itemsVendidos: DetalleVentaRequest[]) {
   itemsVendidos.forEach(item => {
     const prod = productos.find(p => p.id === item.productoId);
-    if (prod) prod.stock -= item.cantidad;
+    if (prod) prod.stock = redondearCantidad(prod.stock - item.cantidad);
   });
   renderProductosGrid(inputBuscarProducto.value);
 }

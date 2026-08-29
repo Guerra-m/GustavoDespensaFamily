@@ -9,6 +9,7 @@ import com.guerram.DespensaFamily.model.EstadoVenta;
 import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.model.Venta;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
+import com.guerram.DespensaFamily.util.Cantidades;
 import com.guerram.DespensaFamily.repository.VentaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,7 @@ public class VentaService {
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
 
-            double cantidad = Math.round(dto.getCantidad() * 1000.0) / 1000.0;
+            double cantidad = Cantidades.redondear(dto.getCantidad());
 
             // 🔒 VALIDACIONES
             if (cantidad <= 0) {

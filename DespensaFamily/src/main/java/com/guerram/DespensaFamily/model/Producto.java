@@ -3,6 +3,8 @@ package com.guerram.DespensaFamily.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.guerram.DespensaFamily.util.Cantidades;
+
 import java.util.List;
 
 @Entity
@@ -24,6 +26,27 @@ public class Producto {
     private String proveedor;
 
     private double stock; // antes int
+
+    /**
+     * Redondeado a 3 decimales al escribir y al leer (ver {@link Cantidades}).
+     *
+     * <p>Al escribir, para que la base no acumule la basura del double: vender
+     * 1,538 kg de un producto con 5 kg dejaba el stock en 3.4619999999999997.
+     * Al leer, para que las filas que ya quedaron sucias se muestren bien y no
+     * hagan fallar el "stock &lt; cantidad" de una venta al vender lo ultimo
+     * que queda.
+     *
+     * <p>Escritos a mano a proposito: Lombok no genera los que ya existen, y
+     * Hibernate accede por campo (el {@code @Id} esta en el campo), asi que
+     * este redondeo no interfiere con la carga desde la base.
+     */
+    public double getStock() {
+        return Cantidades.redondear(stock);
+    }
+
+    public void setStock(double stock) {
+        this.stock = Cantidades.redondear(stock);
+    }
 
     // NUEVO 👇
     private String tipoCantidad; // "UNIDAD" | "PESO"

@@ -13,6 +13,7 @@ import {
 
 import { getCategorias } from "../../services/categorias.service";
 import { confirmar } from "../../services/confirm.service";
+import { formatearCantidad } from "../../utils/format";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
@@ -151,7 +152,7 @@ function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: num
 }
 
 function formatearStockConPaquete(producto: Producto): string {
-  const base = `${producto.stock} ${obtenerUnidad(producto)}`;
+  const base = `${formatearCantidad(producto.stock)} ${obtenerUnidad(producto)}`;
   const desglose = desglosePaquete(producto.stock, producto);
   if (!desglose) return base;
   return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
