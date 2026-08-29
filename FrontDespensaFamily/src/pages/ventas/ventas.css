@@ -131,7 +131,7 @@ input[type="number"] {
 }
 
 /* BOTONES */
-button:not(.menu-toggle) {
+button:not(.menu-toggle):not(.btn-stepper) {
   padding: 14px 24px;
   cursor: pointer;
   border: none;
@@ -143,12 +143,12 @@ button:not(.menu-toggle) {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-button:not(.menu-toggle):hover {
+button:not(.menu-toggle):not(.btn-stepper):hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-button:not(.menu-toggle):active {
+button:not(.menu-toggle):not(.btn-stepper):active {
   transform: translateY(0);
 }
 
@@ -557,8 +557,11 @@ tbody tr { transition: all 0.2s ease; }
 tbody tr:hover { background-color: #f8f9fa; transform: scale(1.01); }
 tbody tr:last-child td { border-bottom: none; }
 
-/* Tabla detalle de venta (carrito) */
-#tabla-detalle button {
+/* Tabla detalle de venta (carrito): antes decía "#tabla-detalle button",
+   que le pintaba el rojo de "Quitar" a cualquier botón nuevo que se agregue
+   a esta tabla (como el +/- del stepper). Acotado a .btn-quitar, que es a
+   quien en realidad le corresponde ese color. */
+#tabla-detalle .btn-quitar {
   background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
   padding: 8px 16px;
@@ -566,7 +569,7 @@ tbody tr:last-child td { border-bottom: none; }
   box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
 }
 
-#tabla-detalle button:hover {
+#tabla-detalle .btn-quitar:hover {
   background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
 }
 
@@ -832,6 +835,43 @@ hr {
    dejando el split real ~50/50 con .registrar en vez del 75/25 esperado. */
 .carrito .tabla-scroll table {
   min-width: 300px;
+}
+
+/* Subir o bajar de a 1 unidad sin borrar la línea y volver a escanear:
+   antes, cambiar 3 unidades a 2 significaba "Quitar" y cargar todo de
+   nuevo. Compacto a propósito — la columna Cantidad del carrito es angosta. */
+.carrito-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-stepper {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-borde, #e2e8f0);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color-primario-dark);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-stepper:hover {
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+  color: #fff;
+}
+
+.carrito-cantidad-texto {
+  min-width: 44px;
+  text-align: center;
+  font-size: 13px;
 }
 
 /* Las tablas simples dentro de modales achican con el resto del modal,

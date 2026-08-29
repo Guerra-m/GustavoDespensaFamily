@@ -311,10 +311,21 @@ function renderCarrito() {
     const subtotal = subtotalConPromo(prod, item.cantidad);
     total += subtotal;
 
+    // El +/- solo aparece en productos por unidad: en los por peso, tocar
+    // "+1" no tiene sentido (la fracción mínima es el gramo) y lo que hace
+    // falta ahí es re-tipear un peso exacto, no incrementar de a poco.
+    const stepper = esProductoPesable(prod)
+      ? `<span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>`
+      : `<div class="carrito-stepper">
+          <button class="btn-stepper" data-index="${index}" data-delta="-1" aria-label="Quitar una unidad">−</button>
+          <span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>
+          <button class="btn-stepper" data-index="${index}" data-delta="1" aria-label="Agregar una unidad">+</button>
+        </div>`;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${prod.nombre}</td>
-      <td>${formatearCantidadConPaquete(item.cantidad, prod)}</td>
+      <td>${stepper}</td>
       <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
       <td>$${subtotal.toFixed(2)}</td>
       <td><button class="btn-quitar" data-index="${index}">Quitar</button></td>
@@ -328,6 +339,23 @@ function renderCarrito() {
     btn.addEventListener("click", () => {
       const index = Number((btn as HTMLElement).dataset.index);
       carrito.splice(index, 1);
+      renderCarrito();
+    });
+  });
+
+  document.querySelectorAll(".btn-stepper").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const index = Number((btn as HTMLElement).dataset.index);
+      const delta = Number((btn as HTMLElement).dataset.delta);
+      const item = carrito[index];
+      const nueva = redondearCantidad(item.cantidad + delta);
+      // Bajar a 0 con el "−" saca la línea entera: es lo que un vendedor
+      // espera que pase, no dejar un renglón en 0 dando vueltas.
+      if (nueva <= 0) {
+        carrito.splice(index, 1);
+      } else {
+        item.cantidad = nueva;
+      }
       renderCarrito();
     });
   });
