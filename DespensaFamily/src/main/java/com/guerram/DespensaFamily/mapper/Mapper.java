@@ -19,7 +19,10 @@ public class Mapper {
                 .codigoBarras(p.getCodigoBarras())
                 .categoriaId(p.getCategoria() != null ? p.getCategoria().getId() : null)
                 .proveedor(p.getProveedor())
-                .imagenUrl(p.getImagenUrl() != null ?"http://localhost:8080/imagenes/" + p.getImagenUrl()
+                // URL relativa: el jar sirve el frontend y las imagenes desde
+                // el mismo origen, asi que atarla a "localhost:8080" solo hacia
+                // que las fotos se rompieran al cambiar el puerto.
+                .imagenUrl(p.getImagenUrl() != null ? "/imagenes/" + p.getImagenUrl()
                         : null )
                 .tipoCantidad(p.getTipoCantidad())
                 .unidadMedida(p.getUnidadMedida())

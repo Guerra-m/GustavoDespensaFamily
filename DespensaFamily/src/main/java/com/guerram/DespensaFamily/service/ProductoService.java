@@ -7,6 +7,7 @@ import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.repository.CategoriaRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +25,10 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+
+    // Carpeta de datos de la instalacion, no una ruta fija en C:.
+    @Value("${despensa.imagenes}")
+    private final String carpetaImagenes;
 
     public ProductoDTO crearProducto(ProductoDTO dto, MultipartFile imagen) throws IOException {
 
@@ -58,7 +63,7 @@ public class ProductoService {
     );
 
     private String guardarImagen(MultipartFile imagen) throws IOException {
-        final Path ruta = Paths.get("C:/uploads/productos");
+        final Path ruta = Paths.get(carpetaImagenes);
 
         String extension = EXTENSIONES_PERMITIDAS.get(imagen.getContentType());
         if (extension == null) {

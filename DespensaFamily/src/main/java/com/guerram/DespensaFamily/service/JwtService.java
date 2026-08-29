@@ -14,10 +14,10 @@ import java.util.Map;
 @Service
 public class JwtService {
 
-    // Definido en application.properties (jwt.secret), con override por
-    // variable de entorno JWT_SECRET. Cualquier despliegue real debe setear
-    // esa variable con un valor propio — nunca depender del default de
-    // desarrollo que trae application.properties.
+    // Lo genera SecretoJwt en el primer arranque y vive en config.properties,
+    // dentro de la carpeta de datos: uno distinto por instalacion. Ya no hay
+    // ningun valor por defecto en el repositorio. Se puede pisar con la
+    // variable de entorno JWT_SECRET.
     @Value("${jwt.secret}")
     private String secret;
 
