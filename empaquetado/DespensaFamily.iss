@@ -1,7 +1,8 @@
 ; Instalador de DespensaFamily para Windows.
 ;
-; Toma la carpeta que genera jpackage (dist\DespensaFamily) y arma un
-; setup.exe con asistente en castellano, accesos directos y desinstalador.
+; Toma la carpeta que genera Electron (dist\win-unpacked) y arma un setup.exe
+; con asistente en castellano, accesos directos y desinstalador. Adentro de esa
+; carpeta viaja tambien el motor Java (resources\servidor), que arma jpackage.
 ;
 ; Se compila con Inno Setup 6:  iscc DespensaFamily.iss
 ; Si no lo tenes:               winget install JRSoftware.InnoSetup
@@ -40,7 +41,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Files]
-Source: "dist\{#Nombre}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#Nombre}"; Filename: "{app}\{#Ejecutable}"

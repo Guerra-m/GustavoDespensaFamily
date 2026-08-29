@@ -2,7 +2,9 @@
 
 > Estado: **F0 a F5 hechas** (F5 parcial por decisión) y **DespensaFamily-1.0.0-setup.exe generado**.
 > Probado en la PC de Martín el 29/08/2026; los tres problemas que aparecieron están arreglados.
-> Todo commiteado en la rama `instalador-escritorio` (6 commits sobre `f198e3f`), sin pushear ni mergear.
+> **Después de esa prueba se agregó la ventana propia con Electron: la app ya no abre el navegador.**
+> Ver la sección 10, que es la que manda sobre el empaquetado descrito en la 4.
+> Todo commiteado en la rama `instalador-escritorio`, sin pushear ni mergear.
 > Documento visual equivalente: https://claude.ai/code/artifact/e81b1e03-1399-4e25-8d85-28fb3f420b4c
 
 Objetivo: pasar de "carpeta de proyecto que hay que compilar" a **un `setup.exe` que se instala con doble clic**
@@ -109,6 +111,9 @@ Runtime Java 17 --jlink--> (~55 MB) --------------------------------- +         
                                                                                            |
                                                                             setup.exe (~120 MB)
 ```
+
+> Este diagrama quedó viejo con la sección 10: entre jpackage e Inno Setup ahora hay un paso más
+> (Electron), y el setup.exe pasó de ~120 MB a 188 MB.
 
 **Por qué Inno Setup y no el instalador de jpackage:** `jpackage --type exe` exige tener WiX Toolset
 instalado y da poco control sobre el asistente. `--type app-image` no necesita nada extra, y desde
@@ -400,3 +405,97 @@ tocar nada del empaquetado. Si eso anda, el resto es mecánico.
   el build.
 - Los logs `backend_dev*.log` de la raíz (varios MB) son basura de desarrollo; están ignorados por
   `*.log` pero siguen ocupando la carpeta.
+
+---
+
+## 10. Ventana propia con Electron — 29/08/2026
+
+Pedido de Martín, después de la primera prueba real: *"al ejecutar el programa me gustaría que sea
+una app de escritorio, no de navegador"*.
+
+### Qué cambió
+
+Antes, `DespensaFamily.exe` era el servidor Java: arrancaba, abría el navegador del sistema en el
+login y dejaba un ícono en la bandeja explicando que cerrar el navegador **no** cerraba el programa.
+Funcionaba, pero se veía y se comportaba como una página web: barra de direcciones, pestañas, y dos
+cosas abiertas (navegador + bandeja) para un solo programa.
+
+Ahora hay dos procesos con roles claros:
+
+```
+DespensaFamily.exe (Electron)          ventana, instancia única, ciclo de vida
+        │  arranca como hijo, con --despensa.escritorio.modo=ventana
+        ▼
+resources\servidor\DespensaFamilyServidor.exe (jpackage)   servidor, datos, respaldos, bandeja
+```
+
+Se descartó **Tauri**, que habría dado un instalador mucho más chico usando el WebView2 que ya trae
+Windows: necesita Rust y las Build Tools de MSVC, que en esta máquina no están (varios GB de
+toolchain nuevo). Electron se arma con el Node que ya se usaba para el front.
+
+### Decisiones que no son obvias
+
+**Cerrar la ventana cierra el programa, y por un pipe, no por HTTP.** El servidor se arranca con
+`stdin` conectado; cuando Electron termina —de forma ordenada o de golpe— el sistema cierra ese
+pipe, el servidor ve el fin de la entrada y se apaga solo cerrando la base con orden. La alternativa
+era un endpoint HTTP de apagado, es decir un botón de "cerrar el negocio" abierto a cualquier cosa
+que corra en la misma máquina. Probado matando Electron a la fuerza: el servidor se cerró solo en
+~2 segundos y liberó el puerto. Como red de seguridad, si a los 8 segundos sigue vivo, se lo mata.
+
+**La bandeja sigue existiendo, pero recortada.** En modo ventana el menú queda en *Respaldar ahora*
+y *Salir*, sin el *Abrir* (la ventana ya está) y sin el aviso de "cerrar el navegador no cierra el
+programa" (ya no aplica). Se mantuvo la bandeja en vez de mover el respaldo manual a Electron
+justamente para no tener que abrir un endpoint de respaldo.
+
+**Dos modos, y el de siempre es el default.** `despensa.escritorio.modo` vale `navegador` (default:
+correr el jar suelto sigue funcionando igual que antes) o `ventana`. Un valor mal escrito cae en
+`navegador`: nunca puede dejar la app sin ninguna forma de abrirse.
+
+**Instancia única la maneja Electron**, con `requestSingleInstanceLock`. Doble clic en el ícono con
+la app abierta trae la ventana al frente. Y si al arrancar ya hay un servidor respondiendo (quedó de
+un cierre que no terminó de bajar), no se levanta otro: se usa el que está.
+
+**Pantalla de carga propia** (`cargando.html`), porque el servidor tarda entre 5 y 15 segundos y una
+ventana en blanco parece colgada. Sin recursos externos: tiene que dibujarse antes de que exista el
+servidor.
+
+**Endurecimiento de la ventana:** `contextIsolation`, `sandbox`, sin `nodeIntegration` y sin preload
+(no hay puente que exponer). La navegación queda encerrada en `http://localhost:<puerto>`; cualquier
+otro destino se abre en el navegador del sistema. `about:blank` sí se permite: los tickets y los
+carteles de precio se imprimen abriendo una ventana en blanco y escribiendo el HTML adentro.
+
+**Dependencias fijadas exactas** (DEP-01), con lockfile versionado: `electron` 44.0.0 y
+`electron-builder` 26.15.3. La primera instalación había traído Electron 33, que `npm audit` marca
+con vulnerabilidades altas — es el motor donde corre el POS, así que se subió a la línea actual.
+`npm audit`: 0 vulnerabilidades.
+
+### Lo que cuesta
+
+| | Antes | Ahora |
+|---|---|---|
+| Carpeta instalada | ~180 MB | 501 MB |
+| `setup.exe` | ~90 MB | 188 MB |
+| Procesos | 1 | 2 (ventana + servidor) |
+| Toolchain de build | JDK + Node + Inno | JDK + Node + Inno (igual) |
+
+### Cómo se arma
+
+`empaquetado\empaquetar.bat`, sin cambios en la forma de usarlo. Pasó de 5 pasos a 6:
+
+```
+front -> jar -> build\DespensaFamilyServidor (jpackage) -> dist\win-unpacked (Electron) -> setup.exe
+```
+
+Para probar la ventana sin armar el instalador entero, con el motor ya generado por jpackage:
+
+```
+cd empaquetado\escritorio && npm start
+```
+
+### Pendiente
+
+- Probarlo en la PC del negocio (acá se probó en la de desarrollo, contra una carpeta de datos
+  aparte en el puerto 8099 para no tocar los datos reales).
+- El menú de la ventana está oculto (`autoHideMenuBar`). Si hace falta *Imprimir* o *Recargar* a mano,
+  hay que armar un menú propio en castellano.
+- Sigue sin firma digital: SmartScreen va a mostrar "editor desconocido" igual que antes.

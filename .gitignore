@@ -49,5 +49,7 @@ DespensaFamily/src/main/resources/static/
 
 # Empaquetado: artefactos generados (el .ico y los scripts SI se versionan)
 empaquetado/entrada/
+empaquetado/build/
 empaquetado/dist/
+empaquetado/escritorio/node_modules/
 empaquetado/*-setup.exe

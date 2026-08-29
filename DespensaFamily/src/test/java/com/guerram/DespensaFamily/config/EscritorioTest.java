@@ -90,4 +90,35 @@ class EscritorioTest {
     void unArgumentoDePuertoInvalidoNoRompeElArranque() {
         assertEquals(8080, Escritorio.puertoDeLosArgumentos(new String[]{"--server.port=ocho"}, 8080));
     }
+
+    // ---- Modo de escritorio (quien pone la ventana) ----
+
+    @Test
+    void sinArchivoDeConfiguracionElModoEsElPorDefecto(@TempDir Path carpeta) {
+        assertEquals(ModoEscritorio.NAVEGADOR,
+                Escritorio.modoConfigurado(carpeta.resolve("config.properties"), ModoEscritorio.NAVEGADOR));
+    }
+
+    @Test
+    void leeElModoDelArchivoDeConfiguracion(@TempDir Path carpeta) throws IOException {
+        Path config = carpeta.resolve("config.properties");
+        Files.writeString(config, "despensa.escritorio.modo=ventana\n");
+
+        assertEquals(ModoEscritorio.VENTANA, Escritorio.modoConfigurado(config, ModoEscritorio.NAVEGADOR));
+    }
+
+    @Test
+    void sinModoEnLaLineaDeComandosGanaElPorDefecto() {
+        assertEquals(ModoEscritorio.NAVEGADOR,
+                Escritorio.modoDeLosArgumentos(new String[]{"--server.port=9000"}, ModoEscritorio.NAVEGADOR));
+    }
+
+    // El programa de escritorio arranca el servidor con este argumento: es como
+    // le avisa que la ventana la pone el, asi que tiene que ganarle al archivo.
+    @Test
+    void elModoDeLaLineaDeComandosGanaSobreElPorDefecto() {
+        assertEquals(ModoEscritorio.VENTANA,
+                Escritorio.modoDeLosArgumentos(
+                        new String[]{"--despensa.escritorio.modo=ventana"}, ModoEscritorio.NAVEGADOR));
+    }
 }

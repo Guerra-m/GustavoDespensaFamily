@@ -1,0 +1,40 @@
+{
+  "name": "despensafamily-escritorio",
+  "version": "1.0.0",
+  "description": "Ventana de escritorio de DespensaFamily: arranca el servidor y lo muestra en una ventana propia.",
+  "author": "Martin Guerra",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "empaquetar": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "44.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.martinguerra.despensafamily",
+    "productName": "DespensaFamily",
+    "copyright": "Martin Guerra",
+    "directories": {
+      "output": "../dist"
+    },
+    "files": [
+      "main.js",
+      "cargando.html"
+    ],
+    "extraResources": [
+      {
+        "from": "../build/DespensaFamilyServidor",
+        "to": "servidor"
+      }
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "../DespensaFamily.ico"
+    },
+    "asar": true
+  }
+}

@@ -23,7 +23,10 @@ public final class Escritorio {
 
     private static final String PAGINA_LOGIN = "/src/pages/login/login.html";
     private static final DateTimeFormatter SELLO = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
-    private static final String ARG_PUERTO = "--server.port=";
+    private static final String CLAVE_PUERTO = "server.port";
+    private static final String CLAVE_MODO = "despensa.escritorio.modo";
+    private static final String ARG_PUERTO = "--" + CLAVE_PUERTO + "=";
+    private static final String ARG_MODO = "--" + CLAVE_MODO + "=";
 
     private Escritorio() {
     }
@@ -38,16 +41,7 @@ public final class Escritorio {
      * launcher nunca deberia impedir que la app abra.
      */
     public static int puertoConfigurado(Path configProperties, int porDefecto) {
-        if (!Files.isRegularFile(configProperties)) {
-            return porDefecto;
-        }
-        Properties propiedades = new Properties();
-        try (InputStream entrada = Files.newInputStream(configProperties)) {
-            propiedades.load(entrada);
-        } catch (IOException e) {
-            return porDefecto;
-        }
-        String valor = propiedades.getProperty("server.port");
+        String valor = propiedadConfigurada(configProperties, CLAVE_PUERTO);
         if (valor == null) {
             return porDefecto;
         }
@@ -58,6 +52,28 @@ public final class Escritorio {
         }
     }
 
+    /**
+     * Mismo criterio que el puerto: si el archivo no esta o el valor no se
+     * entiende, gana el modo de siempre (abrir el navegador).
+     */
+    public static ModoEscritorio modoConfigurado(Path configProperties, ModoEscritorio porDefecto) {
+        String valor = propiedadConfigurada(configProperties, CLAVE_MODO);
+        return valor == null ? porDefecto : ModoEscritorio.desde(valor);
+    }
+
+    private static String propiedadConfigurada(Path configProperties, String clave) {
+        if (!Files.isRegularFile(configProperties)) {
+            return null;
+        }
+        Properties propiedades = new Properties();
+        try (InputStream entrada = Files.newInputStream(configProperties)) {
+            propiedades.load(entrada);
+        } catch (IOException e) {
+            return null;
+        }
+        return propiedades.getProperty(clave);
+    }
+
     /** Zip porque lo genera "BACKUP TO" de H2, que escribe una copia consistente. */
     public static String nombreDeRespaldo(LocalDateTime momento) {
         return "despensa-" + SELLO.format(momento) + ".zip";
@@ -65,16 +81,34 @@ public final class Escritorio {
 
     /** El puerto puede venir por linea de comandos y tiene que ganar. */
     public static int puertoDeLosArgumentos(String[] argumentos, int porDefecto) {
+        String valor = argumento(argumentos, ARG_PUERTO);
+        if (valor == null) {
+            return porDefecto;
+        }
+        try {
+            return Integer.parseInt(valor);
+        } catch (NumberFormatException e) {
+            return porDefecto;
+        }
+    }
+
+    /**
+     * El modo tambien puede venir por linea de comandos: es como el programa de
+     * escritorio le avisa al servidor que la ventana la pone el, y por eso
+     * tiene que ganarle a lo que diga config.properties.
+     */
+    public static ModoEscritorio modoDeLosArgumentos(String[] argumentos, ModoEscritorio porDefecto) {
+        String valor = argumento(argumentos, ARG_MODO);
+        return valor == null ? porDefecto : ModoEscritorio.desde(valor);
+    }
+
+    private static String argumento(String[] argumentos, String prefijo) {
         for (String argumento : argumentos) {
-            if (argumento.startsWith(ARG_PUERTO)) {
-                try {
-                    return Integer.parseInt(argumento.substring(ARG_PUERTO.length()).trim());
-                } catch (NumberFormatException e) {
-                    return porDefecto;
-                }
+            if (argumento.startsWith(prefijo)) {
+                return argumento.substring(prefijo.length()).trim();
             }
         }
-        return porDefecto;
+        return null;
     }
 
     /**

@@ -2,6 +2,7 @@ package com.guerram.DespensaFamily;
 
 import com.guerram.DespensaFamily.config.AppPaths;
 import com.guerram.DespensaFamily.config.Escritorio;
+import com.guerram.DespensaFamily.config.ModoEscritorio;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -23,9 +24,19 @@ public class DespensaFamilyApplication {
 						carpetaDeDatos.resolve("config.properties"),
 						Escritorio.PUERTO_POR_DEFECTO));
 
+		// En modo ventana el navegador no se toca: la ventana la pone el
+		// programa de escritorio, que ya se encarga de traerla al frente.
+		ModoEscritorio modo = Escritorio.modoDeLosArgumentos(
+				args,
+				Escritorio.modoConfigurado(
+						carpetaDeDatos.resolve("config.properties"),
+						ModoEscritorio.NAVEGADOR));
+
 		if (Escritorio.yaEstaCorriendo(puerto)) {
-			System.out.println("DespensaFamily ya estaba abierta. Abriendo el navegador.");
-			Escritorio.abrirNavegador(puerto);
+			System.out.println("DespensaFamily ya estaba abierta.");
+			if (modo.abreElNavegador()) {
+				Escritorio.abrirNavegador(puerto);
+			}
 			return;
 		}
 
