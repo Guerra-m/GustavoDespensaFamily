@@ -1,7 +1,8 @@
 # Plan: DespensaFamily de escritorio (instalable en PC)
 
-> Estado: **F0 a F4 hechas y F5 parcial** (28-29/08/2026). Falta compilar el instalador (Inno Setup).
-> Escrito sobre `master` en `f198e3f`. Nada de esto está commiteado todavía.
+> Estado: **F0 a F5 hechas** (F5 parcial por decisión) y **DespensaFamily-1.0.0-setup.exe generado**.
+> Probado en la PC de Martín el 29/08/2026; los tres problemas que aparecieron están arreglados.
+> Todo commiteado en la rama `instalador-escritorio` (6 commits sobre `f198e3f`), sin pushear ni mergear.
 > Documento visual equivalente: https://claude.ai/code/artifact/e81b1e03-1399-4e25-8d85-28fb3f420b4c
 
 Objetivo: pasar de "carpeta de proyecto que hay que compilar" a **un `setup.exe` que se instala con doble clic**
@@ -257,6 +258,58 @@ enfocado, no compromisos.
   Alcanza con cambiarla a mano desde Usuarios una vez instalada; lo que no hay es nada que lo fuerce.
 
 **Total estimado: ~18–20 h.**
+
+---
+
+## 9 bis. Primera prueba real (29/08/2026)
+
+Martín probó el paquete en su propia PC y aparecieron tres cosas. Las tres están arregladas y
+commiteadas.
+
+### El instalador ya existe
+
+Se instaló Inno Setup (`winget install JRSoftware.InnoSetup`) y se corrió `empaquetar.bat` entero:
+
+```
+empaquetado\DespensaFamily-1.0.0-setup.exe   ~74 MB
+```
+
+`winget` lo instala en `%LOCALAPPDATA%\Programs`, no en `Program Files`. `empaquetar.bat` buscaba
+sólo en `Program Files` y lo salteaba en silencio; ahora mira los dos lugares.
+
+### El celular no entraba — y no era el firewall
+
+**Causa:** el front resuelve `import.meta.env.VITE_API_URL` **en tiempo de compilación**, y `.env`
+decía `VITE_API_URL=http://localhost:8080`. Esa URL quedaba grabada en el bundle, así que el
+JavaScript que corría en el celular pedía datos a *sí mismo*. La pantalla de login cargaba —es HTML
+estático que sirve el jar— y no respondía a nada.
+
+**Arreglo:** `.env.production` con `VITE_API_URL=` vacío → todos los `fetch` quedan relativos, que es
+lo correcto porque el jar sirve el front y la API desde el mismo origen. `.env` sigue valiendo para
+`npm run dev`. De regalo, tampoco se rompe al cambiar el puerto.
+
+**Verificado contra la IP de red real** (`192.168.1.37`, no localhost): login, productos e imágenes
+responden 200 y el bundle ya no menciona `localhost`.
+
+### No se encontraba cómo cerrar el programa
+
+**Causa:** Windows 11 esconde los íconos nuevos de la bandeja detrás de la flecha `^`. El ícono
+estaba, pero invisible, y era el único lugar donde vivía "Salir".
+
+**Arreglo:** al arrancar, el ícono muestra un aviso que dice que cerrar el navegador no cierra el
+programa, que para cerrarlo hay que hacer clic derecho, y que si no se ve está detrás de la flecha.
+El tooltip lo repite. Además se agregó una red de seguridad en el cierre: si el apagado ordenado se
+cuelga, a los 8 segundos corta por lo sano.
+
+*Descartado en el camino:* los dos procesos `DespensaFamily.exe` que se ven en el Administrador de
+tareas son el lanzador de jpackage y su hijo con la JVM. Matando al hijo se cierran los dos, así que
+no eran la causa.
+
+### Pendiente, a criterio de Martín
+
+Un botón **"Cerrar aplicación" dentro de la app**, en la navbar. Sería la forma más obvia de todas,
+pero implica decidir **quién puede apagar la caja** (¿un empleado o sólo el admin?) y toca las once
+pantallas. No se hizo.
 
 ---
 
