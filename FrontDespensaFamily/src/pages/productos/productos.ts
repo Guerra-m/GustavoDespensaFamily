@@ -209,7 +209,7 @@ function crearCard(prod: Producto): HTMLDivElement {
     <div class="producto-acciones">
       <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
       <div class="producto-menu-container">
-        <button class="btn-menu" data-id="${prod.id}"></button>
+        <button class="btn-menu" data-id="${prod.id}" aria-label="Más opciones" title="Más opciones"></button>
         <div class="producto-menu-dropdown">
           <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
           <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
