@@ -46,3 +46,8 @@ DespensaFamily/src/main/resources/static/
 # Herramientas locales de Claude Code
 .claude/skills/*/node_modules/
 .claude/skills/*/screenshots/
+
+# Empaquetado: artefactos generados (el .ico y los scripts SI se versionan)
+empaquetado/entrada/
+empaquetado/dist/
+empaquetado/*-setup.exe
