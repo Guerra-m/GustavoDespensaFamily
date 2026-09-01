@@ -1,3 +1,4 @@
+import type { VentaDetalleResponse } from "../models/VentaDetalleResponse";
 import type { Venta } from "../models/Venta";
 import type { VentaRequest } from "../models/VentaRequest";
 import { getAuthHeaders } from "./auth.service";
@@ -29,7 +30,10 @@ export async function createVenta(venta: VentaRequest): Promise<Venta> {
   return res.json();
 }
 
-export async function getDetalleVenta(ventaId: number): Promise<any> {
+// Tipado en vez de Promise<any>: los dos lugares que lo consumen recorren
+// `detalles`, y con `any` el tipo del renglón se perdía (los parámetros de
+// esos forEach quedaban implícitamente `any`).
+export async function getDetalleVenta(ventaId: number): Promise<VentaDetalleResponse> {
   const res = await fetch(`${import.meta.env.VITE_API_URL}/ventas/${ventaId}/detalle`, {
     headers: getAuthHeaders()
   });

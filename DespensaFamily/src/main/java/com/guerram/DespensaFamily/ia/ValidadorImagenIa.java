@@ -29,28 +29,17 @@ public final class ValidadorImagenIa {
 
         String mimeType = detectarMimeTypeReal(contenido);
         if (mimeType == null) {
-            throw new RuntimeException("El archivo no es una imagen JPEG, PNG o WEBP valida");
+            throw new RuntimeException("El archivo no es una imagen JPEG, PNG, WEBP o HEIC valida");
         }
         return new ImagenValidada(contenido, mimeType);
     }
 
-    // Firma real de los primeros bytes, no la extension ni el Content-Type
-    // declarado (eso es lo que UPL-02 pide verificar: el atacante controla
-    // los dos, no el contenido).
+    // Delega en el detector compartido (ver util/TipoDeImagen) para que la
+    // subida de fotos de producto y esto usen exactamente el mismo criterio.
     private static String detectarMimeTypeReal(byte[] b) {
-        if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) {
-            return "image/jpeg";
-        }
-        if (b.length >= 8
-                && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G'
-                && b[4] == 0x0D && b[5] == 0x0A && b[6] == 0x1A && b[7] == 0x0A) {
-            return "image/png";
-        }
-        if (b.length >= 12
-                && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
-                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') {
-            return "image/webp";
-        }
-        return null;
+        String tipo = com.guerram.DespensaFamily.util.TipoDeImagen.detectar(b);
+        // GIF queda afuera a proposito: Gemini no lo lista entre los formatos
+        // que acepta para imagenes inline.
+        return com.guerram.DespensaFamily.util.TipoDeImagen.GIF.equals(tipo) ? null : tipo;
     }
 }

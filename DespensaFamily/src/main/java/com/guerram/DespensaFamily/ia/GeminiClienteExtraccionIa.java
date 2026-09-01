@@ -48,14 +48,26 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
 
     public GeminiClienteExtraccionIa(
             @Value("${despensa.ia.gemini.api-key:}") String apiKey,
-            @Value("${despensa.ia.gemini.modelo:gemini-2.5-flash}") String modelo,
+            // El default sigue al que usa application.properties: cuando eran
+            // distintos, correr sin el properties caia en un modelo viejo sin
+            // que nada lo dijera.
+            @Value("${despensa.ia.gemini.modelo:gemini-3.6-flash}") String modelo,
+            @Value("${despensa.ia.gemini.timeout-segundos:45}") int timeoutSegundos,
             ObjectMapper objectMapper
     ) {
         this.apiKey = apiKey;
         this.modelo = modelo;
         this.objectMapper = objectMapper;
+
+        // Con timeout explicito: sin esto, una llamada que queda colgada del
+        // otro lado se lleva un hilo de Tomcat de forma indefinida.
+        var fabrica = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        fabrica.setConnectTimeout(java.time.Duration.ofSeconds(10));
+        fabrica.setReadTimeout(java.time.Duration.ofSeconds(timeoutSegundos));
+
         this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
+                .requestFactory(fabrica)
                 .build();
     }
 
@@ -101,6 +113,11 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
                     .body(JsonNode.class);
         } catch (HttpClientErrorException.TooManyRequests ex) {
             throw new RuntimeException("Se alcanzo el limite gratuito de Gemini por ahora. Probá de nuevo mas tarde o cargá el producto a mano.");
+        } catch (org.springframework.web.client.ResourceAccessException ex) {
+            // Timeout o red caida: se distingue del resto para que el mensaje
+            // no mande a revisar internet cuando en realidad Gemini tardo.
+            log.warn("La llamada a Gemini no respondio a tiempo", ex);
+            throw new RuntimeException("El asistente de IA tardó demasiado en responder. Probá de nuevo o cargá el producto a mano.");
         } catch (RestClientException ex) {
             log.warn("No se pudo llamar a la API de Gemini", ex);
             throw new RuntimeException("No se pudo conectar con el asistente de IA. Revisá la conexion a internet.");

@@ -1,6 +1,8 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.dto.ActualizarStockPrecioDTO;
 import com.guerram.DespensaFamily.dto.ProductoDTO;
+import com.guerram.DespensaFamily.util.OptimisticRetry;
 import com.guerram.DespensaFamily.service.ProductoService;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
@@ -65,7 +67,7 @@ public class ProductoController {
         ProductoDTO dto = mapper.readValue(productoJson, ProductoDTO.class);
         validarProducto(dto);
 
-        return productoService.actualizarProducto(id, dto, imagen);
+        return OptimisticRetry.ejecutar(() -> productoService.actualizarProducto(id, dto, imagen));
     }
 
     private void validarProducto(ProductoDTO dto) {
@@ -77,14 +79,21 @@ public class ProductoController {
 
 
 
+    // Cuerpo JSON, no query params. El frontend siempre llamo a esto con PUT y
+    // un JSON, mientras el backend esperaba PATCH con ?precioVenta=…: nunca
+    // coincidieron, asi que el endpoint no funcionaba desde la aplicacion
+    // (daba 403 por metodo no mapeado). Se deja en PATCH, que es el verbo
+    // correcto para una actualizacion parcial, y se corrige el frontend.
+    //
+    // Con OptimisticRetry porque toca el stock de un producto que puede
+    // estar vendiendose al mismo tiempo desde la otra caja.
     @PatchMapping("/{id}/stock-precio")
     public ProductoDTO actualizarStockPrecio(
             @PathVariable Long id,
-            @RequestParam(required = false) Double precioVenta,
-            @RequestParam(required = false) Double precioCosto,
-            @RequestParam(required = false) Integer stock
+            @RequestBody ActualizarStockPrecioDTO cambios
     ) {
-        return productoService.actualizarPrecioYStock(id, precioVenta, precioCosto, stock);
+        return OptimisticRetry.ejecutar(() -> productoService.actualizarPrecioYStock(
+                id, cambios.getPrecioVenta(), cambios.getPrecioCosto(), cambios.getStock()));
     }
 
     @DeleteMapping("/{id}")

@@ -5,6 +5,7 @@ import com.guerram.DespensaFamily.model.Configuracion;
 import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.repository.ConfiguracionRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
+import com.guerram.DespensaFamily.util.Dinero;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,8 +77,7 @@ public class ConfiguracionService {
         List<Producto> productos = productoRepository.findByActivoTrue();
         for (Producto producto : productos) {
             producto.setPorcentajeGanancia(porcentaje);
-            double nuevoPrecioVenta = producto.getPrecioCosto() + (producto.getPrecioCosto() * porcentaje / 100);
-            producto.setPrecioVenta(Math.round(nuevoPrecioVenta * 100) / 100.0);
+            producto.setPrecioVenta(Dinero.precioConGanancia(producto.getPrecioCosto(), porcentaje));
         }
         productoRepository.saveAll(productos);
 

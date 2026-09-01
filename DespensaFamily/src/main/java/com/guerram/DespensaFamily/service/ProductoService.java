@@ -6,9 +6,12 @@ import com.guerram.DespensaFamily.model.Categoria;
 import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.repository.CategoriaRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
+import com.guerram.DespensaFamily.util.Cantidades;
+import com.guerram.DespensaFamily.util.TipoDeImagen;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -62,10 +65,28 @@ public class ProductoService {
             "image/gif", ".gif"
     );
 
+    /** Tope de la foto de un producto. Coincide con el del asistente de IA. */
+    private static final long TAMANO_MAXIMO_BYTES = 8L * 1024 * 1024;
+
     private String guardarImagen(MultipartFile imagen) throws IOException {
         final Path ruta = Paths.get(carpetaImagenes);
 
-        String extension = EXTENSIONES_PERMITIDAS.get(imagen.getContentType());
+        if (imagen.getSize() > TAMANO_MAXIMO_BYTES) {
+            throw new RuntimeException("La imagen supera el tamaño máximo permitido (8 MB)");
+        }
+
+        // El tipo se decide por el contenido, no por el Content-Type que
+        // declaro el cliente: ese lo controla quien sube el archivo (UPL-02).
+        // Antes esto confiaba en el header, mientras el asistente de IA —que
+        // recibe exactamente el mismo tipo de archivo— si miraba los bytes.
+        byte[] contenido = imagen.getBytes();
+        String tipoReal = TipoDeImagen.detectar(contenido);
+        // El null se chequea antes del get: EXTENSIONES_PERMITIDAS es un
+        // Map.of(), que tira NullPointerException con una clave nula en vez de
+        // devolver null. Sin esto, subir un archivo que no es imagen respondia
+        // 'Cannot invoke "Object.hashCode()" because "pk" is null' en lugar de
+        // explicar el problema.
+        String extension = tipoReal != null ? EXTENSIONES_PERMITIDAS.get(tipoReal) : null;
         if (extension == null) {
             throw new RuntimeException("El archivo no es una imagen soportada (jpg, png, webp o gif)");
         }
@@ -82,7 +103,7 @@ public class ProductoService {
             Files.createDirectories(ruta);
         }
 
-        Files.copy(imagen.getInputStream(), ruta.resolve(nombreArchivo));
+        Files.write(ruta.resolve(nombreArchivo), contenido);
 
         return nombreArchivo;
     }
@@ -107,6 +128,10 @@ public class ProductoService {
     }
 
     //  UPDATE COMPLETO
+    // @Transactional: hace leer-modificar-escribir sobre una entidad con
+    // @Version. Sin transaccion, el conflicto aparecia recien al flushear y
+    // llegaba al usuario como un 500 sin explicacion.
+    @Transactional
     public ProductoDTO actualizarProducto(Long id, ProductoDTO dto, MultipartFile imagen) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -147,11 +172,15 @@ public class ProductoService {
 
 
     //  PATCH precio + stock
+    // stock es Double y no Integer: la columna es double porque hay productos
+    // por peso. Con Integer, un queso con 2,5 kg no se podia siquiera enviar
+    // (daba 400), y mandar 3 lo redondeaba borrando la fraccion.
+    @Transactional
     public ProductoDTO actualizarPrecioYStock(
             Long id,
             Double precioVenta,
             Double precioCosto,
-            Integer stock
+            Double stock
     ) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -174,13 +203,14 @@ public class ProductoService {
 
         if (precioVenta != null) producto.setPrecioVenta(precioVenta);
         if (precioCosto != null) producto.setPrecioCosto(precioCosto);
-        if (stock != null) producto.setStock(stock);
+        if (stock != null) producto.setStock(Cantidades.redondear(stock));
 
         return Mapper.toDTO(productoRepository.save(producto));
     }
 
 
     //  DELETE
+    @Transactional
     public void eliminarProducto(Long id) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));

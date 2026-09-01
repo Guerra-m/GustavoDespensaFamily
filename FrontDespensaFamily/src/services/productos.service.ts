@@ -43,8 +43,10 @@ export async function updateStockPrecio(
   id: number,
   data: { stock: number; precio: number }
 ): Promise<Producto> {
+  // PATCH y no PUT: el backend expone PATCH /{id}/stock-precio. Con PUT esta
+  // llamada nunca funcionó (el verbo no está mapeado, así que respondía 403).
   const res = await fetch(`${BASE_URL}/${id}/stock-precio`, {
-    method: "PUT",
+    method: "PATCH",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(data)
   });

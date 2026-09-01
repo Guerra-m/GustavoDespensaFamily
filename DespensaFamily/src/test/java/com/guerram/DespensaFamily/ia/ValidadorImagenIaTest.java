@@ -44,7 +44,7 @@ class ValidadorImagenIaTest {
         byte[] scriptDisfrazado = "<?php system($_GET['c']); ?>".getBytes();
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> ValidadorImagenIa.validar(scriptDisfrazado));
-        assertEquals("El archivo no es una imagen JPEG, PNG o WEBP valida", ex.getMessage());
+        assertEquals("El archivo no es una imagen JPEG, PNG, WEBP o HEIC valida", ex.getMessage());
     }
 
     @Test
@@ -72,5 +72,33 @@ class ValidadorImagenIaTest {
         byte[] r = Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, r, a.length, b.length);
         return r;
+    }
+
+    @Test
+    void aceptaUnHeicDeIphonePorSusMagicBytes() {
+        // Gemini acepta HEIC y HEIF, y es lo que sacan los iPhone por defecto:
+        // rechazarlos dejaba afuera justo las fotos que mas se iban a subir.
+        byte[] heic = new byte[]{
+                0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c', 0, 0, 0, 0
+        };
+        assertEquals("image/heic", ValidadorImagenIa.validar(heic).mimeType());
+    }
+
+    @Test
+    void aceptaUnHeifPorSusMagicBytes() {
+        byte[] heif = new byte[]{
+                0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'm', 'i', 'f', '1', 0, 0, 0, 0
+        };
+        assertEquals("image/heif", ValidadorImagenIa.validar(heif).mimeType());
+    }
+
+    @Test
+    void unMp4TambienEmpiezaConFtypYNoTieneQuePasar() {
+        // La caja "ftyp" es de la familia ISO-BMFF, que incluye video. Mirar
+        // solo "ftyp" dejaria entrar un mp4 de 8 MB al campo de la foto.
+        byte[] mp4 = new byte[]{
+                0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm', 0, 0, 0, 0
+        };
+        assertThrows(RuntimeException.class, () -> ValidadorImagenIa.validar(mp4));
     }
 }

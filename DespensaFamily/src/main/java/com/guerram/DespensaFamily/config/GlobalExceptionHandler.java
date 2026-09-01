@@ -55,6 +55,25 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "Error interno del servidor"));
     }
 
+    // Login fallido: siempre 401 y siempre el mismo cuerpo, exista o no el
+    // usuario. Antes esto pasaba por la heuristica de mensajes de abajo, que
+    // devolvia 404 para "Usuario no encontrado" y 401 para "Contraseña
+    // incorrecta" — la diferencia sola alcanzaba para enumerar cuentas.
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> handleCredenciales(CredencialesInvalidasException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // 429 con Retry-After: es la respuesta estandar para "esperá", y le dice
+    // al frontend cuanto sin que tenga que interpretar el texto del mensaje.
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<Map<String, String>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(Math.max(1, ex.getEspera().toSeconds())))
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleValidacion(ConstraintViolationException ex) {
         String detalle = ex.getConstraintViolations().stream()
@@ -87,7 +106,8 @@ public class GlobalExceptionHandler {
         String m = mensaje.toLowerCase();
         if (m.contains("no encontrado") || m.contains("no encontrada")) return HttpStatus.NOT_FOUND;
         if (m.contains("incorrecta") || m.contains("incorrecto")) return HttpStatus.UNAUTHORIZED;
-        if (m.contains("no esta configurado") || m.contains("no se pudo conectar") || m.contains("limite gratuito")) {
+        if (m.contains("no esta configurado") || m.contains("no se pudo conectar")
+                || m.contains("limite gratuito") || m.contains("tardó demasiado")) {
             return HttpStatus.SERVICE_UNAVAILABLE;
         }
         return HttpStatus.BAD_REQUEST;

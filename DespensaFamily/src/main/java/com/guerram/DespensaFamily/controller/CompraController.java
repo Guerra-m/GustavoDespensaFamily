@@ -38,4 +38,11 @@ public class CompraController {
         return compraService.buscarDetallePorId(id);
     }
 
+
+    // Solo ADMIN, igual que anular una venta (ver SecurityConfig: todo
+    // /compras salvo GET ya es ADMIN).
+    @DeleteMapping("/{id}")
+    public void anularCompra(@PathVariable Long id) {
+        OptimisticRetry.ejecutar(() -> compraService.anularCompra(id));
+    }
 }

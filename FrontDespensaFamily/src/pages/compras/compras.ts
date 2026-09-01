@@ -1,4 +1,6 @@
+import { esc, formatearFechaHora } from "../../utils/format";
 import { checkAuth } from "../../services/auth.service";
+import { confirmar } from "../../services/confirm.service";
 checkAuth();
 
 import type { Compra } from "../../models/Compra";
@@ -8,7 +10,8 @@ import type { Producto } from "../../models/Producto";
 import {
   getCompras,
   createCompra,
-  getCompraDetalle
+  getCompraDetalle,
+  anularCompra
 } from "../../services/compras.service";
 
 import { getProductos } from "../../services/productos.service";
@@ -73,7 +76,6 @@ function configurarInputCantidadCompra(producto: Producto) {
 }
 
 // ---------------- DOM ----------------
-const tablaCompras = document.getElementById("tabla-compras") as HTMLTableElement;
 const formCompra = document.getElementById("form-compra") as HTMLFormElement;
 
 const inputProveedor = document.getElementById("proveedor") as HTMLInputElement;
@@ -117,29 +119,46 @@ function renderCompras(lista: Compra[]) {
     tbody.innerHTML = "";
 
     lista.forEach(compra => {
+        const anulada = compra.estado === "ANULADA";
+
         const tr = document.createElement("tr");
+        if (anulada) tr.classList.add("venta-anulada");
         tr.innerHTML = `
             <td>${compra.id}</td>
-            <td>${compra.proveedor}</td>
-            <td>${compra.fechaHora}</td>
+            <td>${esc(compra.proveedor)}</td>
+            <td>${formatearFechaHora(compra.fechaHora)}</td>
+            <td>${esc(compra.usuario) || "—"}</td>
+            <td>
+              ${anulada
+                ? `<span class="etiqueta-anulada" title="Anulada por ${esc(compra.anuladaPor) || "—"}">Anulada</span>`
+                : `<button class="btn-anular-compra" data-id="${compra.id}">Anular</button>`}
+            </td>
         `;
         tbody.appendChild(tr);
+
         tr.addEventListener("click", () => {
-        verDetalleCompra(compra.id!);
+            verDetalleCompra(compra.id!);
+        });
+
+        // Una compra mal cargada infla el stock y reescribe el precio del
+        // producto: anularla deshace las dos cosas.
+        const btnAnular = tr.querySelector(".btn-anular-compra") as HTMLButtonElement | null;
+        btnAnular?.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const confirmado = await confirmar(
+                "Se va a descontar el stock que sumó esta compra y volver al precio de costo anterior. ¿Anular la compra?");
+            if (!confirmado) return;
+
+            try {
+                await anularCompra(compra.id!);
+                mostrarToast("Compra anulada");
+                cargarCompras();
+            } catch (err) {
+                mostrarToast((err as Error).message, true);
+            }
         });
     });
 
-function agregarEventosDetalle() {
-  const botones = document.querySelectorAll(".btn-detalle");
-
-  botones.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = Number((btn as HTMLElement).dataset.id);
-      console.log("CLICK DETALLE", id); // debug
-      verDetalleCompra(id);
-    });
-  });
-}
 // Agregar eventos a los botones despues de renderizar
     document.querySelectorAll(".btn-detalle").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -361,7 +380,7 @@ async function verDetalleCompra(id: number) {
 
     detalleCompraId.textContent = compra.id.toString();
     detalleCompraProveedor.textContent = compra.proveedor;
-    detalleCompraFecha.textContent = compra.fechaHora;
+    detalleCompraFecha.textContent = formatearFechaHora(compra.fechaHora);
 
     tablaDetalleCompra.innerHTML = "";
     let total = 0;
@@ -375,7 +394,7 @@ async function verDetalleCompra(id: number) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-        <td>${nombre}</td>
+        <td>${esc(nombre)}</td>
         <td>${formatearCantidadConPaquete(det.cantidad, producto)}</td>
         <td>$${det.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td>$${subtotal.toFixed(2)}</td>

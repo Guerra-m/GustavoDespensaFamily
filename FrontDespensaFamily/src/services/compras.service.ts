@@ -32,3 +32,21 @@ export async function getCompraDetalle(id: number): Promise<CompraDetalleRespons
   if (!res.ok) throw new Error("Error al obtener detalle de compra");
   return res.json();
 }
+
+/**
+ * Deshace una compra: devuelve el stock que sumó y restaura el precio de costo
+ * que el producto tenía antes. Solo ADMIN.
+ *
+ * Falla a propósito si ya se vendió parte de lo que entró con esa compra —
+ * restar el stock igual lo dejaría en negativo.
+ */
+export async function anularCompra(id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const cuerpo = await res.json().catch(() => null);
+    throw new Error(cuerpo?.error ?? "No se pudo anular la compra");
+  }
+}
