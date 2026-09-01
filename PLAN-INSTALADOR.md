@@ -1,6 +1,9 @@
 # Plan: DespensaFamily de escritorio (instalable en PC)
 
 > Estado: **F0 a F5 hechas** (F5 parcial por decisión) y **DespensaFamily-1.0.0-setup.exe generado**.
+> **El setup.exe del 30/08 quedó viejo**: no tiene el asistente de IA, ni Ajustes, ni las
+> correcciones de seguridad del 01/09. Antes de instalar en el negocio hay que reempaquetar
+> (ver sección 11).
 > Probado en la PC de Martín el 29/08/2026; los tres problemas que aparecieron están arreglados.
 > **Después de esa prueba se agregó la ventana propia con Electron: la app ya no abre el navegador.**
 > Ver la sección 10, que es la que manda sobre el empaquetado descrito en la 4.
@@ -499,3 +502,86 @@ cd empaquetado\escritorio && npm start
 - El menú de la ventana está oculto (`autoHideMenuBar`). Si hace falta *Imprimir* o *Recargar* a mano,
   hay que armar un menú propio en castellano.
 - Sigue sin firma digital: SmartScreen va a mostrar "editor desconocido" igual que antes.
+
+---
+
+## 11. Auditoría integral y correcciones — 01/09/2026
+
+Repaso completo del sistema antes de darlo por instalable. 28 hallazgos; 21 corregidos con
+tests y verificados contra la aplicación corriendo. Informe visual completo:
+https://claude.ai/code/artifact/e5cdbb00-001a-429b-a038-0201f6d8455c
+
+### Lo que estaba mal, y era grave
+
+Había una cadena de cinco eslabones que permitía a **cualquiera conectado al wifi del local**
+entrar al sistema y quedarse con plata de la caja. Reproducido de punta a punta.
+
+1. El servidor escucha en `0.0.0.0` — cualquier celular en el wifi llega al login.
+2. El instalador creaba `juan`, `maria` y `carlos` con la contraseña `empleado123` escrita en
+   el código, **y las volvía a crear en cada arranque**, así que borrarlas no servía. El admin
+   venía con `admin123`.
+3. Sin límite de intentos: 20 en 3 segundos. Y respondía distinto según el usuario existiera o
+   no, lo que permitía averiguar las cuentas antes de atacar contraseñas.
+4. No había ninguna regla por rol fuera de `/reportes`, `/admin`, `/configuracion` y
+   `/promociones`: un empleado creaba y borraba productos y registraba compras.
+5. **Un empleado podía anular sus propias ventas**: cobraba, anulaba, y la venta desaparecía
+   del listado sin dejar rastro de quién vendió ni quién anuló.
+
+### Cómo quedó
+
+- Ningún usuario de ejemplo. El admin nace con una contraseña al azar por instalación, anotada
+  en `credenciales-iniciales.txt` dentro de la carpeta de datos, con cambio obligatorio al
+  entrar. Al actualizar, las cuentas viejas se borran **sólo si conservan la contraseña
+  pública** — si alguien reusó el nombre para un empleado real, esa cuenta se respeta.
+- Retardo progresivo por usuario y por IP, con techo de 5 minutos. Es retardo y no bloqueo de
+  cuenta a propósito: bloquear sería un arma para dejar al dueño afuera fallando el login
+  adrede (AUTN-03).
+- Matriz de permisos: el empleado vende y consulta; el catálogo, las compras, anular y la IA
+  son del dueño.
+- Cada venta y compra guardan qué usuario las hizo. Anular guarda quién y cuándo, y la venta
+  anulada sigue visible tachada en vez de desaparecer.
+- `fechaHora` pasó de `LocalDate` a `LocalDateTime`. El campo siempre se llamó así pero
+  guardaba sólo el día. **Ojo**: los reportes ahora consultan por rango completo del día y el
+  de ganancia agrupa con `CAST(... AS LocalDate)` — si se toca una query de reportes, mirar eso.
+- Escape de HTML en el frontend. Había 62 `innerHTML` con datos del backend y **ninguna**
+  función de escape: un producto llamado `<img src=x onerror=...>` ejecutaba código en la
+  sesión del dueño, y el token vive en `localStorage`.
+- Límite de subida a 10 MB. Estaba en el default de Spring de **1 MB**, así que ninguna foto de
+  celular entraba: el asistente de IA declaraba aceptar 8 MB y ese límite era inalcanzable.
+- Stock con bloqueo pesimista y orden fijo de id. Con `@Version` solo, 20 ventas simultáneas
+  agotaban el reintento y una venta fallaba de verdad (el test fallaba 1 de cada 5 corridas).
+  Ahora 8 de 8.
+- Redondeo de importes en un solo lugar (`Dinero`). Estaba aplicado al usar la ganancia global
+  pero no al registrar una compra: quedaban precios como `164.1885`.
+- Anulación de compras, que no existía. Devuelve el stock y **restaura el precio de costo
+  anterior**, que se guarda en el detalle. Falla si ya se vendió parte de lo que entró.
+- Detección de imagen por magic bytes también en la foto de producto (antes confiaba en el
+  Content-Type del cliente), con HEIC/HEIF para los iPhone.
+
+### Números
+
+| Dato | Antes | Después |
+|---|---|---|
+| Tests backend | 71 | **135**, verdes y estables |
+| Errores de typecheck | 10 | **0** |
+| Test de concurrencia | fallaba 1 de 5 | 8 de 8 |
+
+### Lo que quedó pendiente
+
+1. **La auditoría visual de UX y responsive no se hizo.** Agent Browser no funcionó en esta
+   máquina (arranques de 2-3 minutos y cuelgues al navegar). No hay capturas en ningún
+   breakpoint. **Es lo que falta de la revisión, no está cubierto.**
+2. **El asistente de IA nunca se probó contra Gemini.** Falta `GEMINI_API_KEY`. El código está
+   verificado hasta el `503` de "no configurado"; los diez escenarios de prueba no se
+   ejecutaron. `gemini-3.6-flash` sí existe y está vigente (hay uno más nuevo, 3.7).
+3. **Reempaquetar.** El `setup.exe` es anterior a todo esto.
+4. **Decisión pendiente**: si el acceso desde la LAN se mantiene. Es lo que permite consultar
+   stock desde el celular, y ya no es la puerta abierta que era, pero conviene decidirlo a
+   propósito y no por omisión.
+
+### Una advertencia para la próxima sesión
+
+Las primeras pruebas contra `empaquetado/entrada/*.jar` daban 403 en el endpoint de IA y
+parecía un problema de seguridad. **No lo era: ese jar es del 30/08 y no contiene las clases
+nuevas.** Si algo responde 403 o 404 sin explicación, verificar primero que el jar esté
+recompilado antes de buscar la causa en el código.
