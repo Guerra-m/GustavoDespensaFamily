@@ -53,6 +53,9 @@ public class Mapper {
                 .fechaHora(venta.getFechaHora())
                 .total(venta.getTotal())
                 .estado(venta.getEstado())
+                .usuario(venta.getUsuario())
+                .anuladaPor(venta.getAnuladaPor())
+                .fechaAnulacion(venta.getFechaAnulacion())
                 .build();
     }
 
@@ -81,6 +84,10 @@ public class Mapper {
                 .id(compra.getId())
                 .fechaHora(compra.getFechaHora())
                 .proveedor(compra.getProveedor())
+                .usuario(compra.getUsuario())
+                .estado(compra.getEstado())
+                .anuladaPor(compra.getAnuladaPor())
+                .fechaAnulacion(compra.getFechaAnulacion())
                 .build();
     }
 
@@ -180,6 +187,9 @@ public class Mapper {
                 .fechaHora(venta.getFechaHora())
                 .total(venta.getTotal())
                 .estado(venta.getEstado())
+                .usuario(venta.getUsuario())
+                .anuladaPor(venta.getAnuladaPor())
+                .fechaAnulacion(venta.getFechaAnulacion())
                 .detalles(
                         venta.getDetalles()
                                 .stream()
@@ -195,6 +205,10 @@ public class Mapper {
                 .id(compra.getId())
                 .fechaHora(compra.getFechaHora())
                 .proveedor(compra.getProveedor())
+                .usuario(compra.getUsuario())
+                .estado(compra.getEstado())
+                .anuladaPor(compra.getAnuladaPor())
+                .fechaAnulacion(compra.getFechaAnulacion())
                 .detalles(
                         compra.getDetalles()
                                 .stream()

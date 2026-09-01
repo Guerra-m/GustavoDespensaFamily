@@ -2,7 +2,7 @@ package com.guerram.DespensaFamily.dto;
 
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -11,6 +11,10 @@ import java.time.LocalDate;
 @Builder
 public class CompraDTO {
     private Long id;
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
     private String proveedor;
+    private String usuario;
+    private com.guerram.DespensaFamily.model.EstadoCompra estado;
+    private String anuladaPor;
+    private LocalDateTime fechaAnulacion;
 }

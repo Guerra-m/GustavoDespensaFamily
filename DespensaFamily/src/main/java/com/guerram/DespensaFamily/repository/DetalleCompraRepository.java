@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Long> {
@@ -28,7 +28,7 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Lo
     WHERE c.fechaHora BETWEEN :desde AND :hasta
     """)
     List<MovimientoDTO> movimientosCompras(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 }

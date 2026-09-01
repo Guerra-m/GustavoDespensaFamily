@@ -2,7 +2,7 @@ package com.guerram.DespensaFamily.dto.reportes;
 
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Builder
 public class MovimientoDTO {
 
-    private LocalDate fecha;
+    private LocalDateTime fecha;
     private String tipo; // "COMPRA" o "VENTA"
 
     private Long productoId;

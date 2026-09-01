@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long> {
@@ -22,8 +22,8 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     AND v.estado = 'ACTIVA'
     """)
     Double totalCostoEntreFechas(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     @Query("""
@@ -41,8 +41,8 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     ORDER BY SUM(dv.cantidad) DESC
     """)
     List<ProductoMasVendidoDTO> productosMasVendidos(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     @Query("""
@@ -63,8 +63,8 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     AND v.estado = 'ACTIVA'
     """)
     List<MovimientoDTO> movimientosVentas(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     @Query("""
@@ -85,13 +85,13 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     ORDER BY SUM(dv.subtotal) DESC
     """)
     List<VentasPorCategoriaDTO> ventasPorCategoria(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     @Query("""
     SELECT new com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO(
-        v.fechaHora,
+        CAST(v.fechaHora AS LocalDate),
         SUM(dv.subtotal),
         SUM(dv.cantidad * (dv.precioUnitario - dv.precioCosto))
     )
@@ -99,11 +99,11 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     JOIN dv.venta v
     WHERE v.fechaHora BETWEEN :desde AND :hasta
     AND v.estado = 'ACTIVA'
-    GROUP BY v.fechaHora
-    ORDER BY v.fechaHora
+    GROUP BY CAST(v.fechaHora AS LocalDate)
+    ORDER BY CAST(v.fechaHora AS LocalDate)
     """)
     List<GananciaPorFechaDTO> gananciaPorFecha(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 }

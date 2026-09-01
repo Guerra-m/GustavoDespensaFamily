@@ -3,7 +3,7 @@ package com.guerram.DespensaFamily.dto;
 import com.guerram.DespensaFamily.model.EstadoVenta;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -12,7 +12,10 @@ import java.time.LocalDate;
 @Builder
 public class VentaDTO {
     private Long id;
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
     private double total;
     private EstadoVenta estado;
+    private String usuario;
+    private String anuladaPor;
+    private LocalDateTime fechaAnulacion;
 }

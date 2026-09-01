@@ -1,3 +1,4 @@
+import { esc, formatearFechaHora } from "../../utils/format";
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
@@ -73,7 +74,8 @@ async function cargarUltimas() {
   tablaUltimasVentas.innerHTML = "";
   ultimasVentas.forEach(v => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${v.id}</td><td>${v.fechaHora}</td><td>$${v.total.toLocaleString()}</td>`;
+    if (v.estado === "ANULADA") tr.classList.add("venta-anulada");
+    tr.innerHTML = `<td>${v.id}</td><td>${formatearFechaHora(v.fechaHora)}</td><td>$${v.total.toLocaleString()}</td>`;
     tablaUltimasVentas.appendChild(tr);
   });
 
@@ -84,7 +86,7 @@ async function cargarUltimas() {
     const detalle = await getCompraDetalle(c.id!);
     const total = detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.id}</td><td>${c.proveedor}</td><td>$${total.toLocaleString()}</td>`;
+    tr.innerHTML = `<td>${c.id}</td><td>${esc(c.proveedor)}</td><td>$${total.toLocaleString()}</td>`;
     tablaUltimasCompras.appendChild(tr);
   }
 }
@@ -99,7 +101,9 @@ function renderVentasChart() {
     diasMap[key] = 0;
   }
 
-  ventas.forEach(v => {
+  // Las anuladas ahora vienen en el listado (antes el backend las filtraba):
+  // hay que descartarlas acá o el gráfico contaría plata que se devolvió.
+  ventas.filter(v => v.estado !== "ANULADA").forEach(v => {
     const fecha = v.fechaHora.split("T")[0];
     if (diasMap[fecha] !== undefined) diasMap[fecha] += v.total;
   });

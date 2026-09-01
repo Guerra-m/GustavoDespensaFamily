@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface VentaRepository extends JpaRepository<Venta, Long> {
@@ -18,8 +18,8 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     AND v.estado = 'ACTIVA'
     """)
     Double totalVentasEntreFechas(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     @Query("""
@@ -29,8 +29,8 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     AND v.estado = 'ACTIVA'
     """)
     Long cantidadVentasEntreFechas(
-            @Param("desde") LocalDate desde,
-            @Param("hasta") LocalDate hasta
+            @Param("desde") LocalDateTime desde,
+            @Param("hasta") LocalDateTime hasta
     );
 
     List<Venta> findByEstado(EstadoVenta estado);

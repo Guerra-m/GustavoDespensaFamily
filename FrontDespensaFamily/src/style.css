@@ -378,3 +378,31 @@
 #confirm-modal-aceptar:hover {
   background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
 }
+
+/* ---------------------------------------------------------------
+   Ventas anuladas
+   Ahora el listado las trae (antes el backend las filtraba y la venta
+   desaparecía del historial). Se muestran tachadas y apagadas: tienen que
+   verse que estuvieron, sin confundirse con una venta vigente.
+   --------------------------------------------------------------- */
+tr.venta-anulada td {
+  color: var(--color-texto-secundario, #868e96);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-peligro, #e03131);
+}
+
+tr.venta-anulada td:last-child {
+  text-decoration: none;
+}
+
+.etiqueta-anulada {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-peligro-suave, #ffe3e3);
+  color: var(--color-peligro, #c92a2a);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}

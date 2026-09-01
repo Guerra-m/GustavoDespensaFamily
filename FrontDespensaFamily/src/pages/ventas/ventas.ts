@@ -12,7 +12,7 @@ import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad, redondearCantidad, resolverImagenUrl } from "../../utils/format";
+import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora } from "../../utils/format";
 import { getConfiguracion } from "../../services/configuracion.service";
 
 /* =======================
@@ -57,7 +57,9 @@ let promosPorProducto: Map<number, Promocion> = new Map();
 let carrito: DetalleVentaRequest[] = [];
 let html5QrCode: Html5Qrcode;
 let escaneando = false;
+// Evita reprocesar dos veces la misma lectura del escáner por cámara.
 let ultimoCodigoEscaneado: string | null = null;
+void ultimoCodigoEscaneado;
 let productoSeleccionado: Producto | null = null;
 let categoriaActivaId: number | null = null;
 
@@ -151,21 +153,30 @@ async function cargarVentas() {
   [...ventas].reverse().forEach(v => {
     if (!v.id) return;
 
+    const anulada = v.estado === "ANULADA";
+
     const tr = document.createElement("tr");
+    // Las anuladas ahora vienen en el listado y se muestran tachadas. Antes se
+    // filtraban del lado del servidor y desaparecían del historial, que es
+    // justo lo que hacía servible cobrar una venta y anularla.
+    if (anulada) tr.classList.add("venta-anulada");
     tr.innerHTML = `
       <td>${v.id}</td>
-      <td>${v.fechaHora}</td>
+      <td>${formatearFechaHora(v.fechaHora)}</td>
       <td>$${v.total}</td>
+      <td>${esc(v.usuario) || "—"}</td>
       <td>
-        <button class="btn-imprimir">Imprimir</button>
-        <button class="btn-anular">Anular</button>
+        ${anulada
+          ? `<span class="etiqueta-anulada" title="Anulada por ${esc(v.anuladaPor) || "—"}">Anulada</span>`
+          : `<button class="btn-imprimir">Imprimir</button>
+             <button class="btn-anular">Anular</button>`}
       </td>
     `;
 
     tr.addEventListener("click", () => abrirDetalleVenta(v.id!));
 
-    const btnAnular = tr.querySelector(".btn-anular") as HTMLButtonElement;
-    btnAnular.addEventListener("click", async (e) => {
+    const btnAnular = tr.querySelector(".btn-anular") as HTMLButtonElement | null;
+    btnAnular?.addEventListener("click", async (e) => {
       e.stopPropagation();
       if (await confirmar(`¿Seguro que desea anular la venta #${v.id}?`)) {
         await anularVenta(v.id!);
@@ -197,11 +208,11 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
 
   card.innerHTML = `
     <div class="producto-imagen">
-      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${prod.nombre}">` : ""}
+      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${esc(prod.nombre)}">` : ""}
       ${promo ? `<span class="promo-badge">${promo.cantidadLleva}x${promo.cantidadPaga}</span>` : ""}
     </div>
     <div class="producto-info">
-      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-nombre">${esc(prod.nombre)}</div>
       <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
       <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
@@ -219,7 +230,7 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
     agregarAlCarrito(prod.id!, 1);
     flashCard(card);
     const item = carrito.find(i => i.productoId === prod.id);
-    mostrarToast(`${prod.nombre} agregado (x${item?.cantidad ?? 1})`);
+    mostrarToast(`${esc(prod.nombre)} agregado (x${item?.cantidad ?? 1})`);
   });
   return card;
 }
@@ -298,7 +309,7 @@ function seleccionarProducto(producto: Producto) {
     card.classList.toggle("seleccionado", card.dataset.productoId === String(producto.id));
   });
 
-  mostrarToast(`Producto seleccionado: ${producto.nombre}`);
+  mostrarToast(`Producto seleccionado: ${esc(producto.nombre)}`);
 }
 
 /* =======================
@@ -326,7 +337,7 @@ function renderCarrito() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${prod.nombre}</td>
+      <td>${esc(prod.nombre)}</td>
       <td>${stepper}</td>
       <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
       <td>$${subtotal.toFixed(2)}</td>
@@ -432,7 +443,7 @@ async function procesarCodigoEscaneado(codigo: string): Promise<{ producto: Prod
 
   if (multiplicador && multiplicador > 0) {
     inputCantidad.value = multiplicador.toString();
-    mostrarToast(`Producto encontrado: ${producto.nombre} (x${multiplicador})`);
+    mostrarToast(`Producto encontrado: ${esc(producto.nombre)} (x${multiplicador})`);
   }
 
   await cerrarScanner();
@@ -452,7 +463,7 @@ async function abrirDetalleVenta(ventaId: number) {
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${nombre}</td><td>${formatearCantidadConPaquete(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
+    tr.innerHTML = `<td>${esc(nombre)}</td><td>${formatearCantidadConPaquete(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
     tablaDetalleVenta.appendChild(tr);
     total += item.subtotal;
   });
@@ -628,8 +639,17 @@ document.addEventListener("keydown", (e) => {
   btnConfirmar.click();
 });
 
-// btnScanCamara.addEventListener("click", abrirScanner);
-// btnCerrarScan.addEventListener("click", cerrarScanner);
+// El escaneo por cámara está desactivado: en el mostrador se usa el lector de
+// códigos físico, que entra por el campo de búsqueda. El código se deja detrás
+// de esta bandera en vez de comentado — comentado, TypeScript marcaba como no
+// usadas todas sus variables y esos avisos tapaban los errores de verdad.
+const ESCANER_POR_CAMARA_ACTIVO = false;
+
+if (ESCANER_POR_CAMARA_ACTIVO) {
+  btnScanCamara.addEventListener("click", abrirScanner);
+  btnCerrarScan.addEventListener("click", cerrarScanner);
+  productosSection.classList.add("con-escaner");
+}
 
 // Filtrar productos en tiempo real
 inputBuscarProducto.addEventListener("input", () => {
@@ -663,7 +683,7 @@ async function imprimirTicket(venta: Venta) {
 
     filas += `
       <tr>
-        <td>${nombre}</td>
+        <td>${esc(nombre)}</td>
         <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
         <td style="text-align:right">$${d.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td style="text-align:right">$${d.subtotal.toFixed(2)}</td>
@@ -783,7 +803,7 @@ td:nth-child(4) {
     <div class="line"></div>
 
     <div class="row">
-      <span>Fecha: ${venta.fechaHora}</span>
+      <span>Fecha: ${formatearFechaHora(venta.fechaHora)}</span>
       <span>Nº: ${nroTicket}</span>
     </div>
 

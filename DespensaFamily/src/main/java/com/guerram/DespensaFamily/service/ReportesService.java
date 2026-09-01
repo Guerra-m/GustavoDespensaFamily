@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -55,13 +57,13 @@ public class ReportesService {
         }
 
         Double totalVentas = ventaRepository
-                .totalVentasEntreFechas(desde, hoy);
+                .totalVentasEntreFechas(inicioDe(desde), finDe(hoy));
 
         Long cantidadVentas = ventaRepository
-                .cantidadVentasEntreFechas(desde, hoy);
+                .cantidadVentasEntreFechas(inicioDe(desde), finDe(hoy));
 
         Double totalCosto = detalleVentaRepository
-                .totalCostoEntreFechas(desde, hoy);
+                .totalCostoEntreFechas(inicioDe(desde), finDe(hoy));
 
         Double ganancia = totalVentas - totalCosto;
 
@@ -76,7 +78,7 @@ public class ReportesService {
             LocalDate desde,
             LocalDate hasta
     ) {
-        return detalleVentaRepository.productosMasVendidos(desde, hasta)
+        return detalleVentaRepository.productosMasVendidos(inicioDe(desde), finDe(hasta))
                 .stream()
                 .filter(p -> productoRepository.findById(p.getProductoId())
                         .map(prod -> prod.isActivo())
@@ -88,14 +90,14 @@ public class ReportesService {
             LocalDate desde,
             LocalDate hasta
     ) {
-        return detalleVentaRepository.ventasPorCategoria(desde, hasta);
+        return detalleVentaRepository.ventasPorCategoria(inicioDe(desde), finDe(hasta));
     }
 
     public List<GananciaPorFechaDTO> gananciaPorFecha(
             LocalDate desde,
             LocalDate hasta
     ) {
-        return detalleVentaRepository.gananciaPorFecha(desde, hasta);
+        return detalleVentaRepository.gananciaPorFecha(inicioDe(desde), finDe(hasta));
     }
 
     public List<MovimientoDTO> movimientosPorFecha(
@@ -107,12 +109,12 @@ public class ReportesService {
 
         // Movimientos de compras
         if (tipo == null || tipo.equalsIgnoreCase("COMPRA")) {
-            movimientos.addAll(detalleCompraRepository.movimientosCompras(desde, hasta));
+            movimientos.addAll(detalleCompraRepository.movimientosCompras(inicioDe(desde), finDe(hasta)));
         }
 
         // Movimientos de ventas
         if (tipo == null || tipo.equalsIgnoreCase("VENTA")) {
-            movimientos.addAll(detalleVentaRepository.movimientosVentas(desde, hasta));
+            movimientos.addAll(detalleVentaRepository.movimientosVentas(inicioDe(desde), finDe(hasta)));
         }
 
         //  Filtrar productos eliminados
@@ -131,4 +133,16 @@ public class ReportesService {
 
 
 
+
+    // La API sigue hablando en dias (?desde=2026-09-01), pero las ventas ahora
+    // guardan la hora. Un BETWEEN entre dos LocalDate.atStartOfDay() dejaria
+    // afuera todo lo vendido despues de las 00:00 del dia "hasta", que es casi
+    // toda la jornada.
+    private static LocalDateTime inicioDe(LocalDate dia) {
+        return dia.atStartOfDay();
+    }
+
+    private static LocalDateTime finDe(LocalDate dia) {
+        return dia.atTime(LocalTime.MAX);
+    }
 }
