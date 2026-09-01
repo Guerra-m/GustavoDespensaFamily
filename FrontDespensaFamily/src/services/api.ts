@@ -22,7 +22,10 @@ export async function cambiarPassword(id: number, passwordActual: string, passwo
     body: JSON.stringify({ passwordActual, passwordNueva })
   });
   if (!response.ok) {
-    throw new Error("No se pudo cambiar la contraseña");
+    // El backend valida el largo mínimo y rechaza contraseñas conocidas: ese
+    // mensaje sirve más que un "no se pudo" genérico.
+    const cuerpo = await response.json().catch(() => null);
+    throw new Error(cuerpo?.error ?? "No se pudo cambiar la contraseña");
   }
   return response.json();
 }
@@ -39,7 +42,13 @@ export async function login(usuario: string, password: string){
     })
   });
   if(!response.ok){
-    throw new Error("Credenciales incorrectas");
+    // El backend distingue "credenciales inválidas" (401) de "demasiados
+    // intentos, esperá" (429). Antes se pisaban las dos con el mismo texto y
+    // el usuario frenado no entendía por qué no entraba ni cuánto faltaba.
+    const cuerpo = await response.json().catch(() => null);
+    const error = new Error(cuerpo?.error ?? "Usuario o contraseña incorrectos");
+    (error as any).status = response.status;
+    throw error;
   }
   return response.json();
 }
