@@ -1,3 +1,4 @@
+import { esc } from "../../utils/format";
 import { checkAuth } from "../../services/auth.service";
 checkAuth();
 
@@ -46,7 +47,7 @@ function renderCategorias() {
         <button class="btn-editar-cat" data-id="${cat.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
         <button class="btn-eliminar-cat" data-id="${cat.id}" title="Eliminar"><span class="icon" style="--icono:url('/icons/trash-2.svg')"></span></button>
       </div>
-      <div class="categoria-nombre">${cat.nombre}</div>
+      <div class="categoria-nombre">${esc(cat.nombre)}</div>
       <div class="categoria-descripcion">${cat.descripcion || "Sin descripción"}</div>
       <div class="categoria-contador">${cantidad} producto${cantidad === 1 ? "" : "s"}</div>
     `;

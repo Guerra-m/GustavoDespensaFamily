@@ -11,7 +11,7 @@ import {
   getGananciaPorFecha
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
-import { formatearCantidad } from "../../utils/format";
+import { formatearCantidad, esc } from "../../utils/format";
 
 // ---------------- DOM ----------------
 const toast = document.getElementById("toast") as HTMLDivElement;
@@ -87,7 +87,7 @@ async function cargarProductosBajoStock() {
       const tr = document.createElement("tr");
       // formatearCantidad acá: el stock viaja como double y arrastra basura de
       // punto flotante (ej "3.4619999999999997") si se muestra crudo.
-      tr.innerHTML = `<td>${p.id}</td><td>${p.nombre}</td><td>${formatearCantidad(p.stock)}</td>`;
+      tr.innerHTML = `<td>${p.id}</td><td>${esc(p.nombre)}</td><td>${formatearCantidad(p.stock)}</td>`;
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -106,7 +106,7 @@ async function cargarProductosMasVendidos() {
     tbody.innerHTML = "";
     productos.forEach(p => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p.productoId}</td><td>${p.nombre}</td><td>${p.cantidadVendida.toFixed(2)}</td>`;
+      tr.innerHTML = `<td>${p.productoId}</td><td>${esc(p.nombre)}</td><td>${p.cantidadVendida.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 

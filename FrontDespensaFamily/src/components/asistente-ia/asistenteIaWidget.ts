@@ -1,3 +1,4 @@
+import { esc } from "../../utils/format";
 import type { ProductoExtraido } from "../../models/ProductoExtraido";
 import type { Categoria } from "../../models/Categoria";
 import { extraerProductos } from "../../services/asistenteIa.service";
@@ -153,7 +154,7 @@ export function inicializarAsistenteIaWidget(
       tr.className = fila.estado === "creado" ? "fila-creada" : fila.estado === "error" ? "fila-error" : "";
 
       const opcionesCategoria = categorias
-        .map(c => `<option value="${c.id}" ${fila.categoriaId === c.id ? "selected" : ""}>${c.nombre}</option>`)
+        .map(c => `<option value="${c.id}" ${fila.categoriaId === c.id ? "selected" : ""}>${esc(c.nombre)}</option>`)
         .join("");
 
       tr.innerHTML = `

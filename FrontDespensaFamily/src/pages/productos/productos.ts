@@ -13,7 +13,7 @@ import {
 
 import { getCategorias } from "../../services/categorias.service";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad, resolverImagenUrl } from "../../utils/format";
+import { formatearCantidad, resolverImagenUrl, esc } from "../../utils/format";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
 import { getConfiguracion } from "../../services/configuracion.service";
 
@@ -220,10 +220,10 @@ function crearCard(prod: Producto): HTMLDivElement {
       </div>
     </div>
     <div class="producto-imagen">
-      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${prod.nombre}" loading="lazy">` : ''}
+      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${esc(prod.nombre)}" loading="lazy">` : ''}
     </div>
     <div class="producto-info">
-      <div class="producto-nombre">${prod.nombre}</div>
+      <div class="producto-nombre">${esc(prod.nombre)}</div>
       <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
       <div class="producto-stock">Stock: ${formatearStockConPaquete(prod)}</div>
     </div>
@@ -237,9 +237,9 @@ function construirEtiquetaHtml(prod: Producto): string {
 
   return `
     <div class="etiqueta">
-      <div class="etiqueta-nombre">${prod.nombre}</div>
+      <div class="etiqueta-nombre">${esc(prod.nombre)}</div>
       <div class="etiqueta-precio">${precio}</div>
-      ${prod.codigoBarras ? `<div class="etiqueta-codigo">${prod.codigoBarras}</div>` : ""}
+      ${prod.codigoBarras ? `<div class="etiqueta-codigo">${esc(prod.codigoBarras)}</div>` : ""}
     </div>
   `;
 }
@@ -535,74 +535,6 @@ function cerrarTodosLosMenus() {
 }
 
 // ---------- EVENTOS DEL MENÚ ----------
-function agregarEventosMenu() {
-  // Crear overlay para cerrar menús SI NO EXISTE
-  let overlay = document.querySelector('.producto-menu-overlay') as HTMLDivElement;
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'producto-menu-overlay';
-    document.body.appendChild(overlay);
-    
-    // Evento del overlay (solo una vez)
-   overlay.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement;
-
-  // Si el clic NO es dentro de ningún dropdown, cerramos
-  if (!target.closest('.producto-menu-dropdown') && !target.closest('.btn-menu')) {
-    cerrarTodosLosMenus();
-  }
-});
-  }
-
-  // Botones de menú (tres puntos)
-  document.querySelectorAll('.btn-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Cerrar otros menús abiertos
-      document.querySelectorAll('.producto-menu-dropdown.active').forEach(menu => {
-        if (menu !== btn.nextElementSibling) {
-          menu.classList.remove('active');
-        }
-      });
-      
-      // Toggle este menú
-      const dropdown = btn.nextElementSibling as HTMLDivElement;
-      const estaActivo = dropdown.classList.contains('active');
-      
-      if (estaActivo) {
-        dropdown.classList.remove('active');
-        overlay.classList.remove('active');
-      } else {
-        dropdown.classList.add('active');
-        overlay.classList.add('active');
-      }
-    });
-  });
-
-  // Botones de editar en el menú
-  document.querySelectorAll('.btn-editar-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = Number((btn as HTMLElement).dataset.id);
-      cerrarTodosLosMenus();
-      abrirEditarProducto(id);
-    });
-  });
-
-  // Botones de eliminar en el menú
-  document.querySelectorAll('.btn-eliminar-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = Number((btn as HTMLElement).dataset.id);
-      cerrarTodosLosMenus();
-      eliminarProducto(id);
-    });
-  });
-}
 
 // ---------- CERRAR MENÚS ----------
 

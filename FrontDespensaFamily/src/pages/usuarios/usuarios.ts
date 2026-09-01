@@ -1,3 +1,4 @@
+import { esc } from "../../utils/format";
 import { checkAdmin, getUsername } from "../../services/auth.service";
 checkAdmin();
 
@@ -28,11 +29,11 @@ function renderTabla(usuarios: UsuarioDTO[]) {
   usuarios.forEach(u => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${u.nombre}</td>
-      <td>${u.username}</td>
-      <td><span class="badge badge-${u.rol.toLowerCase()}">${u.rol}</span></td>
+      <td>${esc(u.nombre)}</td>
+      <td>${esc(u.username)}</td>
+      <td><span class="badge badge-${u.rol.toLowerCase()}">${esc(u.rol)}</span></td>
       <td>
-        <button class="btn-eliminar" data-id="${u.id}" data-nombre="${u.nombre}">Eliminar</button>
+        <button class="btn-eliminar" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Eliminar</button>
       </td>
     `;
     tbody.appendChild(tr);
