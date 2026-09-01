@@ -47,6 +47,10 @@ DespensaFamily/src/main/resources/static/
 .claude/skills/*/node_modules/
 .claude/skills/*/screenshots/
 
+# Certificados locales (mkcert) para HTTPS de desarrollo — atados a esta
+# máquina/IP y con clave privada, nunca se versionan
+DespensaFamily/certs/
+
 # Empaquetado: artefactos generados (el .ico y los scripts SI se versionan)
 empaquetado/entrada/
 empaquetado/build/

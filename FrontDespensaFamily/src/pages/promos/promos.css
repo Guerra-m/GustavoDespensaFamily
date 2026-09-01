@@ -336,3 +336,33 @@ form button[type="submit"] {
     width: 95%;
   }
 }
+
+@media (max-width: 480px) {
+  .content h1 {
+    font-size: 20px;
+  }
+
+  .content h1::before {
+    width: 24px;
+    height: 24px;
+  }
+
+  #tabla-promos {
+    font-size: 12px;
+  }
+
+  #tabla-promos th,
+  #tabla-promos td {
+    padding: 8px 6px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  form input,
+  form select {
+    font-size: 14px;
+  }
+}

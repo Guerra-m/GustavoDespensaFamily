@@ -203,8 +203,32 @@ h2::before {
   mask: var(--icono) center / contain no-repeat;
 }
 
-section:first-of-type h2::before { --icono: url('/icons/clipboard-list.svg'); }
-section:last-of-type h2::before { --icono: url('/icons/plus.svg'); }
+section h2::before { --icono: url('/icons/clipboard-list.svg'); }
+#modal-registrar-compra .modal-content h2::before { --icono: url('/icons/plus.svg'); }
+
+/* BARRA DEL BOTÓN "REGISTRAR COMPRA" */
+.compras-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+#btn-abrir-registrar-compra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#btn-abrir-registrar-compra:hover {
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
+}
 
 /* SECCIONES */
 section {
@@ -343,16 +367,23 @@ label input:focus {
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
-/* DETALLE DE COMPRA */
+/* DETALLE DE COMPRA — grilla de 2 columnas, pensada para el ancho fijo
+   del modal (no del viewport): buscador arriba a lo ancho, cantidad y
+   precio lado a lado, "Agregar" abajo a lo ancho. */
 .detalle-compra {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .producto-buscar-container {
   position: relative;
+  grid-column: 1 / -1;
+}
+
+#btn-agregar {
+  grid-column: 1 / -1;
 }
 
 /* Reemplaza el <select> de 2000+ <option> por un input con autocompletado
@@ -559,6 +590,32 @@ button:not(.menu-toggle):active {
 
 .modal-content h2::before { --icono: url('/icons/file-text.svg'); }
 
+/* Modal de "Registrar Compra": un poco más ancho que el genérico (700px)
+   porque adentro vive la grilla de detalle de 2 columnas + tabla. */
+.modal-content-compra {
+  max-width: 820px;
+}
+
+.modal-content-compra form {
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#btn-cerrar-registrar-compra {
+  width: 100%;
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+  color: white;
+  padding: 14px;
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(120, 144, 156, 0.3);
+}
+
+#btn-cerrar-registrar-compra:hover {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+}
+
 .modal-content p {
   margin-bottom: 12px;
   color: #495057;
@@ -613,11 +670,6 @@ button:not(.menu-toggle):active {
 
 .modal-content::-webkit-scrollbar-thumb:hover {
   background: #868e96;
-}
-@media (max-width: 1300px) {
-.detalle-compra input{
-  width: 80%;
-}
 }
 /* RESPONSIVE */
 /* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de

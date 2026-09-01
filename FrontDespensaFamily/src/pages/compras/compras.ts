@@ -86,6 +86,10 @@ const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const tablaDetalles = document.getElementById("tabla-detalles") as HTMLTableElement;
 const toast = document.getElementById("toast") as HTMLDivElement;
 
+const modalRegistrarCompra = document.getElementById("modal-registrar-compra") as HTMLDivElement;
+const btnAbrirRegistrarCompra = document.getElementById("btn-abrir-registrar-compra") as HTMLButtonElement;
+const btnCerrarRegistrarCompra = document.getElementById("btn-cerrar-registrar-compra") as HTMLButtonElement;
+
 // ---------------- FUNCIONES ----------------
 
 function mostrarToast(mensaje: string, error = false) {
@@ -205,8 +209,8 @@ btnAgregar.addEventListener("click", () => {
   const precioIngresado = Number(inputPrecioCosto.value);
   const producto = productos.find(p => p.id === productoId);
 
-  if (!productoId || cantidadIngresada <= 0 || precioIngresado < 0 || !producto) {
-    mostrarToast("Datos inválidos", true);
+  if (!productoId || cantidadIngresada <= 0 || precioIngresado <= 0 || !producto) {
+    mostrarToast("Datos inválidos: el precio de costo debe ser mayor a 0", true);
     return;
   }
 
@@ -266,6 +270,9 @@ function renderDetalles() {
 }
 
 // Registrar compra
+const btnGuardarCompra = formCompra.querySelector(".btn-guardar") as HTMLButtonElement;
+const textoOriginalBtnGuardar = btnGuardarCompra.textContent || "Registrar Compra";
+
 formCompra.addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -286,6 +293,9 @@ formCompra.addEventListener("submit", async e => {
     detalles: detallesCompra
   };
 
+  btnGuardarCompra.disabled = true;
+  btnGuardarCompra.textContent = "Guardando...";
+
   try {
     await createCompra(compra);
     mostrarToast("Compra registrada correctamente");
@@ -294,10 +304,43 @@ formCompra.addEventListener("submit", async e => {
     renderDetalles();
     formCompra.reset();
     cargarCompras();
+    cerrarModalRegistrarCompra();
   } catch (error) {
     console.error(error);
     mostrarToast("Error al registrar compra", true);
+  } finally {
+    btnGuardarCompra.disabled = false;
+    btnGuardarCompra.textContent = textoOriginalBtnGuardar;
   }
+});
+
+// ---------------- MODAL REGISTRAR COMPRA ----------------
+function abrirModalRegistrarCompra() {
+  modalRegistrarCompra.classList.remove("hidden");
+  inputProveedor.focus();
+}
+
+function cerrarModalRegistrarCompra() {
+  modalRegistrarCompra.classList.add("hidden");
+}
+
+btnAbrirRegistrarCompra.addEventListener("click", abrirModalRegistrarCompra);
+btnCerrarRegistrarCompra.addEventListener("click", cerrarModalRegistrarCompra);
+
+// Cerrar con click en el fondo (fuera del contenido del modal)
+modalRegistrarCompra.addEventListener("click", (e) => {
+  if (e.target === modalRegistrarCompra) cerrarModalRegistrarCompra();
+});
+
+// Cerrar con ESC, salvo que el dropdown de productos esté abierto (ahí ESC
+// cierra primero el dropdown, como se espera de un autocompletado)
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || modalRegistrarCompra.classList.contains("hidden")) return;
+  if (!dropdownProductos.classList.contains("hidden")) {
+    dropdownProductos.classList.add("hidden");
+    return;
+  }
+  cerrarModalRegistrarCompra();
 });
 
 // ---------------- INIT ----------------

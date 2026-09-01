@@ -157,3 +157,34 @@
   .content h1 { font-size: 24px; }
   .perfil-datos { flex-direction: column; text-align: center; }
 }
+
+@media (max-width: 480px) {
+  .content h1 { font-size: 20px; }
+  .content h1::before { width: 24px; height: 24px; }
+
+  .perfil-datos,
+  .perfil-password {
+    padding: 20px;
+  }
+
+  .perfil-avatar {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    font-size: 26px;
+  }
+
+  .perfil-info h2 { font-size: 18px; }
+
+  .perfil-info p {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .perfil-info .etiqueta { min-width: 0; }
+
+  .perfil-password button[type="submit"] {
+    font-size: 14px;
+    padding: 12px;
+  }
+}

@@ -25,3 +25,18 @@ export function formatearCantidad(cantidad: number): string {
   if (!Number.isFinite(cantidad)) return "0";
   return String(redondearCantidad(cantidad));
 }
+
+/**
+ * El backend guarda `imagenUrl` como ruta relativa (ej. "/uploads/foto.jpg").
+ * En el build empaquetado eso alcanza porque front y back comparten origen,
+ * pero en desarrollo el front vive en el puerto de Vite (5173) y el back en
+ * otro (8080) — una ruta relativa se resuelve contra Vite, no contra el
+ * backend, y la imagen rompe. Acá se antepone VITE_API_URL solo cuando hace
+ * falta (si ya es una URL absoluta, se deja igual).
+ */
+export function resolverImagenUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = import.meta.env.VITE_API_URL || "";
+  return `${base}${url}`;
+}

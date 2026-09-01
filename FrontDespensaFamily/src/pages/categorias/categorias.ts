@@ -13,7 +13,7 @@ import type { Producto } from "../../models/Producto";
 import { confirmar } from "../../services/confirm.service";
 
 // DOM
-const tbody = document.querySelector("#tabla-categorias tbody") as HTMLTableSectionElement;
+const grid = document.getElementById("categorias-grid") as HTMLDivElement;
 const formCrear = document.getElementById("form-crear-categoria") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar-categoria") as HTMLFormElement;
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
@@ -21,24 +21,36 @@ const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement
 
 // Estado
 let categorias: Categoria[] = [];
+let productos: Producto[] = [];
 let categoriaActual: Categoria | null = null;
+
+function contarProductos(categoriaId: number): number {
+  return productos.filter(p => p.categoriaId === categoriaId).length;
+}
 
 // Render
 function renderCategorias() {
-  tbody.innerHTML = "";
+  grid.innerHTML = "";
+
+  if (categorias.length === 0) {
+    grid.innerHTML = `<div class="categorias-sin-resultados">No hay categorías creadas todavía</div>`;
+    return;
+  }
 
   categorias.forEach(cat => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${cat.id}</td>
-      <td>${cat.nombre}</td>
-      <td>${cat.descripcion || ""}</td>
-      <td>
-        <button class="editar" data-id="${cat.id}">Editar</button>
-        <button class="eliminar" data-id="${cat.id}">Eliminar</button>
-      </td>
+    const cantidad = contarProductos(cat.id!);
+    const card = document.createElement("div");
+    card.className = "categoria-card";
+    card.innerHTML = `
+      <div class="categoria-acciones">
+        <button class="btn-editar-cat" data-id="${cat.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
+        <button class="btn-eliminar-cat" data-id="${cat.id}" title="Eliminar"><span class="icon" style="--icono:url('/icons/trash-2.svg')"></span></button>
+      </div>
+      <div class="categoria-nombre">${cat.nombre}</div>
+      <div class="categoria-descripcion">${cat.descripcion || "Sin descripción"}</div>
+      <div class="categoria-contador">${cantidad} producto${cantidad === 1 ? "" : "s"}</div>
     `;
-    tbody.appendChild(tr);
+    grid.appendChild(card);
   });
 
   agregarEventos();
@@ -46,7 +58,7 @@ function renderCategorias() {
 
 // Cargar
 async function cargarCategorias() {
-  categorias = await getCategorias();
+  [categorias, productos] = await Promise.all([getCategorias(), getProductos()]);
   categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
   renderCategorias();
 }
@@ -118,9 +130,9 @@ async function actualizarGananciaProductos(
   categoriaId: number,
   porcentajeGanancia: number
 ) {
-  const productos = await getProductos();
+  const productosVigentes = await getProductos();
 
-  const productosCategoria = productos.filter(
+  const productosCategoria = productosVigentes.filter(
     p => p.categoriaId === categoriaId
   );
 
@@ -145,15 +157,15 @@ const productoActualizado = {
 }
 
 
-// Eventos tabla
+// Eventos de las cards
 function agregarEventos() {
-  document.querySelectorAll(".editar").forEach(btn => {
+  document.querySelectorAll(".btn-editar-cat").forEach(btn => {
     btn.addEventListener("click", () =>
       abrirEditar(Number((btn as HTMLElement).dataset.id))
     );
   });
 
-  document.querySelectorAll(".eliminar").forEach(btn => {
+  document.querySelectorAll(".btn-eliminar-cat").forEach(btn => {
     btn.addEventListener("click", () =>
       eliminarCategoria(Number((btn as HTMLElement).dataset.id))
     );

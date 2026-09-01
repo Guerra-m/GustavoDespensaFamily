@@ -26,6 +26,12 @@
 
       <div id="toast" class="toast hidden"></div>
 
+      <div class="compras-toolbar">
+        <button type="button" id="btn-abrir-registrar-compra">
+          <span class="icon" style="--icono:url('/icons/plus.svg')"></span> Registrar Compra
+        </button>
+      </div>
+
       <!-- ================= COMPRAS REGISTRADAS ================= -->
       <section>
   <h2>Compras registradas</h2>
@@ -44,70 +50,75 @@
   </div>
 </section>
 
-
-      <section>
-        <h2>Registrar Compra</h2>
-
-        <form id="form-compra">
-
-          <label>
-            Proveedor
-            <input type="text" id="proveedor" required />
-          </label>
-
-          <div class="detalle-compra">
-
-            <div class="producto-buscar-container">
-              <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" />
-              <div id="dropdown-productos" class="dropdown-productos hidden"></div>
-            </div>
-
-            <input
-              type="number"
-              id="cantidad"
-              placeholder="Cantidad"
-              min="0.001"
-              step="0.001"
-            />
-
-            <input
-              type="number"
-              id="precioCosto"
-              placeholder="Precio costo"
-              min="0"
-              step="0.01"
-            />
-
-            <button type="button" id="btn-agregar">
-              Agregar
-            </button>
-          </div>
-
-          <!-- TABLA DE DETALLES DE LA NUEVA COMPRA -->
-           <div class="tabla-scroll" style="max-height: 250px;">
-          <table id="tabla-detalles">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio costo</th>
-                <th>Subtotal</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          </div>
-
-          <button type="submit" class="btn-guardar">
-            Registrar Compra
-          </button>
-
-        </form>
-      </section>
-
     </div>
   </main>
+
+<!-- Modal Registrar Compra -->
+<div id="modal-registrar-compra" class="modal hidden">
+  <div class="modal-content modal-content-compra">
+    <h2>Registrar Compra</h2>
+
+    <form id="form-compra">
+
+      <label>
+        Proveedor
+        <input type="text" id="proveedor" required />
+      </label>
+
+      <div class="detalle-compra">
+
+        <div class="producto-buscar-container">
+          <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" />
+          <div id="dropdown-productos" class="dropdown-productos hidden"></div>
+        </div>
+
+        <input
+          type="number"
+          id="cantidad"
+          placeholder="Cantidad"
+          min="0.001"
+          step="0.001"
+        />
+
+        <input
+          type="number"
+          id="precioCosto"
+          placeholder="Precio costo"
+          min="0"
+          step="0.01"
+        />
+
+        <button type="button" id="btn-agregar">
+          Agregar
+        </button>
+      </div>
+
+      <!-- TABLA DE DETALLES DE LA NUEVA COMPRA -->
+       <div class="tabla-scroll" style="max-height: 250px;">
+      <table id="tabla-detalles">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio costo</th>
+            <th>Subtotal</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+
+      <button type="submit" class="btn-guardar">
+        Registrar Compra
+      </button>
+
+    </form>
+
+    <button type="button" id="btn-cerrar-registrar-compra">Cerrar</button>
+  </div>
+</div>
+
 <!-- Modal Detalle de Compra -->
 <div id="modal-detalle-compra" class="modal hidden">
   <div class="modal-content">
