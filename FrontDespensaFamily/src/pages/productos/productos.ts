@@ -13,7 +13,9 @@ import {
 
 import { getCategorias } from "../../services/categorias.service";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad } from "../../utils/format";
+import { formatearCantidad, resolverImagenUrl } from "../../utils/format";
+import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
+import { getConfiguracion } from "../../services/configuracion.service";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
@@ -84,6 +86,7 @@ let productos: Producto[] = [];
 let categorias: Categoria[] = [];
 let productoActual: Producto | null = null;
 let seleccionados = new Set<number>();
+let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
 
 // ---------- UTIL ----------
 function mostrarToast(mensaje: string, error = false) {
@@ -200,7 +203,7 @@ inputPorcentajeEditar.addEventListener("input", () =>
 function crearCard(prod: Producto): HTMLDivElement {
   const card = document.createElement("div");
   card.className = "producto-card";
-  if (prod.stock < 10) card.classList.add("stock-bajo");
+  if (prod.stock < umbralStockBajo) card.classList.add("stock-bajo");
 
   card.innerHTML = `
     <label class="producto-check">
@@ -217,7 +220,7 @@ function crearCard(prod: Producto): HTMLDivElement {
       </div>
     </div>
     <div class="producto-imagen">
-      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
+      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${prod.nombre}" loading="lazy">` : ''}
     </div>
     <div class="producto-info">
       <div class="producto-nombre">${prod.nombre}</div>
@@ -750,6 +753,37 @@ btnCerrarCrear.addEventListener("click", () => {
   modalCrear.classList.add("hidden");
 });
 
+// ---------------- PESTAÑAS DEL MODAL CREAR (Rápida / Con IA) ----------------
+const tabBotones = modalCrear.querySelectorAll<HTMLButtonElement>(".tab-btn");
+const tabPaneles = modalCrear.querySelectorAll<HTMLDivElement>("[data-tab-panel]");
+
+tabBotones.forEach(btn => {
+  btn.addEventListener("click", () => {
+    tabBotones.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    tabPaneles.forEach(panel => {
+      panel.classList.toggle("hidden", panel.dataset.tabPanel !== btn.dataset.tab);
+    });
+  });
+});
+
+// ---------------- PESTAÑA "CON IA" ----------------
+inicializarAsistenteIaWidget(
+  {
+    textarea: document.getElementById("ia-input-texto") as HTMLTextAreaElement,
+    inputImagen: document.getElementById("ia-input-imagen") as HTMLInputElement,
+    previewImagen: document.getElementById("ia-preview-imagen") as HTMLImageElement,
+    btnAnalizar: document.getElementById("ia-btn-analizar") as HTMLButtonElement,
+    seccionPreview: document.getElementById("ia-seccion-preview") as HTMLDivElement,
+    tabla: document.getElementById("ia-tabla-preview") as HTMLTableElement,
+    btnConfirmar: document.getElementById("ia-btn-confirmar-todos") as HTMLButtonElement,
+    btnCancelar: document.getElementById("ia-btn-cancelar-preview") as HTMLButtonElement,
+    mostrarToast
+  },
+  () => categorias,
+  () => cargarProductos()
+);
+
 // ---------- GUARDAR EDICIÓN ----------
 formEditar.addEventListener("submit", async e => {
   e.preventDefault();
@@ -832,5 +866,9 @@ function recalcularVenta(
 // ---------- INIT ----------
 cargarCategorias();
 cargarProductos();
+getConfiguracion().then(config => {
+  umbralStockBajo = config.umbralStockBajo;
+  aplicarFiltro(); // re-renderiza con el umbral real (antes de esto se usó el default de 10)
+});
 sincronizarTipoYUnidad(formCrear);
 sincronizarTipoYUnidad(formEditar);

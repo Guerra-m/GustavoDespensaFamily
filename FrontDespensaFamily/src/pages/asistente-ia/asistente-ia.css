@@ -1,0 +1,228 @@
+/* CONTENEDOR PRINCIPAL */
+.content {
+  margin-left: 260px;
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.asistente-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.content h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.content h1::before {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/trending-up.svg') center / contain no-repeat;
+  mask: url('/icons/trending-up.svg') center / contain no-repeat;
+}
+
+.asistente-ayuda {
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 24px;
+  max-width: 700px;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+/* ENTRADA */
+.asistente-entrada {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
+}
+
+.asistente-entrada label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.asistente-entrada textarea {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.asistente-imagen-label input[type="file"] {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.asistente-preview-imagen {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 16px;
+  display: block;
+  object-fit: contain;
+}
+
+.asistente-preview-imagen.hidden {
+  display: none;
+}
+
+#btn-analizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#btn-analizar:hover {
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
+  transform: translateY(-2px);
+}
+
+#btn-analizar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* PREVIEW */
+.asistente-preview {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.asistente-preview.hidden,
+.asistente-entrada .hidden {
+  display: none;
+}
+
+/* La tabla en sí (#tabla-preview), sus estados (.estado-*) y
+   .btn-quitar-fila son compartidos con la pestaña "Con IA" de Crear
+   Producto — están en style.css junto al resto del widget. */
+.tabla-scroll {
+  overflow-x: auto;
+  border-radius: 12px;
+  margin: 16px 0 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.asistente-preview-acciones {
+  display: flex;
+  gap: 12px;
+}
+
+#btn-confirmar-todos {
+  flex: 1;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#btn-confirmar-todos:hover {
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
+}
+
+#btn-confirmar-todos:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#btn-cancelar-preview {
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#btn-cancelar-preview:hover {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1023px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  .content h1 {
+    font-size: 24px;
+  }
+
+  .asistente-entrada,
+  .asistente-preview {
+    padding: 20px;
+  }
+
+  .asistente-preview-acciones {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .content h1 {
+    font-size: 20px;
+  }
+
+  .content h1::before {
+    width: 24px;
+    height: 24px;
+  }
+}

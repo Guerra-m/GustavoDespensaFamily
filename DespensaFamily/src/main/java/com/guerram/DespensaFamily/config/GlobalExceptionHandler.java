@@ -87,6 +87,9 @@ public class GlobalExceptionHandler {
         String m = mensaje.toLowerCase();
         if (m.contains("no encontrado") || m.contains("no encontrada")) return HttpStatus.NOT_FOUND;
         if (m.contains("incorrecta") || m.contains("incorrecto")) return HttpStatus.UNAUTHORIZED;
+        if (m.contains("no esta configurado") || m.contains("no se pudo conectar") || m.contains("limite gratuito")) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
         return HttpStatus.BAD_REQUEST;
     }
 }

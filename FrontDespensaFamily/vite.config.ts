@@ -8,6 +8,8 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, 'index.html'),
         login: resolve(__dirname, 'src/pages/login/login.html'),
+        asistenteIa: resolve(__dirname, 'src/pages/asistente-ia/asistente-ia.html'),
+        ajustes: resolve(__dirname, 'src/pages/ajustes/ajustes.html'),
         home: resolve(__dirname, 'src/pages/home/home.html'),
         categorias: resolve(__dirname, 'src/pages/categorias/categorias.html'),
         compras: resolve(__dirname, 'src/pages/compras/compras.html'),

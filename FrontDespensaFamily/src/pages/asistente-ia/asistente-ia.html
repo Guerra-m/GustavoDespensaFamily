@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asistente IA | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <link rel="stylesheet" href="../../style.css" />
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <link rel="stylesheet" href="./asistente-ia.css" />
+</head>
+<body>
+
+  <div id="navbar-container"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <main class="content">
+    <div class="asistente-container">
+
+      <h1>Asistente para cargar productos</h1>
+      <p class="asistente-ayuda">
+        Escribí una lista de productos, subí una foto (etiqueta, factura, lista escrita a mano) o
+        ambos. La IA arma una vista previa editable — nada se guarda hasta que vos lo confirmes.
+      </p>
+
+      <section class="asistente-entrada">
+        <label>
+          Texto (opcional)
+          <textarea id="input-texto" rows="4" placeholder="Ej: Coca Cola 2.25L, Sprite 2.25L, Fanta 2.25L"></textarea>
+        </label>
+
+        <label class="asistente-imagen-label">
+          Foto (opcional)
+          <input type="file" id="input-imagen" accept="image/jpeg,image/png,image/webp" />
+        </label>
+
+        <img id="preview-imagen" class="asistente-preview-imagen hidden" alt="Vista previa" />
+
+        <button type="button" id="btn-analizar">
+          <span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Analizar
+        </button>
+      </section>
+
+      <section id="seccion-preview" class="asistente-preview hidden">
+        <h2>Revisá antes de confirmar</h2>
+        <p class="asistente-ayuda">
+          Corregí lo que haga falta. Las filas marcadas con ⚠ están incompletas o la IA no está
+          segura — no se van a poder confirmar hasta completarlas.
+        </p>
+
+        <div class="tabla-scroll">
+          <table id="tabla-preview">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Código de barras</th>
+                <th>Precio</th>
+                <th>Stock inicial</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="asistente-preview-acciones">
+          <button type="button" id="btn-confirmar-todos">Confirmar y crear productos</button>
+          <button type="button" id="btn-cancelar-preview">Cancelar</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./asistente-ia.ts"></script>
+</body>
+</html>

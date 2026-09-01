@@ -57,6 +57,13 @@
   <div id="modal-crear" class="modal hidden">
     <div class="modal-content">
       <h2>Crear Producto</h2>
+
+      <div class="modal-crear-tabs">
+        <button type="button" class="tab-btn active" data-tab="rapida">Carga rápida</button>
+        <button type="button" class="tab-btn" data-tab="ia">Con IA</button>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="rapida">
       <p class="modal-crear-ayuda">💡 Después de crear, el formulario se limpia y el modal queda abierto para seguir cargando — tocá "Cerrar" cuando termines.</p>
 
       <form id="form-crear">
@@ -149,6 +156,52 @@
 
   <button type="submit">Crear</button>
       </form>
+      </div>
+
+      <div class="tab-panel hidden" data-tab-panel="ia">
+        <p class="modal-crear-ayuda">💡 Escribí una lista de productos, subí una foto, o ambos. Vas a poder revisar y corregir todo antes de confirmar.</p>
+
+        <label class="ia-campo">
+          Texto (opcional)
+          <textarea id="ia-input-texto" rows="3" placeholder="Ej: Coca Cola 2.25L, Sprite 2.25L, Fanta 2.25L"></textarea>
+        </label>
+
+        <label class="ia-campo ia-campo-imagen">
+          Foto (opcional)
+          <input type="file" id="ia-input-imagen" accept="image/jpeg,image/png,image/webp" />
+        </label>
+
+        <img id="ia-preview-imagen" class="ia-preview-imagen hidden" alt="Vista previa" />
+
+        <button type="button" id="ia-btn-analizar">
+          <span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Analizar
+        </button>
+
+        <div id="ia-seccion-preview" class="ia-seccion-preview hidden">
+          <div class="tabla-scroll">
+            <table id="ia-tabla-preview">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Código de barras</th>
+                  <th>Precio</th>
+                  <th>Stock inicial</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="ia-preview-acciones">
+            <button type="button" id="ia-btn-confirmar-todos">Confirmar y crear productos</button>
+            <button type="button" id="ia-btn-cancelar-preview">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <button type="button" id="btn-cerrar-crear">Cerrar</button>
     </div>
   </div>

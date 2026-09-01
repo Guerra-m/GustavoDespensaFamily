@@ -1,5 +1,6 @@
 import { isAdmin, clearAuth } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
+import { getConfiguracion } from "../../services/configuracion.service";
 
 const NAVBAR_HTML = `
 <div class="navbar-overlay" id="navbarOverlay"></div>
@@ -28,18 +29,20 @@ const NAVBAR_HTML = `
 <nav class="navbar" id="navbar">
   <div class="navbar-header">
     <span class="logo"><span class="icon" style="--icono:url('/icons/store.svg')"></span></span>
-    <h1>Despensa Family</h1>
+    <h1 id="navbar-nombre-negocio">Despensa Family</h1>
   </div>
 
   <ul class="nav-links">
     <li class="nav-admin-only"><a href="../../pages/home/home.html"><span class="icon" style="--icono:url('/icons/house.svg')"></span> Inicio</a></li>
     <li><a href="../../pages/ventas/ventas.html"><span class="icon" style="--icono:url('/icons/shopping-cart.svg')"></span> Ventas</a></li>
     <li><a href="../../pages/productos/productos.html"><span class="icon" style="--icono:url('/icons/package.svg')"></span> Productos</a></li>
+    <li><a href="../../pages/asistente-ia/asistente-ia.html"><span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Asistente IA</a></li>
     <li><a href="../../pages/categorias/categorias.html"><span class="icon" style="--icono:url('/icons/layers.svg')"></span> Categorías</a></li>
     <li><a href="../../pages/compras/compras.html"><span class="icon" style="--icono:url('/icons/shopping-bag.svg')"></span> Compras</a></li>
     <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span class="icon" style="--icono:url('/icons/tag.svg')"></span> Promos</a></li>
     <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span class="icon" style="--icono:url('/icons/bar-chart-3.svg')"></span> Reportes</a></li>
     <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span class="icon" style="--icono:url('/icons/users.svg')"></span> Usuarios</a></li>
+    <li class="nav-admin-only"><a href="../../pages/ajustes/ajustes.html"><span class="icon" style="--icono:url('/icons/wallet.svg')"></span> Ajustes</a></li>
     <li><a href="../../pages/perfil/perfil.html"><span class="icon" style="--icono:url('/icons/user.svg')"></span> Mi Perfil</a></li>
     <li class="logout"><a href="#logout"><span class="icon" style="--icono:url('/icons/log-out.svg')"></span> Cerrar sesión</a></li>
   </ul>
@@ -104,6 +107,16 @@ function initNavbar() {
       window.location.href = "../../pages/login/login.html";
     }
   });
+
+  // Nombre del negocio configurable (ver pages/ajustes) — si falla (por
+  // ejemplo, la página de login no tiene sesión) se queda con el nombre
+  // por defecto ya escrito en el HTML, no rompe nada.
+  const nombreEl = document.getElementById("navbar-nombre-negocio");
+  getConfiguracion()
+    .then(config => {
+      if (nombreEl && config.nombreNegocio) nombreEl.textContent = config.nombreNegocio;
+    })
+    .catch(() => {});
 
   // Marcar página activa
   const currentPath = window.location.pathname;
