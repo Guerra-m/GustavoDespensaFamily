@@ -31,6 +31,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/*.html", "/assets/**", "/src/**", "/favicon.ico").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/promociones/**").authenticated()
                 .requestMatchers("/promociones/**").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/configuracion/**").authenticated()
+                .requestMatchers("/configuracion/**").hasRole("ADMIN")
                 .requestMatchers("/reportes/**").hasRole("ADMIN")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

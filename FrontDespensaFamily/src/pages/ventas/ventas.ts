@@ -12,7 +12,8 @@ import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad, redondearCantidad } from "../../utils/format";
+import { formatearCantidad, redondearCantidad, resolverImagenUrl } from "../../utils/format";
+import { getConfiguracion } from "../../services/configuracion.service";
 
 /* =======================
    ELEMENTOS DEL DOM
@@ -50,6 +51,7 @@ const selectCliente = document.getElementById("select-cliente") as HTMLSelectEle
    ESTADO
 ======================= */
 let productos: Producto[] = [];
+let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
 let categorias: Categoria[] = [];
 let promosPorProducto: Map<number, Promocion> = new Map();
 let carrito: DetalleVentaRequest[] = [];
@@ -188,14 +190,14 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
   const card = document.createElement("div");
   card.className = "producto-card";
   card.dataset.productoId = String(prod.id);
-  if (prod.stock < 10) card.classList.add("stock-bajo");
+  if (prod.stock < umbralStockBajo) card.classList.add("stock-bajo");
   if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
 
   const promo = promosPorProducto.get(prod.id!);
 
   card.innerHTML = `
     <div class="producto-imagen">
-      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}">` : ""}
+      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${prod.nombre}">` : ""}
       ${promo ? `<span class="promo-badge">${promo.cantidadLleva}x${promo.cantidadPaga}</span>` : ""}
     </div>
     <div class="producto-info">
@@ -640,6 +642,10 @@ inputBuscarProducto.addEventListener("input", () => {
 ======================= */
 cargarProductos();
 cargarVentas();
+getConfiguracion().then(config => {
+  umbralStockBajo = config.umbralStockBajo;
+  renderProductosGrid(inputBuscarProducto.value);
+});
 setTimeout(() => inputBuscarProducto.focus(), 300);
 
 async function imprimirTicket(venta: Venta) {
