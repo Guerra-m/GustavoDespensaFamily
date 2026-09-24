@@ -206,7 +206,12 @@ public class GlobalExceptionHandler {
         if (mensaje == null) return HttpStatus.BAD_REQUEST;
         String m = mensaje.toLowerCase();
         if (m.contains("no encontrado") || m.contains("no encontrada")) return HttpStatus.NOT_FOUND;
-        if (m.contains("incorrecta") || m.contains("incorrecto")) return HttpStatus.UNAUTHORIZED;
+        // Ningun mensaje de negocio se mapea a 401 (DF-BUG-007). El 401
+        // significa "no hay sesion valida" y el frontend, ante cualquier
+        // 401, borra la sesion y manda al login: "Contraseña actual
+        // incorrecta" en Mi Perfil sacaba al usuario sin mostrarle nada. El
+        // login fallido tiene su propio 401 (CredencialesInvalidasException),
+        // y el interceptor lo exceptua a proposito.
         if (m.contains("no esta configurado") || m.contains("no se pudo conectar")
                 || m.contains("limite gratuito") || m.contains("tardó demasiado")) {
             return HttpStatus.SERVICE_UNAVAILABLE;
