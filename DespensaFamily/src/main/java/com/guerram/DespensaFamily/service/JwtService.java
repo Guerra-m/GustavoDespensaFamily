@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.Map;
 
 @Service
 public class JwtService {
@@ -27,17 +26,13 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Los permisos quedan grabados en el token, no se relee la base en cada
-    // pedido (mismo criterio que el rol): si el dueño le prende un permiso a
-    // alguien que ya tiene la sesión abierta, no se ve hasta el próximo
-    // login. Es el mismo tradeoff que ya existía para el rol.
-    public String generateToken(String username, String rol, boolean puedeGestionarProductos, boolean puedeVerCaja) {
+    // El token solo dice QUIEN es. Rol y permisos ya no viajan adentro: los
+    // lee JwtAuthFilter de la base en cada pedido (DF-SEC-002). Antes iban
+    // grabados acá y valían 24 h: borrar a un empleado o quitarle un permiso
+    // no tenía efecto hasta que venciera el token.
+    public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
-                .addClaims(Map.of(
-                        "rol", rol,
-                        "stock", puedeGestionarProductos,
-                        "caja", puedeVerCaja))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

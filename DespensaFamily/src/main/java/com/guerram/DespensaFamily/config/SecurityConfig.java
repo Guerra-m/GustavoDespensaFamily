@@ -50,6 +50,10 @@ public class SecurityConfig {
                         + "connect-src 'self'")
                     .reportOnly()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // 401 + cookie borrada si la sesion que traia el pedido ya no
+            // vale (usuario borrado, token roto o vencido); 403 si nunca hubo
+            // sesion, como antes. Ver JwtAuthFilter (DF-SEC-002).
+            .exceptionHandling(e -> e.authenticationEntryPoint(new SesionInvalidaEntryPoint()))
             .authorizeHttpRequests(auth -> auth
                 // --- Publico ---
                 .requestMatchers("/usuario/login").permitAll()
