@@ -13,8 +13,10 @@ import {
   createCompra,
   getCompraDetalle,
   anularCompra,
-  marcarPagada
+  marcarPagada,
+  previsualizarCompra
 } from "../../services/compras.service";
+import type { CompraCotizacion } from "../../models/CompraCotizacion";
 
 import { getProductos } from "../../services/productos.service";
 
@@ -97,6 +99,11 @@ const modalRegistrarCompra = document.getElementById("modal-registrar-compra") a
 const btnAbrirRegistrarCompra = document.getElementById("btn-abrir-registrar-compra") as HTMLButtonElement;
 const btnCerrarRegistrarCompra = document.getElementById("btn-cerrar-registrar-compra") as HTMLButtonElement;
 
+const modalConfirmarPrecios = document.getElementById("modal-confirmar-precios") as HTMLDivElement;
+const tablaConfirmarPrecios = document.getElementById("tabla-confirmar-precios") as HTMLTableSectionElement;
+const btnCancelarPrecios = document.getElementById("btn-cancelar-precios") as HTMLButtonElement;
+const btnConfirmarPrecios = document.getElementById("btn-confirmar-precios") as HTMLButtonElement;
+
 // ---------------- FUNCIONES ----------------
 
 function mostrarToast(mensaje: string, error = false) {
@@ -167,8 +174,18 @@ function renderCompras(lista: Compra[]) {
             if (!confirmado) return;
 
             try {
-                await anularCompra(compra.id!);
-                mostrarToast("Compra anulada");
+                const respuesta = await anularCompra(compra.id!);
+                // DF-BUG-005: si algún precio no se restauró porque cambió
+                // después de esta compra (edición manual u otra compra más
+                // nueva), avisar en vez de dejarlo pasar en silencio.
+                if (respuesta.productosConPrecioConservado?.length) {
+                    mostrarToast(
+                        `Compra anulada. El precio de ${respuesta.productosConPrecioConservado.join(", ")} ` +
+                        `cambió después de esta compra y se conservó tal cual estaba.`
+                    );
+                } else {
+                    mostrarToast("Compra anulada");
+                }
                 cargarCompras();
             } catch (err) {
                 mostrarToast((err as Error).message, true);
@@ -322,6 +339,46 @@ function renderDetalles() {
   });
 }
 
+// ---------------- CONFIRMAR PRECIOS ANTES DE REGISTRAR (DF-RISK-001) ----------------
+// Antes de guardar, muestra por línea "precio actual -> precio nuevo" y
+// resalta los cambios de más del 50% (ej: un cero de más en el costo
+// multiplica por 10 el precio de venta). La cuenta la hace el backend
+// (POST /compras/previsualizar, misma fórmula que registrarCompra): acá no
+// se duplica el cálculo.
+function renderTablaConfirmarPrecios(cotizacion: CompraCotizacion) {
+  tablaConfirmarPrecios.innerHTML = "";
+  cotizacion.lineas.forEach(l => {
+    const tr = document.createElement("tr");
+    if (l.cambioSignificativo) tr.classList.add("fila-cambio-grande");
+    // DF-SEC-001: el nombre del producto viene de datos, siempre por esc().
+    tr.innerHTML = `
+      <td>${esc(l.productoNombre)}${l.cambioSignificativo ? " ⚠" : ""}</td>
+      <td>$${l.precioVentaActual.toFixed(2)}</td>
+      <td>$${l.precioVentaNuevo.toFixed(2)}</td>
+    `;
+    tablaConfirmarPrecios.appendChild(tr);
+  });
+}
+
+function confirmarPrecios(cotizacion: CompraCotizacion): Promise<boolean> {
+  return new Promise((resolve) => {
+    renderTablaConfirmarPrecios(cotizacion);
+    modalConfirmarPrecios.classList.remove("hidden");
+
+    function limpiar(resultado: boolean) {
+      modalConfirmarPrecios.classList.add("hidden");
+      btnCancelarPrecios.removeEventListener("click", onCancelar);
+      btnConfirmarPrecios.removeEventListener("click", onConfirmar);
+      resolve(resultado);
+    }
+    function onCancelar() { limpiar(false); }
+    function onConfirmar() { limpiar(true); }
+
+    btnCancelarPrecios.addEventListener("click", onCancelar);
+    btnConfirmarPrecios.addEventListener("click", onConfirmar);
+  });
+}
+
 // Registrar compra
 const btnGuardarCompra = formCompra.querySelector(".btn-guardar") as HTMLButtonElement;
 const textoOriginalBtnGuardar = btnGuardarCompra.textContent || "Registrar Compra";
@@ -352,6 +409,10 @@ formCompra.addEventListener("submit", async e => {
   btnGuardarCompra.textContent = "Guardando...";
 
   try {
+    const cotizacion = await previsualizarCompra(detallesCompra);
+    const confirmado = await confirmarPrecios(cotizacion);
+    if (!confirmado) return;
+
     await createCompra(compra);
     mostrarToast("Compra registrada correctamente");
 

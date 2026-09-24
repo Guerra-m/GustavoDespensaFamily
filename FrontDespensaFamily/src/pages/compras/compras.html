@@ -144,6 +144,33 @@
   </div>
 </div>
 
+<!-- Modal Confirmar Precios (DF-RISK-001): precio actual -> precio nuevo por
+     línea antes de registrar la compra, resaltando cambios de más del 50%. -->
+<div id="modal-confirmar-precios" class="modal hidden">
+  <div class="modal-content">
+    <h2>Confirmar precios de venta</h2>
+    <p>Así quedaría el precio de venta de cada producto si se registra esta compra:</p>
+
+    <div class="tabla-scroll" style="max-height: 300px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio actual</th>
+            <th>Precio nuevo</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-confirmar-precios"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-acciones">
+      <button type="button" id="btn-cancelar-precios">Cancelar</button>
+      <button type="button" id="btn-confirmar-precios">Confirmar y registrar compra</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Detalle de Compra -->
 <div id="modal-detalle-compra" class="modal hidden">
   <div class="modal-content">
