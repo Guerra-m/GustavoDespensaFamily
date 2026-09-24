@@ -1,5 +1,11 @@
-import { checkAuth } from "../../services/auth.service";
+import { habilitarCierreConEscape } from "../../utils/modales";
+import { checkAuth, puedeGestionarProductos } from "../../services/auth.service";
 checkAuth();
+
+// Crear, editar o eliminar productos es del dueño, o de un empleado con
+// PERM_STOCK prendido (ver Usuario.java). El backend ya lo exige
+// (SecurityConfig); esto solo evita mostrar controles que van a 403.
+const PUEDE_GESTIONAR = puedeGestionarProductos();
 
 import type { Producto } from "../../models/Producto";
 import type { Categoria } from "../../models/Categoria";
@@ -26,6 +32,8 @@ const toast = document.getElementById("toast") as HTMLDivElement;
 const formCrear = document.getElementById("form-crear") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar") as HTMLFormElement;
 const inputBuscar = document.getElementById("input-buscar") as HTMLInputElement;
+const btnFiltroStockBajo = document.getElementById("btn-filtro-stock-bajo") as HTMLButtonElement;
+let filtroStockBajoActivo = false;
 
 const selectCrear = formCrear.querySelector(
   "select[name='categoriaId']"
@@ -210,12 +218,12 @@ function crearCard(prod: Producto): HTMLDivElement {
       <input type="checkbox" class="chk-seleccionar" data-id="${prod.id}" ${seleccionados.has(prod.id!) ? "checked" : ""} title="Seleccionar para imprimir cartel">
     </label>
     <div class="producto-acciones">
-      <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
+      ${PUEDE_GESTIONAR ? `<button class="btn-editar-rapido" data-id="${prod.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>` : ""}
       <div class="producto-menu-container">
         <button class="btn-menu" data-id="${prod.id}" aria-label="Más opciones" title="Más opciones"></button>
         <div class="producto-menu-dropdown">
           <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
-          <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+          ${PUEDE_GESTIONAR ? `<button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>` : ""}
         </div>
       </div>
     </div>
@@ -567,19 +575,33 @@ async function cargarProductos() {
 function aplicarFiltro() {
   const q = inputBuscar.value.toLowerCase().trim();
 
-  if (!q) {
-    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    return;
+  let lista = productos;
+  if (filtroStockBajoActivo) {
+    lista = lista.filter(p => p.stock < umbralStockBajo);
   }
-
-  renderProductos(
-    productos.filter(p =>
+  if (q) {
+    lista = lista.filter(p =>
       p.nombre.toLowerCase().includes(q) ||
       p.codigoBarras?.includes(q) ||
       categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
-    )
-  );
+    );
+  } else {
+    lista = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  renderProductos(lista);
 }
+
+if (!PUEDE_GESTIONAR) {
+  btnCrearProducto.classList.add("hidden");
+}
+
+btnFiltroStockBajo.addEventListener("click", () => {
+  filtroStockBajoActivo = !filtroStockBajoActivo;
+  btnFiltroStockBajo.classList.toggle("activo", filtroStockBajoActivo);
+  btnFiltroStockBajo.setAttribute("aria-pressed", String(filtroStockBajoActivo));
+  aplicarFiltro();
+});
 
 // ---------- CREAR ----------
 formCrear.addEventListener("submit", async e => {
@@ -804,3 +826,6 @@ getConfiguracion().then(config => {
 });
 sincronizarTipoYUnidad(formCrear);
 sincronizarTipoYUnidad(formEditar);
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();

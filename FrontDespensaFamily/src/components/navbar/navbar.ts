@@ -1,6 +1,7 @@
-import { isAdmin, clearAuth } from "../../services/auth.service";
+import { isAdmin, clearAuth, puedeVerCaja } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 import { getConfiguracion } from "../../services/configuracion.service";
+import { iniciarAvisoDeActualizacion } from "../actualizacion/aviso-actualizacion";
 
 const NAVBAR_HTML = `
 <div class="navbar-overlay" id="navbarOverlay"></div>
@@ -35,13 +36,15 @@ const NAVBAR_HTML = `
   <ul class="nav-links">
     <li class="nav-admin-only"><a href="../../pages/home/home.html"><span class="icon" style="--icono:url('/icons/house.svg')"></span> Inicio</a></li>
     <li><a href="../../pages/ventas/ventas.html"><span class="icon" style="--icono:url('/icons/shopping-cart.svg')"></span> Ventas</a></li>
+    <li class="nav-solo-caja"><a href="../../pages/caja/caja.html"><span class="icon" style="--icono:url('/icons/piggy-bank.svg')"></span> Caja</a></li>
     <li><a href="../../pages/productos/productos.html"><span class="icon" style="--icono:url('/icons/package.svg')"></span> Productos</a></li>
-    <li><a href="../../pages/asistente-ia/asistente-ia.html"><span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Asistente IA</a></li>
+    <li class="nav-admin-only"><a href="../../pages/asistente-ia/asistente-ia.html"><span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Asistente IA</a></li>
     <li><a href="../../pages/categorias/categorias.html"><span class="icon" style="--icono:url('/icons/layers.svg')"></span> Categorías</a></li>
     <li><a href="../../pages/compras/compras.html"><span class="icon" style="--icono:url('/icons/shopping-bag.svg')"></span> Compras</a></li>
     <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span class="icon" style="--icono:url('/icons/tag.svg')"></span> Promos</a></li>
     <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span class="icon" style="--icono:url('/icons/bar-chart-3.svg')"></span> Reportes</a></li>
     <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span class="icon" style="--icono:url('/icons/users.svg')"></span> Usuarios</a></li>
+    <li class="nav-admin-only"><a href="../../pages/empleados/empleados.html"><span class="icon" style="--icono:url('/icons/clipboard-list.svg')"></span> Empleados</a></li>
     <li class="nav-admin-only"><a href="../../pages/ajustes/ajustes.html"><span class="icon" style="--icono:url('/icons/wallet.svg')"></span> Ajustes</a></li>
     <li><a href="../../pages/perfil/perfil.html"><span class="icon" style="--icono:url('/icons/user.svg')"></span> Mi Perfil</a></li>
     <li class="logout"><a href="#logout"><span class="icon" style="--icono:url('/icons/log-out.svg')"></span> Cerrar sesión</a></li>
@@ -59,8 +62,22 @@ function initNavbar() {
   const navLinks = document.querySelectorAll<HTMLAnchorElement>(".nav-links a");
 
   // Ocultar ítems restringidos para EMPLEADO
+  //
+  // El menú conocía un solo permiso —ser ADMIN o no serlo— y nunca se enteró
+  // de los permisos sueltos que se agregaron después. Por eso Caja aparecía
+  // para todo el mundo, que es como Martín encontró que un empleado sin
+  // permiso de caja igual la veía. Ahora cada ítem se muestra según lo mismo
+  // que decide el backend (ver SecurityConfig): el menú no puede ofrecer algo
+  // que el servidor va a rechazar, ni esconder algo que sí se puede usar.
   if (!isAdmin()) {
     document.querySelectorAll<HTMLElement>(".nav-admin-only").forEach(el => {
+      el.style.display = "none";
+    });
+  }
+
+  // Caja: del dueño, o de quien tenga PERM_CAJA prendido.
+  if (!isAdmin() && !puedeVerCaja()) {
+    document.querySelectorAll<HTMLElement>(".nav-solo-caja").forEach(el => {
       el.style.display = "none";
     });
   }
@@ -103,7 +120,10 @@ function initNavbar() {
   logoutLink?.addEventListener("click", async (e) => {
     e.preventDefault();
     if (await confirmar("¿Estás seguro que deseas cerrar sesión?")) {
-      clearAuth();
+      // Con await: clearAuth le pide al servidor que apague la cookie, y si
+      // navegamos antes de que termine el navegador cancela ese pedido y la
+      // sesión queda viva del otro lado.
+      await clearAuth();
       window.location.href = "../../pages/login/login.html";
     }
   });
@@ -132,4 +152,9 @@ const container = document.getElementById("navbar-container");
 if (container) {
   container.innerHTML = NAVBAR_HTML;
   initNavbar();
+
+  // El aviso de actualizacion se engancha aca por el mismo motivo que el modal
+  // de confirmacion: el navbar es lo unico que esta en todas las paginas de
+  // adentro. En login no hay navbar-container, asi que no se consulta nada.
+  iniciarAvisoDeActualizacion();
 }

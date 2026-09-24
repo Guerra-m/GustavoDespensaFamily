@@ -94,6 +94,87 @@
         </div>
       </div>
 
+      <hr class="promos-separador" />
+
+      <h1>Descuentos por %</h1>
+      <p class="promos-ayuda">Un producto puntual, o toda una categoría. Si el producto tiene descuento propio, ese gana por sobre el de su categoría.</p>
+
+      <!-- TABLA DESCUENTOS -->
+      <div class="tabla-scroll">
+        <table id="tabla-descuentos">
+          <thead>
+            <tr>
+              <th>Alcance</th>
+              <th>Descuento</th>
+              <th>Activo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- FORM CREAR DESCUENTO -->
+      <form id="form-crear-descuento">
+        <h2>Crear Descuento</h2>
+
+        <label class="checkbox-label">
+          <select id="select-alcance-descuento" name="alcance">
+            <option value="PRODUCTO">Por producto</option>
+            <option value="CATEGORIA">Por categoría</option>
+          </select>
+        </label>
+
+        <label id="label-producto-descuento">
+          Producto
+          <div class="producto-buscar-container">
+            <input type="text" id="input-buscar-producto-descuento" placeholder="Buscar producto..." autocomplete="off" />
+            <div id="dropdown-productos-descuento" class="dropdown-productos hidden"></div>
+          </div>
+        </label>
+
+        <label id="label-categoria-descuento" class="hidden">
+          Categoría
+          <select id="select-categoria-descuento" name="categoriaId"></select>
+        </label>
+
+        <label>
+          % de descuento
+          <input type="number" name="porcentaje" min="1" max="99" step="0.1" placeholder="Ej: 15" required />
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" name="activo" checked />
+          Activo
+        </label>
+
+        <button type="submit">Crear</button>
+      </form>
+
+      <!-- MODAL EDITAR DESCUENTO -->
+      <div id="modal-editar-descuento" class="modal hidden">
+        <div class="modal-content">
+          <h2>Editar Descuento</h2>
+
+          <form id="form-editar-descuento">
+            <label>Alcance <span id="editar-descuento-alcance" class="producto-fijo"></span></label>
+
+            <label>
+              % de descuento
+              <input type="number" name="porcentaje" min="1" max="99" step="0.1" required />
+            </label>
+
+            <label class="checkbox-label">
+              <input type="checkbox" name="activo" />
+              Activo
+            </label>
+
+            <button type="submit">Guardar</button>
+            <button type="button" id="btn-cancelar-descuento">Cancelar</button>
+          </form>
+        </div>
+      </div>
+
     </div>
   </main>
   <script type="module" src="../../components/navbar/navbar.ts"></script>

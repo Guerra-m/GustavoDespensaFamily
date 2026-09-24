@@ -1,4 +1,4 @@
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha } from "../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha, Rentabilidad } from "../models/Reportes";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/reportes`;
@@ -52,5 +52,12 @@ export async function getGananciaPorFecha(desde: string, hasta: string): Promise
   const params = new URLSearchParams({ desde, hasta });
   const res = await fetch(`${BASE_URL}/ganancia?${params.toString()}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Error al obtener ganancia en el tiempo");
+  return res.json();
+}
+
+export async function getRentabilidad(desde: string, hasta: string): Promise<Rentabilidad> {
+  const params = new URLSearchParams({ desde, hasta });
+  const res = await fetch(`${BASE_URL}/rentabilidad?${params.toString()}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Error al obtener la rentabilidad");
   return res.json();
 }

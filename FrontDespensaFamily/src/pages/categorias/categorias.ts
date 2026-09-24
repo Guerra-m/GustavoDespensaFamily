@@ -1,6 +1,12 @@
+import { habilitarCierreConEscape } from "../../utils/modales";
 import { esc } from "../../utils/format";
-import { checkAuth } from "../../services/auth.service";
+import { checkAuth, puedeGestionarProductos } from "../../services/auth.service";
 checkAuth();
+
+// Crear, editar o eliminar categorías es del dueño, o de un empleado con
+// PERM_STOCK prendido (ver Usuario.java). El backend ya lo exige
+// (SecurityConfig); esto solo evita mostrar controles que van a 403.
+const PUEDE_GESTIONAR = puedeGestionarProductos();
 
 import type { Categoria } from "../../models/Categoria";
 import {
@@ -43,10 +49,10 @@ function renderCategorias() {
     const card = document.createElement("div");
     card.className = "categoria-card";
     card.innerHTML = `
-      <div class="categoria-acciones">
+      ${PUEDE_GESTIONAR ? `<div class="categoria-acciones">
         <button class="btn-editar-cat" data-id="${cat.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
         <button class="btn-eliminar-cat" data-id="${cat.id}" title="Eliminar"><span class="icon" style="--icono:url('/icons/trash-2.svg')"></span></button>
-      </div>
+      </div>` : ""}
       <div class="categoria-nombre">${esc(cat.nombre)}</div>
       <div class="categoria-descripcion">${cat.descripcion || "Sin descripción"}</div>
       <div class="categoria-contador">${cantidad} producto${cantidad === 1 ? "" : "s"}</div>
@@ -55,6 +61,10 @@ function renderCategorias() {
   });
 
   agregarEventos();
+}
+
+if (!PUEDE_GESTIONAR) {
+  formCrear.classList.add("hidden");
 }
 
 // Cargar
@@ -181,3 +191,6 @@ btnCancelar.addEventListener("click", () => {
 
 // Init
 cargarCategorias();
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();

@@ -815,3 +815,60 @@ table {
   z-index: 10;
   background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }
+
+/* ================= PAGO (Fase 11: compra pagada o a cuenta) ================= */
+
+.compra-pago {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4, 16px);
+  flex-wrap: wrap;
+  margin: var(--espacio-3, 12px) 0;
+  padding: var(--espacio-3, 12px);
+  background: var(--color-fondo, #f4f6f8);
+  border-radius: 10px;
+}
+
+.compra-pagada-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto, #2c3e50);
+  cursor: pointer;
+}
+
+.compra-pagada-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.compra-pago select {
+  padding: 8px 12px;
+  border: 2px solid var(--color-borde, #e9ecef);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.compras-acciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-marcar-pagada {
+  padding: 5px 10px;
+  border: 1px solid var(--color-exito-dark, #388e3c);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-exito-dark, #388e3c);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-marcar-pagada:hover {
+  background: var(--color-exito-suave, #e6f7ea);
+}

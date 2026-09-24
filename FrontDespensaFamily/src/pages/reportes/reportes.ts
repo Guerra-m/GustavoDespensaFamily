@@ -1,14 +1,15 @@
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
-import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha } from "../../models/Reportes";
+import type { ProductoBajoStock, Movimiento, ProductoMasVendido, ResumenVentas, VentasPorCategoria, GananciaPorFecha, Rentabilidad } from "../../models/Reportes";
 import {
   getProductosBajoStock,
   getProductosMasVendidos,
   getMovimientos,
   getResumenVentas,
   getVentasPorCategoria,
-  getGananciaPorFecha
+  getGananciaPorFecha,
+  getRentabilidad
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
 import { formatearCantidad, esc } from "../../utils/format";
@@ -48,6 +49,8 @@ const inputCatDesde = document.getElementById("cat-desde") as HTMLInputElement;
 const inputCatHasta = document.getElementById("cat-hasta") as HTMLInputElement;
 const inputGanDesde = document.getElementById("gan-desde") as HTMLInputElement;
 const inputGanHasta = document.getElementById("gan-hasta") as HTMLInputElement;
+const inputRentDesde = document.getElementById("rent-desde") as HTMLInputElement;
+const inputRentHasta = document.getElementById("rent-hasta") as HTMLInputElement;
 const selectPeriodo = document.getElementById("select-periodo") as HTMLSelectElement;
 
 const btnMasVendidos = document.getElementById("btn-mas-vendidos") as HTMLButtonElement;
@@ -55,6 +58,7 @@ const btnVentasCategoria = document.getElementById("btn-ventas-categoria") as HT
 const btnGanancia = document.getElementById("btn-ganancia") as HTMLButtonElement;
 const btnMovimientos = document.getElementById("btn-movimientos") as HTMLButtonElement;
 const btnResumen = document.getElementById("btn-resumen") as HTMLButtonElement;
+const btnRentabilidad = document.getElementById("btn-rentabilidad") as HTMLButtonElement;
 
 // ---------------- Función para inicializar fechas ----------------
 function inicializarFechas() {
@@ -75,6 +79,9 @@ function inicializarFechas() {
 
   inputGanDesde.value = formatDate(haceUnMes);
   inputGanHasta.value = formatDate(hoy);
+
+  inputRentDesde.value = formatDate(haceUnMes);
+  inputRentHasta.value = formatDate(hoy);
 }
 
 // ---------------- FUNCIONES ----------------
@@ -217,6 +224,41 @@ async function cargarGanancia() {
   } catch (err) {
     console.error(err);
     mostrarToast("Error al obtener la ganancia en el tiempo", true);
+  }
+}
+
+// Fase 8/9 del mapa de cambios: números separados a propósito. No se suman
+// "ventas + compras" en un solo total — esa mezcla es justo la confusión
+// entre flujo de caja y rentabilidad que esta pantalla tiene que evitar.
+async function cargarRentabilidad() {
+  try {
+    const desde = inputRentDesde.value;
+    const hasta = inputRentHasta.value;
+    if (!desde || !hasta) {
+      mostrarToast("Seleccioná desde y hasta", true);
+      return;
+    }
+
+    const r: Rentabilidad = await getRentabilidad(desde, hasta);
+    const moneda = (n: number) => `$${n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    document.getElementById("rent-ventas")!.textContent = moneda(r.ventasTotales);
+    document.getElementById("rent-costo")!.textContent = moneda(r.costoMercaderiaVendida);
+    document.getElementById("rent-ganancia-bruta")!.textContent = moneda(r.gananciaBruta);
+    document.getElementById("rent-margen")!.textContent = `${r.margenPorcentaje.toFixed(1)}%`;
+    document.getElementById("rent-compras")!.textContent = moneda(r.comprasTotales);
+    document.getElementById("rent-gastos")!.textContent = moneda(r.gastosTotales);
+    document.getElementById("rent-neto")!.textContent = moneda(r.resultadoNeto);
+
+    // Si nadie cargó gastos, el "resultado neto" de arriba no es un dato: es
+    // gananciaBruta - 0 disfrazado de neto. Se avisa en vez de mostrarlo
+    // como si fuera confiable (ver RentabilidadDTO.gastosCargados).
+    document.getElementById("rent-sin-gastos")!.classList.toggle("hidden", r.gastosCargados);
+
+    document.getElementById("rentabilidad-container")!.classList.remove("hidden");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Error al calcular la rentabilidad", true);
   }
 }
 
@@ -499,6 +541,7 @@ function imprimirMovimientos() {
 btnMasVendidos.addEventListener("click", cargarProductosMasVendidos);
 btnVentasCategoria.addEventListener("click", cargarVentasPorCategoria);
 btnGanancia.addEventListener("click", cargarGanancia);
+btnRentabilidad.addEventListener("click", cargarRentabilidad);
 btnMovimientos.addEventListener("click", cargarMovimientos);
 btnResumen.addEventListener("click", cargarResumen);
 const btnImprimir = document.getElementById("btn-imprimir") as HTMLButtonElement;
@@ -520,3 +563,4 @@ cargarVentasPorCategoria();
 cargarGanancia();
 cargarMovimientos();
 cargarResumen();
+cargarRentabilidad();

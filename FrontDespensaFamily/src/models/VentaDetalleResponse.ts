@@ -1,3 +1,5 @@
+import type { MetodoPago } from "./MetodoPago";
+
 /**
  * Lo que devuelve GET /ventas/{id}/detalle.
  *
@@ -22,6 +24,7 @@ export interface VentaDetalleResponse {
   /** ISO con hora. */
   fechaHora: string;
   total: number;
+  metodoPago?: MetodoPago;
   estado?: "ACTIVA" | "ANULADA";
   usuario?: string | null;
   anuladaPor?: string | null;

@@ -274,3 +274,68 @@
     display: none !important;
   }
 }
+/* ---------------------------------------------------------------------------
+   Aviso de actualización (components/actualizacion/aviso-actualizacion.ts)
+
+   Vive acá y no en su propio archivo porque el CSS se enlaza página por página
+   y navbar.css ya está en todas: un archivo nuevo obligaría a tocar los once
+   HTML para agregar un <link>.
+
+   Es una cinta arriba de todo y no un modal a propósito: avisa sin interrumpir.
+   Una actualización nunca puede tapar la pantalla de alguien que está cobrando.
+--------------------------------------------------------------------------- */
+
+.aviso-actualizacion {
+  display: none;
+}
+
+.aviso-actualizacion.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  position: sticky;
+  top: 0;
+  z-index: 900; /* Debajo del navbar abierto en móvil, arriba del contenido. */
+
+  padding: 0.6rem 1rem;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.aviso-actualizacion-notas {
+  opacity: 0.85;
+}
+
+.aviso-actualizacion-nota {
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.aviso-actualizacion button {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aviso-actualizacion button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+  .aviso-actualizacion.visible {
+    /* El botón de la hamburguesa está fijo arriba a la izquierda: sin este
+       margen la cinta le queda encima y tapa el menú. */
+    padding-left: 3.5rem;
+  }
+}

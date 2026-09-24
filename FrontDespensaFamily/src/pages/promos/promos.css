@@ -366,3 +366,16 @@ form button[type="submit"] {
     font-size: 14px;
   }
 }
+
+.promos-separador {
+  margin: 32px 0;
+  border: none;
+  border-top: 1px solid #e9ecef;
+}
+
+.promos-ayuda {
+  color: var(--color-texto-secundario, #666);
+  font-size: 14px;
+  margin-top: -8px;
+  margin-bottom: 16px;
+}

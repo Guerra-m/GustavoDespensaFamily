@@ -178,6 +178,58 @@
       <div id="resumen-container"></div>
     </section>
 
+    <!-- Rentabilidad: separada del flujo de caja a propósito (Fase 9 del
+         mapa de cambios). Vender ≠ cobrar, comprar ≠ gastar: acá se contesta
+         "¿cuánto gané?", no "¿cuánta plata entró o salió?" — esa pregunta la
+         contesta Caja. -->
+    <section class="reporte-rentabilidad">
+      <h2>Rentabilidad</h2>
+      <label>
+        Desde: <input type="date" id="rent-desde" />
+        Hasta: <input type="date" id="rent-hasta" />
+      </label>
+      <button id="btn-rentabilidad">Calcular</button>
+
+      <div id="rentabilidad-container" class="rentabilidad-grid hidden">
+        <div class="rentabilidad-fila">
+          <span>Ventas totales</span>
+          <span id="rent-ventas"></span>
+        </div>
+        <div class="rentabilidad-fila rentabilidad-resta">
+          <span>Costo de mercadería vendida</span>
+          <span id="rent-costo"></span>
+        </div>
+        <div class="rentabilidad-fila rentabilidad-subtotal">
+          <span>Ganancia bruta</span>
+          <span id="rent-ganancia-bruta"></span>
+        </div>
+        <div class="rentabilidad-fila">
+          <span>Margen</span>
+          <span id="rent-margen"></span>
+        </div>
+
+        <div class="rentabilidad-separador"></div>
+
+        <div class="rentabilidad-fila">
+          <span>Total comprado <small>(reposición de stock, no es un costo del período)</small></span>
+          <span id="rent-compras"></span>
+        </div>
+        <div class="rentabilidad-fila rentabilidad-resta">
+          <span>Gastos operativos</span>
+          <span id="rent-gastos"></span>
+        </div>
+        <div class="rentabilidad-fila rentabilidad-total">
+          <span>Resultado neto</span>
+          <span id="rent-neto"></span>
+        </div>
+        <p id="rent-sin-gastos" class="rentabilidad-aviso hidden">
+          No se cargaron gastos en este período: el resultado neto de arriba
+          no descuenta nada porque no hay ningún gasto registrado, no porque
+          no haya habido gastos reales.
+        </p>
+      </div>
+    </section>
+
     </div>
 
   </main>

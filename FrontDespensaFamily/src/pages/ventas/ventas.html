@@ -29,6 +29,7 @@
     <option value="consumidor_final">Consumidor final</option>
   </select>
 </div>
+    <button type="button" id="btn-escanear-celular">📱 Escanear con el celular</button>
     <button type="button" id="btn-ver-ventas-registradas">Ventas Registradas</button>
   </div>
 
@@ -77,6 +78,27 @@
         </table>
       </div>
 
+      <!-- Cómo se cobra. Antes del total y no en la barra fija de abajo: en
+           celular queda justo arriba de "Confirmar Venta", así que se llega
+           a él en el mismo scroll y no hace falta apretar dos veces. -->
+      <div class="metodo-pago-selector" role="radiogroup" aria-label="Método de pago">
+        <button type="button" class="metodo-pago-btn activo" data-metodo="EFECTIVO">Efectivo</button>
+        <button type="button" class="metodo-pago-btn" data-metodo="TARJETA">Tarjeta</button>
+        <button type="button" class="metodo-pago-btn" data-metodo="TRANSFERENCIA">Transferencia</button>
+        <button type="button" class="metodo-pago-btn" data-metodo="OTRO">Otro</button>
+      </div>
+
+      <!-- Opcional, solo para el ticket: texto libre y no un cliente
+           registrado (decisión del dueño). -->
+      <input
+        type="text"
+        id="input-cliente"
+        class="input-cliente-venta"
+        placeholder="Nombre del cliente (opcional)"
+        maxlength="255"
+        autocomplete="off"
+      />
+
       <!-- Separado en su propio contenedor para poder fijarlo abajo de la
            pantalla en celular (ver .carrito-resumen en ventas.css): antes,
            en una vendedora móvil, el total y "Confirmar Venta" quedaban al
@@ -85,6 +107,11 @@
         <h3>Total: $<span id="total">0</span></h3>
         <button id="btn-confirmar">Confirmar Venta</button>
       </div>
+
+      <p id="leyenda-atajos" class="leyenda-atajos">
+        <kbd>B</kbd> buscar · <kbd>C</kbd> cantidad · <kbd>↑</kbd><kbd>↓</kbd> moverse en el catálogo ·
+        <kbd>Enter</kbd> confirmar selección · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> confirmar venta
+      </p>
     </div>
 
   </div>
@@ -106,6 +133,7 @@
               <th>ID</th>
               <th>Fecha y hora</th>
               <th>Total</th>
+              <th>Método</th>
               <th>Vendió</th>
               <th>Acción</th>
             </tr>
@@ -136,6 +164,17 @@
       </div>
       <h3>Total: $<span id="detalle-total"></span></h3>
       <button id="btn-cerrar-detalle">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- modal QR para escanear desde el celular -->
+  <div id="modal-scan-celular" class="modal hidden">
+    <div class="modal-content modal-scan-celular-content">
+      <h3>Escanear desde el celular</h3>
+      <p class="scan-celular-ayuda">Escaneá este código con la cámara del celular (misma wifi que esta PC) y quedan conectados: cada código que leas ahí se agrega acá.</p>
+      <canvas id="scan-celular-qr"></canvas>
+      <p id="scan-celular-estado" class="scan-celular-estado">Generando código...</p>
+      <button id="btn-cerrar-scan-celular" type="button">Cerrar</button>
     </div>
   </div>
 

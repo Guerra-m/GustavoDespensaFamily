@@ -1,3 +1,4 @@
+import { habilitarCierreConEscape } from "../../utils/modales";
 import { checkAuth } from "../../services/auth.service";
 checkAuth();
 
@@ -10,10 +11,13 @@ import type { Producto } from "../../models/Producto";
 import type { Promocion } from "../../models/Promocion";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
+import type { MetodoPago } from "../../models/MetodoPago";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora } from "../../utils/format";
 import { getConfiguracion } from "../../services/configuracion.service";
+import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
+import QRCode from "qrcode";
 
 /* =======================
    ELEMENTOS DEL DOM
@@ -22,6 +26,21 @@ const inputBuscarProducto = document.getElementById("input-buscar-producto") as 
 const inputCantidad = document.getElementById("input-cantidad") as HTMLInputElement;
 const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const btnConfirmar = document.getElementById("btn-confirmar") as HTMLButtonElement;
+const inputCliente = document.getElementById("input-cliente") as HTMLInputElement;
+
+// ---------------- Método de pago ----------------
+// No se resetea a EFECTIVO después de cada venta a propósito: en una racha
+// de ventas con tarjeta (por ejemplo, si el POS de efectivo está en el otro
+// mostrador) obligar a re-tocar el botón en cada venta molesta más de lo que
+// evita errores.
+let metodoPagoSeleccionado: MetodoPago = "EFECTIVO";
+const botonesMetodoPago = document.querySelectorAll<HTMLButtonElement>(".metodo-pago-btn");
+botonesMetodoPago.forEach(btn => {
+  btn.addEventListener("click", () => {
+    metodoPagoSeleccionado = btn.dataset.metodo as MetodoPago;
+    botonesMetodoPago.forEach(b => b.classList.toggle("activo", b === btn));
+  });
+});
 
 const tablaDetalle = document.getElementById("tabla-detalle") as HTMLTableSectionElement;
 const tablaVentas = document.getElementById("tabla-ventas") as HTMLTableSectionElement;
@@ -41,12 +60,17 @@ const btnScanCamara = document.getElementById("btn-scan-camara") as HTMLButtonEl
 const modalScan = document.getElementById("modal-scan") as HTMLDivElement;
 const btnCerrarScan = document.getElementById("btn-cerrar-scan") as HTMLButtonElement;
 
+const btnEscanearCelular = document.getElementById("btn-escanear-celular") as HTMLButtonElement;
+const modalScanCelular = document.getElementById("modal-scan-celular") as HTMLDivElement;
+const btnCerrarScanCelular = document.getElementById("btn-cerrar-scan-celular") as HTMLButtonElement;
+const scanCelularQr = document.getElementById("scan-celular-qr") as HTMLCanvasElement;
+const scanCelularEstado = document.getElementById("scan-celular-estado") as HTMLParagraphElement;
+
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
 
 const toast = document.getElementById("toast") as HTMLDivElement;
-const selectCliente = document.getElementById("select-cliente") as HTMLSelectElement;
 /* =======================
    ESTADO
 ======================= */
@@ -164,6 +188,7 @@ async function cargarVentas() {
       <td>${v.id}</td>
       <td>${formatearFechaHora(v.fechaHora)}</td>
       <td>$${v.total}</td>
+      <td>${v.metodoPago ? etiquetaMetodoPago(v.metodoPago) : "—"}</td>
       <td>${esc(v.usuario) || "—"}</td>
       <td>
         ${anulada
@@ -276,6 +301,9 @@ function actualizarActivoCat() {
 
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
+  // El catálogo cambió (filtro o categoría): la marca de navegación por
+  // flechas de antes ya no corresponde a nada visible.
+  indiceNavegacionGrid = -1;
 
   const textoFiltro = filtro.toLowerCase().trim();
 
@@ -419,7 +447,15 @@ function extraerMultiplicador(codigo: string): { multiplicador: number | null; c
 // "no encontrado" Y el caller (el handler de Enter) mostraba OTRO toast
 // igual al ver que no había producto seleccionado — quedaba duplicado. Ahora
 // hay un solo punto que decide y avisa: acá.
-async function procesarCodigoEscaneado(codigo: string): Promise<{ producto: Producto; multiplicador: number | null } | null> {
+/**
+ * Busca por código de barras (acepta la forma "3x<código>" del lector).
+ *
+ * `avisarSiNoEsta` en false lo deja fallar callado: lo usa el Enter del
+ * buscador, que si no encuentra un código todavía tiene otra carta para jugar
+ * —el producto que se está viendo en la grilla— y no quiere mostrar un
+ * "no encontrado" que después se desmiente solo.
+ */
+async function procesarCodigoEscaneado(codigo: string, avisarSiNoEsta = true): Promise<{ producto: Producto; multiplicador: number | null } | null> {
   codigo = codigo.trim();
 
   if (!codigo) return null;
@@ -432,10 +468,12 @@ async function procesarCodigoEscaneado(codigo: string): Promise<{ producto: Prod
   const producto = productos.find(p => String(p.codigoBarras) === codigoBarras);
 
   if (!producto) {
-    mostrarToast("Producto no encontrado", true);
-    // Selecciona el texto para que el próximo escaneo/tipeo lo sobrescriba
-    // directo, sin tener que borrarlo a mano.
-    inputBuscarProducto.select();
+    if (avisarSiNoEsta) {
+      mostrarToast("Producto no encontrado", true);
+      // Selecciona el texto para que el próximo escaneo/tipeo lo sobrescriba
+      // directo, sin tener que borrarlo a mano.
+      inputBuscarProducto.select();
+    }
     return null;
   }
 
@@ -478,9 +516,11 @@ function mostrarToast(mensaje: string, error = false) {
   toast.classList.toggle("error", error);
   setTimeout(() => toast.classList.add("hidden"), 2000);
 }
-function obtenerCliente(): string {
-  if (!selectCliente) return "Consumidor Final";
-  return selectCliente.options[selectCliente.selectedIndex].text;
+// Antes era un <select id="select-cliente"> que ya no existe en el HTML: la
+// función siempre devolvía "Consumidor Final" a secas, sin importar nada.
+// Ahora usa el nombre que se cargó al confirmar la venta (Fase 9, opcional).
+function obtenerCliente(venta: Venta): string {
+  return venta.cliente?.trim() || "Consumidor Final";
 }
 
 /* =======================
@@ -559,7 +599,12 @@ btnConfirmar.addEventListener("click", async () => {
 
   let ventaCreada;
   try {
-    ventaCreada = await createVenta({ detalles: carrito });
+    const cliente = inputCliente.value.trim();
+    ventaCreada = await createVenta({
+      detalles: carrito,
+      metodoPago: metodoPagoSeleccionado,
+      cliente: cliente || undefined
+    });
   } catch (error) {
     // Antes esto quedaba sin manejar: la venta fallaba en silencio, sin
     // toast ni error visible, y el carrito quedaba "colgado". Ahora se
@@ -570,6 +615,10 @@ btnConfirmar.addEventListener("click", async () => {
 
   actualizarStockLocal(carrito);
   carrito = [];
+  // A diferencia del método de pago, el cliente sí se limpia: el próximo
+  // carrito casi seguro es para otra persona, y dejarlo puesto sería un
+  // error mucho más probable que útil.
+  inputCliente.value = "";
   renderCarrito();
   cargarVentas();
 
@@ -588,14 +637,54 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
 
+  // El Enter resuelve en orden, de lo más explícito a lo más inferido, y
+  // nunca adivina entre varios.
+  //
+  // Antes solo entendía dos caminos: un producto ya elegido del desplegable, o
+  // un código de barras exacto. Escribir "coca" y apretar Enter caía en el
+  // segundo, no encontraba ningún código que se llamara "coca" y contestaba
+  // "Producto no encontrado" — con el producto ahí a la vista en la grilla.
+  // Eso es lo que Martín describió como "a veces el Enter carga y a veces no":
+  // funcionaba con el lector y con el desplegable, no al tipear un nombre.
+  if (!inputBuscarProducto.dataset.id && indiceNavegacionGrid >= 0) {
+    // Una tarjeta marcada con las flechas gana sobre todo lo demás: es una
+    // elección explícita de la persona.
+    tarjetasVisibles()[indiceNavegacionGrid]?.click();
+    return;
+  }
+
   let producto: Producto | null = null;
   let multiplicador: number | null = null;
 
   if (!inputBuscarProducto.dataset.id) {
-    const resultado = await procesarCodigoEscaneado(inputBuscarProducto.value.trim());
-    if (!resultado) return; // procesarCodigoEscaneado ya mostró el toast de "no encontrado"
-    producto = resultado.producto;
-    multiplicador = resultado.multiplicador;
+    const texto = inputBuscarProducto.value.trim();
+    if (!texto) return;
+
+    // Primero el código de barras, que es el camino del lector del mostrador
+    // y tiene que seguir siendo instantáneo y exacto. Callado: si no está,
+    // todavía queda la grilla.
+    const resultado = await procesarCodigoEscaneado(texto, false);
+
+    if (resultado) {
+      producto = resultado.producto;
+      multiplicador = resultado.multiplicador;
+    } else {
+      // No era un código. Si lo que se tipeó deja UN solo producto a la vista,
+      // ese es. Si deja varios, no se elige por la persona: se le pide que
+      // marque cuál, que es mucho mejor que cargar el equivocado.
+      const visibles = tarjetasVisibles();
+      if (visibles.length === 1) {
+        visibles[0].click();
+        return;
+      }
+      if (visibles.length > 1) {
+        mostrarToast(`Hay ${visibles.length} productos que coinciden: elegí con ↓ o tocá uno`, true);
+        return;
+      }
+      mostrarToast("Producto no encontrado", true);
+      inputBuscarProducto.select();
+      return;
+    }
   } else {
     producto = productos.find(p => p.id === Number(inputBuscarProducto.dataset.id)) ?? null;
   }
@@ -667,6 +756,16 @@ getConfiguracion().then(config => {
   renderProductosGrid(inputBuscarProducto.value);
 });
 setTimeout(() => inputBuscarProducto.focus(), 300);
+
+function etiquetaMetodoPago(metodo: MetodoPago): string {
+  const etiquetas: Record<MetodoPago, string> = {
+    EFECTIVO: "Efectivo",
+    TARJETA: "Tarjeta",
+    TRANSFERENCIA: "Transferencia",
+    OTRO: "Otro",
+  };
+  return etiquetas[metodo];
+}
 
 async function imprimirTicket(venta: Venta) {
   if (!productos.length) await cargarProductos();
@@ -809,7 +908,7 @@ td:nth-child(4) {
 
     <div class="line"></div>
 
-    <p>Cliente: ${obtenerCliente()}</p>
+    <p>Cliente: ${esc(obtenerCliente(venta))}</p>
 
     <div class="line"></div>
 
@@ -830,6 +929,7 @@ td:nth-child(4) {
     <div class="line"></div>
 
     <p class="total">TOTAL: $${venta.total.toFixed(2)}</p>
+    ${venta.metodoPago ? `<p class="center">${etiquetaMetodoPago(venta.metodoPago)}</p>` : ""}
 
     <div class="line"></div>
 
@@ -873,3 +973,136 @@ const fechaElement = document.getElementById("fecha");
 if (fechaElement) {
   fechaElement.textContent = "Fecha: " + obtenerFechaActual();
 }
+
+/* =======================
+   ESCANEAR DESDE EL CELULAR
+   Ver EscaneoController/EscaneoService en el backend: la PC de mostrador
+   no tiene cámara, así que el celular escanea y manda el código por SSE.
+======================= */
+let eventSourceEscaneo: EventSource | null = null;
+
+async function agregarPorCodigoRemoto(codigo: string) {
+  const resultado = await procesarCodigoEscaneado(codigo);
+  if (!resultado) return; // procesarCodigoEscaneado ya avisó "no encontrado"
+
+  agregarAlCarrito(resultado.producto.id!, resultado.multiplicador ?? 1);
+  inputBuscarProducto.value = "";
+  inputCantidad.value = "";
+  delete inputBuscarProducto.dataset.id;
+  productoSeleccionado = null;
+  renderProductosGrid();
+  mostrarToast(`${esc(resultado.producto.nombre)} agregado desde el celular`);
+}
+
+btnEscanearCelular.addEventListener("click", async () => {
+  modalScanCelular.classList.remove("hidden");
+  scanCelularEstado.textContent = "Generando código...";
+
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+
+  try {
+    const { sesionId, url } = await crearSesionDeEscaneo();
+
+    await QRCode.toCanvas(scanCelularQr, url, { width: 260, margin: 1 });
+    scanCelularEstado.textContent = "Esperando que el celular escanee un producto...";
+
+    eventSourceEscaneo = suscribirseAEscaneo(sesionId, codigo => {
+      agregarPorCodigoRemoto(codigo);
+      scanCelularEstado.textContent = "¡Recibido! Seguí escaneando o cerrá esta ventana.";
+    });
+  } catch (error) {
+    console.error(error);
+    scanCelularEstado.textContent = "No se pudo generar el código. Probá de nuevo.";
+  }
+});
+
+btnCerrarScanCelular.addEventListener("click", () => {
+  modalScanCelular.classList.add("hidden");
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+});
+
+/* =======================
+   ATAJOS DE TECLADO
+   B = buscar, C = cantidad, ↑/↓ = moverse en el catálogo, Enter = confirmar
+   selección, Ctrl+Enter = confirmar venta (ya existe arriba). El cartel de
+   abajo (#leyenda-atajos) muestra lo mismo para quien no se los sepa.
+======================= */
+let indiceNavegacionGrid = -1;
+
+function tarjetasVisibles(): HTMLDivElement[] {
+  return Array.from(productosGrid.querySelectorAll<HTMLDivElement>(".producto-card"));
+}
+
+function marcarTarjetaNavegada(indice: number) {
+  const tarjetas = tarjetasVisibles();
+  tarjetas.forEach(c => c.classList.remove("navegado-teclado"));
+  const card = tarjetas[indice];
+  if (!card) return;
+  card.classList.add("navegado-teclado");
+  card.scrollIntoView({ block: "nearest" });
+}
+
+/**
+ * Si el foco está en un campo donde la persona está escribiendo texto.
+ *
+ * Las flechas ↑↓ sí tienen que funcionar dentro del buscador —se tipea parte
+ * del nombre y se baja por los resultados sin sacar la mano del teclado—, pero
+ * las letras no: escribir "coca" en el buscador disparaba el atajo de la "c" y
+ * saltaba a Cantidad, así que la palabra quedaba a medias en un campo y el
+ * resto en otro. Lo reportó Martín probando la caja.
+ *
+ * Por eso ahora son dos preguntas distintas: {@link estaEscribiendoTexto} corta
+ * los atajos de letra en cualquier campo de texto, incluido el buscador, y
+ * {@link estaEnUnCampoQueUsaLasFlechas} corta las flechas solo donde ya
+ * significan otra cosa.
+ */
+function estaEscribiendoTexto(): boolean {
+  const activo = document.activeElement;
+  return activo instanceof HTMLInputElement
+    || activo instanceof HTMLTextAreaElement
+    || activo instanceof HTMLSelectElement;
+}
+
+function estaEnUnCampoQueUsaLasFlechas(): boolean {
+  const activo = document.activeElement;
+  if (activo === inputBuscarProducto) return false; // el buscador sí participa de la navegación
+  return activo instanceof HTMLInputElement
+    || activo instanceof HTMLTextAreaElement
+    || activo instanceof HTMLSelectElement;
+}
+
+document.addEventListener("keydown", (e) => {
+  const tecla = e.key.toLowerCase();
+
+  // Atajos de letra: nunca si se está escribiendo en un campo de texto,
+  // el buscador incluido. Sirven para SALTAR a un campo; una vez adentro, la
+  // letra es una letra.
+  if (!estaEscribiendoTexto()) {
+    if (tecla === "b") { e.preventDefault(); inputBuscarProducto.focus(); inputBuscarProducto.select(); return; }
+    if (tecla === "c") { e.preventDefault(); inputCantidad.focus(); return; }
+  }
+
+  // Flechas arriba/abajo: recorren el catálogo visible. Solo si el foco no
+  // está en un campo donde esas teclas ya hacen otra cosa (ej: bajar en un
+  // <select>).
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !estaEnUnCampoQueUsaLasFlechas()) {
+    const tarjetas = tarjetasVisibles();
+    if (!tarjetas.length) return;
+    e.preventDefault();
+    if (e.key === "ArrowDown") {
+      indiceNavegacionGrid = Math.min(indiceNavegacionGrid + 1, tarjetas.length - 1);
+    } else {
+      indiceNavegacionGrid = Math.max(indiceNavegacionGrid - 1, 0);
+    }
+    marcarTarjetaNavegada(indiceNavegacionGrid);
+  }
+});
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();

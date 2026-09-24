@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escanear | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="./scan-movil.css" />
+</head>
+<body>
+  <main class="scan-movil">
+    <h1>Escanear producto</h1>
+    <p id="estado" class="scan-movil-estado">Conectando con la caja...</p>
+
+    <div id="reader"></div>
+
+    <div id="ultimo-codigo" class="scan-movil-ultimo hidden">
+      <span>Último código escaneado</span>
+      <strong id="ultimo-codigo-valor"></strong>
+    </div>
+  </main>
+  <script type="module" src="./scan-movil.ts"></script>
+</body>
+</html>

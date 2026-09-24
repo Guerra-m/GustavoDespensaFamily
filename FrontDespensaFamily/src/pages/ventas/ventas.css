@@ -153,13 +153,15 @@ button:not(.menu-toggle):not(.btn-stepper):active {
 }
 
 #btn-scan-camara,
-#btn-mostrar-productos {
+#btn-mostrar-productos,
+#btn-escanear-celular {
   background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
   color: white;
 }
 
 #btn-scan-camara:hover,
-#btn-mostrar-productos:hover {
+#btn-mostrar-productos:hover,
+#btn-escanear-celular:hover {
   background: linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%);
 }
 
@@ -369,6 +371,13 @@ button.btn-imprimir:hover {
   border-color: var(--color-exito);
   background: #f1f8f4;
   box-shadow: 0 4px 12px rgba(67, 160, 71, 0.3);
+}
+
+/* Marca de "acá estoy" al navegar el catálogo con las flechas del teclado
+   — distinta de .seleccionado (esa es la que ya se eligió de verdad). */
+.producto-card.navegado-teclado {
+  outline: 3px solid var(--color-primario);
+  outline-offset: 2px;
 }
 
 /* Feedback breve al hacer click-to-add en una card de producto por unidad
@@ -1036,6 +1045,52 @@ hr {
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3, 12px);
+}
+
+.carrito h2 {
+  margin: 0;
+  text-align: center;
+}
+
+/* Método de pago: EFECTIVO / TARJETA / TRANSFERENCIA / OTRO. Es lo que
+   separa el cajón físico del dinero electrónico (ver CajaService), así que
+   no es un dato decorativo del ticket — cambia en qué cuenta cae la venta.
+   Fila de botones y no un <select>: en una caja se elige de un vistazo y de
+   un toque, sin abrir un desplegable. */
+.metodo-pago-selector {
+  display: grid;
+  /* Cada botón pide al menos 90px; si el carrito no tiene lugar para los
+     4 en una fila (por eso "Otro" quedaba cortado), pasan solos a una
+     segunda fila en vez de achicarse hasta recortar el texto. */
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--espacio-2, 8px);
+}
+
+.metodo-pago-btn {
+  padding: 10px 6px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-texto-secundario, #666);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.metodo-pago-btn:hover {
+  border-color: var(--color-primario);
+  color: var(--color-primario-dark);
+}
+
+.metodo-pago-btn.activo {
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(2,136,209,0.3);
 }
 
 /* Total + Confirmar Venta. En desktop es el pie normal de la columna del
@@ -1102,4 +1157,73 @@ hr {
   outline: none;
   border-color: var(--color-primario);
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+/* Nombre de cliente, opcional (Fase 9 agregada). Mismo ancho que el resto del
+   resumen del carrito. */
+.input-cliente-venta {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: var(--espacio-3, 12px);
+}
+
+/* Modal QR para escanear desde el celular */
+.modal-scan-celular-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  max-width: 340px;
+}
+
+.scan-celular-ayuda {
+  color: var(--color-texto-secundario, #666);
+  font-size: 14px;
+  margin: 0;
+}
+
+#scan-celular-qr {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.scan-celular-estado {
+  font-size: 13px;
+  color: var(--color-texto-secundario, #666);
+  margin: 0;
+}
+
+/* Cartel de atajos de teclado, al pie del carrito */
+.leyenda-atajos {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--color-texto-secundario, #868e96);
+  text-align: center;
+  line-height: 1.8;
+}
+
+.leyenda-atajos kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  margin: 0 1px;
+  border: 1px solid #dee2e6;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #f8f9fa;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+}
+
+@media (max-width: 900px) {
+  .leyenda-atajos {
+    display: none;
+  }
 }

@@ -1,3 +1,4 @@
+import { habilitarCierreConEscape } from "../../utils/modales";
 import { esc, formatearFechaHora } from "../../utils/format";
 import { checkAuth } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
@@ -11,7 +12,8 @@ import {
   getCompras,
   createCompra,
   getCompraDetalle,
-  anularCompra
+  anularCompra,
+  marcarPagada
 } from "../../services/compras.service";
 
 import { getProductos } from "../../services/productos.service";
@@ -88,6 +90,9 @@ const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const tablaDetalles = document.getElementById("tabla-detalles") as HTMLTableElement;
 const toast = document.getElementById("toast") as HTMLDivElement;
 
+const checkboxPagada = document.getElementById("checkbox-pagada") as HTMLInputElement;
+const selectMetodoPagoCompra = document.getElementById("select-metodo-pago-compra") as HTMLSelectElement;
+
 const modalRegistrarCompra = document.getElementById("modal-registrar-compra") as HTMLDivElement;
 const btnAbrirRegistrarCompra = document.getElementById("btn-abrir-registrar-compra") as HTMLButtonElement;
 const btnCerrarRegistrarCompra = document.getElementById("btn-cerrar-registrar-compra") as HTMLButtonElement;
@@ -123,15 +128,27 @@ function renderCompras(lista: Compra[]) {
 
         const tr = document.createElement("tr");
         if (anulada) tr.classList.add("venta-anulada");
+        // Una compra a cuenta no sacó plata de caja todavía (ver
+        // CompraService, Fase 11): la diferenciación visual es a propósito,
+        // mismo criterio que ingreso/egreso en la pantalla de Caja.
+        const pendiente = !anulada && compra.pagada === false;
+
         tr.innerHTML = `
             <td>${compra.id}</td>
             <td>${esc(compra.proveedor)}</td>
             <td>${formatearFechaHora(compra.fechaHora)}</td>
-            <td>${esc(compra.usuario) || "—"}</td>
+            <td>$${(compra.total ?? 0).toFixed(2)}</td>
             <td>
+              ${pendiente
+                ? '<span class="etiqueta-pendiente">A cuenta</span>'
+                : '<span class="etiqueta-pagada">Pagada</span>'}
+            </td>
+            <td>${esc(compra.usuario) || "—"}</td>
+            <td class="compras-acciones">
               ${anulada
                 ? `<span class="etiqueta-anulada" title="Anulada por ${esc(compra.anuladaPor) || "—"}">Anulada</span>`
-                : `<button class="btn-anular-compra" data-id="${compra.id}">Anular</button>`}
+                : `<button class="btn-anular-compra" data-id="${compra.id}">Anular</button>
+                   ${pendiente ? `<button class="btn-marcar-pagada" data-id="${compra.id}">Marcar pagada</button>` : ""}`}
             </td>
         `;
         tbody.appendChild(tr);
@@ -152,6 +169,22 @@ function renderCompras(lista: Compra[]) {
             try {
                 await anularCompra(compra.id!);
                 mostrarToast("Compra anulada");
+                cargarCompras();
+            } catch (err) {
+                mostrarToast((err as Error).message, true);
+            }
+        });
+
+        const btnMarcarPagada = tr.querySelector(".btn-marcar-pagada") as HTMLButtonElement | null;
+        btnMarcarPagada?.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const confirmado = await confirmar(
+                `Se va a registrar un egreso de $${(compra.total ?? 0).toFixed(2)} en caja, con fecha de hoy. ¿Marcar como pagada?`);
+            if (!confirmado) return;
+
+            try {
+                await marcarPagada(compra.id!);
+                mostrarToast("Compra marcada como pagada");
                 cargarCompras();
             } catch (err) {
                 mostrarToast((err as Error).message, true);
@@ -309,7 +342,9 @@ formCompra.addEventListener("submit", async e => {
 
   const compra: CompraRequest = {
     proveedor,
-    detalles: detallesCompra
+    detalles: detallesCompra,
+    pagada: checkboxPagada.checked,
+    metodoPago: selectMetodoPagoCompra.value as CompraRequest["metodoPago"]
   };
 
   btnGuardarCompra.disabled = true;
@@ -370,6 +405,7 @@ const modalDetalleCompra = document.getElementById("modal-detalle-compra") as HT
 const detalleCompraId = document.getElementById("detalle-compra-id") as HTMLSpanElement;
 const detalleCompraProveedor = document.getElementById("detalle-compra-proveedor") as HTMLSpanElement;
 const detalleCompraFecha = document.getElementById("detalle-compra-fecha") as HTMLSpanElement;
+const detalleCompraPago = document.getElementById("detalle-compra-pago") as HTMLSpanElement;
 const tablaDetalleCompra = document.getElementById("tabla-detalle-compra") as HTMLTableSectionElement;
 const detalleCompraTotal = document.getElementById("detalle-compra-total") as HTMLSpanElement;
 const btnCerrarDetalleCompra = document.getElementById("btn-cerrar-detalle-compra") as HTMLButtonElement;
@@ -381,13 +417,14 @@ async function verDetalleCompra(id: number) {
     detalleCompraId.textContent = compra.id.toString();
     detalleCompraProveedor.textContent = compra.proveedor;
     detalleCompraFecha.textContent = formatearFechaHora(compra.fechaHora);
+    detalleCompraPago.textContent = compra.pagada === false
+        ? `A cuenta (método previsto: ${compra.metodoPago ?? "—"})`
+        : `Pagada — ${compra.metodoPago ?? "—"}`;
 
     tablaDetalleCompra.innerHTML = "";
-    let total = 0;
 
     compra.detalles.forEach(det => {
     const subtotal = det.cantidad * det.precioCosto;
-    total += subtotal;
 
     const producto = productos.find(p => p.id === det.productoId);
     const nombre = producto ? producto.nombre : `Producto ${det.productoId}`;
@@ -403,7 +440,10 @@ async function verDetalleCompra(id: number) {
 });
 
 
-    detalleCompraTotal.textContent = total.toFixed(2);
+    // Congelado en el servidor (Compra.total) y no la suma de subtotales que
+    // se ve acá: si el redondeo cambia en el futuro, el total de una compra
+    // vieja no debe cambiar con retroactividad.
+    detalleCompraTotal.textContent = compra.total.toFixed(2);
 
     // Mostrar modal
     modalDetalleCompra.classList.remove("hidden");
@@ -431,3 +471,6 @@ document.addEventListener("click", (e) => {
   }
 });
 
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();

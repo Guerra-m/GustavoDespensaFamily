@@ -7,6 +7,8 @@ export interface UsuarioDTO {
   username: string;
   nombre: string;
   rol: string;
+  puedeGestionarProductos: boolean;
+  puedeVerCaja: boolean;
 }
 
 export interface CrearUsuarioRequest {
@@ -14,6 +16,13 @@ export interface CrearUsuarioRequest {
   password: string;
   nombre: string;
   rol: string;
+  puedeGestionarProductos?: boolean;
+  puedeVerCaja?: boolean;
+}
+
+export interface PermisosUsuario {
+  puedeGestionarProductos: boolean;
+  puedeVerCaja: boolean;
 }
 
 export async function getUsuarios(): Promise<UsuarioDTO[]> {
@@ -32,6 +41,16 @@ export async function createUsuario(data: CrearUsuarioRequest): Promise<UsuarioD
     const text = await res.text();
     throw new Error(text || "Error al crear usuario");
   }
+  return res.json();
+}
+
+export async function actualizarPermisos(id: number, permisos: PermisosUsuario): Promise<UsuarioDTO> {
+  const res = await fetch(`${BASE_URL}/${id}/permisos`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(permisos)
+  });
+  if (!res.ok) throw new Error("No se pudieron actualizar los permisos");
   return res.json();
 }
 

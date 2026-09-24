@@ -50,3 +50,16 @@ export async function anularCompra(id: number): Promise<void> {
     throw new Error(cuerpo?.error ?? "No se pudo anular la compra");
   }
 }
+
+/** Marca como pagada una compra que había quedado a cuenta (Fase 11). */
+export async function marcarPagada(id: number): Promise<Compra> {
+  const res = await fetch(`${BASE_URL}/${id}/pagar`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const cuerpo = await res.json().catch(() => null);
+    throw new Error(cuerpo?.error ?? "No se pudo marcar la compra como pagada");
+  }
+  return res.json();
+}

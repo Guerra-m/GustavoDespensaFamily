@@ -751,3 +751,74 @@ tbody:empty::after {
     size: A4 portrait;
   }
 }
+
+.reporte-rentabilidad h2::before { --icono: url('/icons/piggy-bank.svg'); }
+
+/* ================= RENTABILIDAD (Fase 8/9) ================= */
+
+.rentabilidad-grid {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rentabilidad-grid.hidden { display: none; }
+
+.rentabilidad-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+
+.rentabilidad-fila small {
+  display: block;
+  color: var(--color-texto-tenue, #64748b);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.rentabilidad-fila span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rentabilidad-resta span:last-child::before { content: "− "; }
+
+.rentabilidad-subtotal {
+  border-top: 1px solid var(--color-borde, #e2e8f0);
+  font-weight: 700;
+}
+
+.rentabilidad-subtotal span:last-child {
+  color: var(--color-exito-dark, #388e3c);
+}
+
+.rentabilidad-separador {
+  height: 1px;
+  background: var(--color-borde, #e2e8f0);
+  margin: 8px 0;
+}
+
+.rentabilidad-total {
+  border-top: 2px solid var(--color-texto, #2c3e50);
+  padding-top: 10px;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.rentabilidad-aviso {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--color-advertencia-claro, #fff3e0);
+  color: var(--color-advertencia-dark, #c05600);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rentabilidad-aviso.hidden { display: none; }

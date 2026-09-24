@@ -39,10 +39,24 @@
 
           <label>
             Rol
-            <select name="rol" required>
+            <select name="rol" id="select-rol-crear" required>
               <option value="EMPLEADO">Empleado</option>
               <option value="ADMIN">Administrador</option>
             </select>
+          </label>
+        </div>
+
+        <!-- Permisos sueltos: solo tienen sentido para un EMPLEADO, un
+             ADMIN ya puede todo (ver Usuario.java). -->
+        <div id="permisos-crear" class="form-permisos">
+          <span class="form-permisos-titulo">Permisos de este empleado</span>
+          <label class="checkbox-label">
+            <input type="checkbox" name="puedeGestionarProductos" />
+            Puede crear/editar productos y categorías (stock)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="puedeVerCaja" />
+            Puede ver el historial completo de caja (cajero)
           </label>
         </div>
 
@@ -61,6 +75,7 @@
                 <th>Nombre</th>
                 <th>Usuario</th>
                 <th>Rol</th>
+                <th>Permisos</th>
                 <th>Acciones</th>
               </tr>
             </thead>

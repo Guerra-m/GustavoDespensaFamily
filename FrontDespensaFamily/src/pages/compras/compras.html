@@ -43,6 +43,8 @@
           <th>ID</th>
           <th>Proveedor</th>
           <th>Fecha y hora</th>
+          <th>Total</th>
+          <th>Pago</th>
           <th>Registró</th>
           <th>Acción</th>
         </tr>
@@ -111,6 +113,27 @@
       </table>
       </div>
 
+      <!-- Cómo se paga esta compra. "Pagada" viene tildado por default: es
+           el caso más común (se le paga al proveedor al recibir la
+           mercadería). Destildar es lo que deja la compra "a cuenta" —
+           entra el stock pero no sale plata de caja todavía (ver
+           CompraService, Fase 11 del mapa de cambios). -->
+      <div class="compra-pago">
+        <label class="compra-pagada-check">
+          <input type="checkbox" id="checkbox-pagada" checked />
+          Ya se le pagó al proveedor
+        </label>
+        <label>
+          Método de pago
+          <select id="select-metodo-pago-compra">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TARJETA">Tarjeta</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="OTRO">Otro</option>
+          </select>
+        </label>
+      </div>
+
       <button type="submit" class="btn-guardar">
         Registrar Compra
       </button>
@@ -127,6 +150,7 @@
     <h2>Detalle de Compra <span id="detalle-compra-id"></span></h2>
     <p><strong>Proveedor:</strong> <span id="detalle-compra-proveedor"></span></p>
     <p><strong>Fecha:</strong> <span id="detalle-compra-fecha"></span></p>
+    <p><strong>Pago:</strong> <span id="detalle-compra-pago"></span></p>
 
     <div class="tabla-scroll" style="max-height: none;">
       <table>

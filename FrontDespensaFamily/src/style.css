@@ -406,3 +406,65 @@ tr.venta-anulada td:last-child {
   white-space: nowrap;
   text-decoration: none;
 }
+
+/* Compra pagada vs. a cuenta (ver CompraService, Fase 11). Mismos tokens que
+   .etiqueta-anulada, en verde/naranja en vez de rojo. */
+.etiqueta-pagada {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-exito-suave, #e6f7ea);
+  color: var(--color-exito-dark, #388e3c);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etiqueta-pendiente {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-advertencia-claro, #fff3e0);
+  color: var(--color-advertencia-dark, #c05600);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   LAYOUT BASE — el contenedor de las pantallas con barra lateral
+   ============================================================
+   `.content` es el <main> de toda pantalla que convive con la barra
+   lateral fija. Hasta ahora este bloque estaba copiado, idéntico, en el
+   CSS de doce páginas, así que el layout dependía de que cada pantalla
+   nueva se acordara de repetirlo. Caja y Empleados no lo hicieron: su
+   contenido arrancaba en x=8 con la barra ocupando hasta x=260, o sea
+   252 px tapados — el título decía "ja" en vez de "Caja" y en Empleados
+   no se veía la columna con el nombre de la persona a la que se le paga.
+
+   Definirlo acá es el arreglo de fondo: la pantalla que se cree mañana
+   ya nace con el layout correcto sin tener que acordarse de nada. Las
+   doce páginas que lo declaran siguen ganando —su hoja se carga después
+   y los valores son los mismos—, así que esto no cambia ni un píxel de
+   lo que ya andaba.
+
+   El margen sale de la MISMA variable que le da el ancho a la barra
+   (--navbar-width, en navbar.css). Antes eran dos 260 sueltos que nadie
+   ataba: tocar el ancho de la barra dejaba el contenido desalineado.
+   ============================================================ */
+.content {
+  margin-left: var(--navbar-width, 260px);
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Mismo corte que usa la barra para esconderse (navbar.css): cuando deja
+   de ocupar lugar, el contenido no tiene que reservárselo. */
+@media (max-width: 1023px) {
+  .content {
+    margin-left: 0;
+  }
+}
