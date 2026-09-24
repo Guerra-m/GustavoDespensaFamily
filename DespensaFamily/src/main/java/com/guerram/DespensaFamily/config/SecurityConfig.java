@@ -58,6 +58,9 @@ public class SecurityConfig {
                 // rebotar y dejar al usuario sin forma de sacarsela de encima.
                 .requestMatchers("/usuario/logout").permitAll()
                 .requestMatchers("/", "/*.html", "/assets/**", "/src/**", "/favicon.ico").permitAll()
+                // Los SVG de FrontDespensaFamily/public/icons: la pantalla de
+                // login los usa antes de que haya sesion, y sin esto daban 403.
+                .requestMatchers("/icons/**").permitAll()
 
                 // DF-BUG-006: es a donde Spring despacha cualquier error que
                 // no resuelva un @ExceptionHandler. Cerrado, el error real se
