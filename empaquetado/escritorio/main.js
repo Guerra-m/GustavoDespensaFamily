@@ -16,6 +16,7 @@ const { spawn } = require("node:child_process");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const actualizaciones = require("./actualizaciones");
 
 const PUERTO_POR_DEFECTO = 8080;
 const PAGINA_LOGIN = "/src/pages/login/login.html";
@@ -63,11 +64,14 @@ function puertoConfigurado() {
  * Sin empaquetar, en empaquetado/build, que es donde lo deja jpackage: asi se
  * puede probar la ventana con "npm start" sin armar el instalador entero.
  */
-function rutaDelServidor() {
-  const nombre = "DespensaFamilyServidor.exe";
+function carpetaDelServidor() {
   return app.isPackaged
-    ? path.join(process.resourcesPath, "servidor", nombre)
-    : path.join(__dirname, "..", "build", "DespensaFamilyServidor", nombre);
+    ? path.join(process.resourcesPath, "servidor")
+    : path.join(__dirname, "..", "build", "DespensaFamilyServidor");
+}
+
+function rutaDelServidor() {
+  return path.join(carpetaDelServidor(), "DespensaFamilyServidor.exe");
 }
 
 function urlDeLaApp(puerto) {
@@ -218,7 +222,94 @@ function avisarQueNoArranco(puerto) {
   );
 }
 
+// ---------------------------------------------------------- actualizaciones
+
+/**
+ * Cada cuanto se mira si hay una version nueva. Seis horas y no cinco minutos:
+ * el negocio abre a la manana y cierra a la noche, asi que un par de consultas
+ * por dia alcanzan de sobra, y cada una es trafico de la conexion del local.
+ */
+const CADA_CUANTO_BUSCAR_MS = 6 * 60 * 60 * 1000;
+
+/** La primera busqueda espera a que la caja este usable: primero atender. */
+const DEMORA_PRIMERA_BUSQUEDA_MS = 60 * 1000;
+
+function registrarActualizacion(mensaje) {
+  // Va al log del propio launcher (stdout de Electron). El detalle util para
+  // el negocio ya queda en estado.json, que es lo que ve la pantalla.
+  console.log("[actualizaciones] " + mensaje);
+}
+
+async function buscarActualizacion() {
+  try {
+    await actualizaciones.buscar(carpetaDeDatos(), app.getVersion(), registrarActualizacion);
+  } catch (error) {
+    // Sin internet, GitHub caido, la PC en una red sin salida: nada de eso es
+    // un problema de la aplicacion. Se anota y se sigue vendiendo.
+    registrarActualizacion("No se pudo consultar: " + (error.message || error));
+  }
+}
+
+function programarBusquedaDeActualizaciones() {
+  setTimeout(() => {
+    buscarActualizacion();
+    setInterval(buscarActualizacion, CADA_CUANTO_BUSCAR_MS);
+  }, DEMORA_PRIMERA_BUSQUEDA_MS);
+}
+
+/**
+ * El servidor se apago porque el duenio aprobo una actualizacion. Se reemplaza
+ * el jar —recien ahora se puede, con el archivo ya liberado— y se lo vuelve a
+ * levantar. La ventana muestra mientras tanto la misma pantalla de carga del
+ * arranque, asi que se ve como un reinicio y no como una caida.
+ */
+async function reiniciarActualizando(puerto) {
+  if (ventana) await ventana.loadFile(path.join(__dirname, "cargando.html"));
+
+  await actualizaciones.aplicarPendiente(
+    carpetaDeDatos(), carpetaDelServidor(), registrarActualizacion);
+
+  try {
+    lanzarServidor(puerto);
+  } catch (error) {
+    dialog.showErrorBox("DespensaFamily no pudo reiniciar", String(error.message || error));
+    app.quit();
+    return;
+  }
+
+  if (!(await esperarAlServidor(puerto))) {
+    avisarQueNoArranco(puerto);
+    app.quit();
+    return;
+  }
+  if (ventana) await ventana.loadURL(urlDeLaApp(puerto));
+}
+
 // ---------------------------------------------------------------- arranque
+
+/**
+ * Arranca el servidor y decide que hacer cuando termine. Son tres finales
+ * distintos y conviene no confundirlos:
+ *
+ *   - cerrando        -> lo pidio el usuario al cerrar la ventana: no hacer nada
+ *   - hay una senial  -> se aprobo una actualizacion: cambiar el jar y volver
+ *   - cualquier otro  -> el servidor se cayo o lo cerraron desde la bandeja
+ */
+function lanzarServidor(puerto) {
+  servidor = arrancarServidor(puerto);
+  servidor.on("exit", () => {
+    if (cerrando) return;
+    if (actualizaciones.hayActualizacionAprobada(carpetaDeDatos())) {
+      reiniciarActualizando(puerto);
+      return;
+    }
+    app.quit();
+  });
+  servidor.on("error", () => {
+    if (!cerrando) app.quit();
+  });
+  return servidor;
+}
 
 async function iniciar() {
   const puerto = puertoConfigurado();
@@ -226,19 +317,21 @@ async function iniciar() {
   crearVentana(puerto);
   await ventana.loadFile(path.join(__dirname, "cargando.html"));
 
+  // Antes de arrancar nada: si quedo una actualizacion aprobada de la sesion
+  // anterior (se corto la luz entre la aprobacion y el reinicio), se aplica
+  // ahora, con el jar libre.
+  try {
+    await actualizaciones.aplicarPendiente(
+      carpetaDeDatos(), carpetaDelServidor(), registrarActualizacion);
+  } catch (error) {
+    registrarActualizacion("No se pudo aplicar la actualizacion pendiente: " + error.message);
+  }
+
   // Si ya hay un servidor respondiendo (quedo de un cierre anterior que no
   // termino de bajar), no se arranca otro: se usa el que esta.
   if (!(await servidorResponde(puerto))) {
     try {
-      servidor = arrancarServidor(puerto);
-      servidor.on("exit", () => {
-        // El servidor se fue por su cuenta (por ejemplo, "Salir" en el icono de
-        // la bandeja). Sin el, esta ventana no tiene nada que mostrar.
-        if (!cerrando) app.quit();
-      });
-      servidor.on("error", () => {
-        if (!cerrando) app.quit();
-      });
+      lanzarServidor(puerto);
     } catch (error) {
       dialog.showErrorBox("DespensaFamily no pudo iniciar", String(error.message || error));
       app.quit();
@@ -253,6 +346,8 @@ async function iniciar() {
   }
 
   if (ventana) await ventana.loadURL(urlDeLaApp(puerto));
+
+  programarBusquedaDeActualizaciones();
 }
 
 /**

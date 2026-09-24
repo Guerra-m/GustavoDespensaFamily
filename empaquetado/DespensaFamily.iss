@@ -8,7 +8,7 @@
 ; Si no lo tenes:               winget install JRSoftware.InnoSetup
 
 #define Nombre        "DespensaFamily"
-#define Version       "1.0.0"
+#define Version       "1.1.0"
 #define Autor         "Martin Guerra"
 #define Ejecutable    "DespensaFamily.exe"
 

@@ -60,4 +60,8 @@ empaquetado/entrada/
 empaquetado/build/
 empaquetado/dist/
 empaquetado/escritorio/node_modules/
+
+# Lo que arma publicar.bat para subir a la release: se regenera en cada
+# publicacion y pesa 66 MB.
+empaquetado/publicacion/
 empaquetado/*-setup.exe

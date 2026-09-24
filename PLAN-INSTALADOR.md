@@ -2,8 +2,9 @@
 
 > Estado: **F0 a F5 hechas** (F5 parcial por decisión) y **DespensaFamily-1.0.0-setup.exe generado**.
 > **El setup.exe del 30/08 quedó viejo**: no tiene el asistente de IA, ni Ajustes, ni las
-> correcciones de seguridad del 01/09. Antes de instalar en el negocio hay que reempaquetar
-> (ver sección 11).
+> correcciones de seguridad del 01/09, ni las migraciones de esquema (sección 12), ni la
+> actualización automática (sección 13). Antes de instalar en el negocio hay que reempaquetar.
+> La versión pasó a **1.1.0** y vive en un solo lugar: `DespensaFamily/pom.xml`.
 > Probado en la PC de Martín el 29/08/2026; los tres problemas que aparecieron están arreglados.
 > **Después de esa prueba se agregó la ventana propia con Electron: la app ya no abre el navegador.**
 > Ver la sección 10, que es la que manda sobre el empaquetado descrito en la 4.
@@ -28,7 +29,7 @@ Números relevantes:
 
 | Dato | Valor |
 |---|---|
-| Artefactos | 1 (`DespensaFamily-0.0.1-SNAPSHOT.jar`, ~63 MB) |
+| Artefactos | 1 (`DespensaFamily.jar`, ~63 MB) |
 | Entidades JPA | 8 (Categoria, Compra, DetalleCompra, DetalleVenta, Producto, Promocion, Usuario, Venta) |
 | Clases Java | 68 |
 | Pantallas del front | 11 |
@@ -585,3 +586,570 @@ Las primeras pruebas contra `empaquetado/entrada/*.jar` daban 403 en el endpoint
 parecía un problema de seguridad. **No lo era: ese jar es del 30/08 y no contiene las clases
 nuevas.** Si algo responde 403 o 404 sin explicación, verificar primero que el jar esté
 recompilado antes de buscar la causa en el código.
+
+---
+
+## 12. Migraciones de esquema con Flyway — 01/09/2026
+
+La base de Martín llevaba desde el 01/09 sin poder arrancar. El motivo no era un
+bug de código: era `ddl-auto=update`.
+
+### Qué pasó
+
+`Usuario.debeCambiarPassword` es un `boolean` primitivo, o sea columna `NOT NULL`
+sin default. Con `ddl-auto=update`, Hibernate intentó agregarla a una tabla
+`usuario` que ya tenía cuatro filas y H2 lo rechazó. Lo importante es lo que pasó
+después: Hibernate **siguió con el resto del esquema**. Cuando se revisó la base,
+`venta` y `compra` ya tenían `anulada_por`, `usuario`, `estado` y
+`fecha_anulacion`, `detalle_compra` tenía `precio_costo_anterior` — todo lo del
+01/09 aplicado, **menos esa columna**. La base quedó en un estado intermedio que
+no figura en ningún lado, y la aplicación murió al primer `select` sobre
+`usuario`.
+
+Eso con una sola PC y el desarrollador mirando. Con actualizaciones automáticas,
+el mismo accidente ocurre en la PC del negocio, un martes, sin nadie que sepa
+leer un stack trace.
+
+### Cómo quedó
+
+- `ddl-auto=validate`: Hibernate ya no toca el esquema. Compara el modelo contra
+  la base y **se niega a arrancar si no coinciden**, en vez de improvisar.
+- El esquema lo maneja Flyway, en `src/main/resources/db/migration/`.
+- `V1__esquema_base.sql` es idempotente a propósito (`IF NOT EXISTS` en todo).
+  No es adorno: cuando Flyway entra en un proyecto que venía de `ddl-auto`, las
+  bases que andan dando vueltas no están todas en el mismo estado. V1 lleva las
+  tres que existen de verdad al mismo lugar — una base nueva, la de Martín a
+  medio migrar, y cualquier copia anterior al 01/09.
+- `baseline-on-migrate=true` con `baseline-version=0`, que es lo que hace que V1
+  corra también sobre las bases que ya existen.
+
+**De acá en adelante, cada cambio de esquema es un `V2`, `V3`… nuevo. Nunca se
+edita una migración ya aplicada**: Flyway guarda su checksum y se niega a
+arrancar si cambió. Esa es exactamente la red que faltaba.
+
+### Un hallazgo del camino
+
+Los 135 tests corrían con `create-drop`, que es lo que Spring Boot le pone por
+defecto a una base embebida cuando nadie dice otra cosa — el
+`application.properties` de tests tapa al de producción. O sea: **la suite armaba
+el esquema desde las entidades y lo tiraba al terminar, así que ninguna migración
+se ejercitaba nunca**. Ahora los tests corren con `validate` + Flyway, igual que
+la PC del negocio: cada corrida de la suite pasa por las mismas migraciones.
+
+Y un segundo hallazgo, más callado: Spring Boot 4 partió las autoconfiguraciones
+en módulos por tecnología. Con `flyway-core` en el classpath pero sin
+`spring-boot-flyway`, **la aplicación levanta como si Flyway no existiera y las
+migraciones no corren, sin dar ningún error**. Eso es lo peligroso.
+
+### Verificación
+
+Contra una **copia** de la base real de Martín, no contra una de laboratorio:
+
+| | Antes | Después |
+|---|---|---|
+| Productos | 31 | 31 |
+| Categorías | 13 | 13 |
+| Ventas / Compras | 3 / 1 | 3 / 1 |
+| Usuarios | 4 | 1 |
+| Tests backend | 135 | **160** |
+
+Los tres usuarios que faltan son `juan`, `maria` y `carlos`: los borró
+`limpiarCuentasDeEjemplo` porque seguían con `empleado123`. Es la protección del
+01/09 funcionando, no pérdida de datos. El `admin` quedó intacto, con su
+contraseña, y marcado para cambiarla porque todavía usa `admin123`.
+
+Hay dos tests que parten de una base vieja de verdad
+(`MigracionBaseDeMartinTest`, `MigracionEsquemaViejoTest`). No fallan en un
+assert: fallan al construir el contexto, igual que fallaba `iniciar.bat`.
+
+---
+
+## 13. Actualización automática — 01/09/2026
+
+Pedido de Martín: *"que siempre que nosotros hagamos un cambio, el launcher se
+actualice… o que la app le diga al otro usuario, actualización, tocá para
+actualizar, y mande al launcher"*.
+
+### Qué se actualiza: solo el jar
+
+El dato que ordena todo el diseño: **Vite compila el frontend adentro del jar**.
+Un jar nuevo es la aplicación entera nueva — backend y pantallas. Así que la
+actualización de todos los días son 66 MB y un reemplazo de archivo, no los
+188 MB del instalador con su asistente, su UAC y su cartel de "editor
+desconocido" de SmartScreen.
+
+El `setup.exe` queda para dos cosas: instalar por primera vez, y cuando cambie
+Electron o el motor de Java.
+
+### Quién hace qué
+
+```
+launcher (Electron)   consulta GitHub, descarga, verifica SHA-256, reemplaza el jar
+      │ escribe estado.json
+      ▼
+servidor   GET /actualizaciones          lee ese archivo — no sale a internet
+      │    POST /actualizaciones/aplicar deja una señal y se apaga (solo ADMIN)
+      ▼
+launcher  ve que el servidor murió + la señal → cambia el jar → lo levanta de nuevo
+```
+
+**El servidor no sale a internet, y es a propósito.** Es el proceso que atiende
+la caja y está expuesto a la red del local: no tiene por qué aprender a bajar
+archivos. El launcher ya es dueño de los archivos del programa y de su ciclo de
+vida, que es justo lo que hace falta para reemplazar un jar y reiniciar.
+
+Los archivos del reparto, en la carpeta de datos:
+
+```
+%LOCALAPPDATA%\DespensaFamily\actualizaciones\
+├── estado.json      lo escribe el launcher; el servidor lo lee para el aviso
+├── aplicar          lo escribe el servidor cuando el dueño aprueba
+├── instalada.txt    qué versión de jar está puesta ahora
+└── pendiente\       el jar bajado y verificado, esperando el reinicio
+```
+
+### Decisiones que no son obvias
+
+**El aviso sale de comparar versiones, no de `estado.json`.** Ese archivo
+sobrevive al reinicio: si el cartel se guiara por él, quedaría prendido para
+siempre después de actualizar.
+
+**`instalada.txt` manda sobre la versión de Electron.** Después de la primera
+actualización de solo-jar las dos dejan de coincidir: el jar pasa a 1.2.0 y el
+Electron sigue en el 1.1.0 que puso el `setup.exe`.
+
+**El empleado ve el aviso pero no puede aplicarlo.** Si la caja se va a
+reiniciar, quien está atendiendo tiene que poder entender por qué. Pero aplicarlo
+apaga el servidor, y esa decisión no se toma en el medio de una venta.
+
+**Hay un endpoint que apaga el servidor**, que es justo lo que en la sección 10
+se había evitado a propósito. Lo que lo hace aceptable son tres condiciones
+juntas: pide ADMIN, **solo funciona si hay un jar descargado y verificado
+esperando** (así que no sirve como apagado genérico), y el launcher lo vuelve a
+levantar enseguida.
+
+**El jar viejo se guarda como `.anterior`.** Si la versión nueva resulta estar
+rota, hay a qué volver sin bajar nada.
+
+**La versión vive en un solo lugar**, el `pom.xml`, y viaja adentro del jar
+(`build-info`), no en su nombre. El jar pasó a llamarse `DespensaFamily.jar`,
+fijo: el `.cfg` que genera jpackage lo apunta por nombre, así que un nombre con
+la versión adentro obligaría a reescribir ese archivo en cada actualización.
+
+### Integridad, y qué NO cubre
+
+Siguiendo CRI-01 de la biblioteca de seguridad: para **integridad de una
+descarga** va SHA-256. El launcher baja el jar y su `.sha256` de la misma
+release, compara, y **recién después** mueve el archivo a su lugar. Se vuelve a
+verificar en el arranque, porque entre la descarga y el reinicio el jar estuvo en
+disco. Si no coincide, se descarta y no se instala nada. Además: solo HTTPS, solo
+hosts de GitHub (los redirects vuelven a pasar por esa lista), tope de tamaño y
+timeouts.
+
+**Lo que esto NO cubre es autoría.** Si alguien se queda con la cuenta de GitHub,
+publica un jar y su hash, y los dos verifican bien. El ancla de confianza real es
+HTTPS más la seguridad de la cuenta del repositorio — que además es público.
+Cerrar eso pide una firma (Ed25519, con la clave pública dentro del launcher);
+el formato de `estado.json` está pensado para poder agregarla sin romper nada.
+**Es una decisión pendiente, no un olvido.**
+
+### Cómo se publica una versión
+
+```
+1. Subir la versión en DespensaFamily\pom.xml   (1.1.0 -> 1.2.0)
+2. publicar.bat "Qué trae esta versión"
+```
+
+Corre los tests (si fallan no publica nada), compila front + jar, calcula el
+SHA-256 y publica la release con `gh`. Si `gh` no está instalado deja los dos
+archivos en `empaquetado\publicacion\` y explica qué subir a mano.
+
+Si a una release le falta alguno de los dos archivos, el launcher **ignora la
+release entera**: sin el hash no puede verificar, y sin verificar no instala.
+
+### Verificado
+
+Contra la aplicación corriendo, con usuarios reales y JWT reales:
+
+| Caso | Resultado |
+|---|---|
+| Sin launcher (jar suelto) | `gestionadoPorLauncher: false`, no se ofrece nada |
+| Sin token | 403 en las dos rutas |
+| Empleado real, `GET /actualizaciones` | 200 — ve el aviso |
+| Empleado real, `POST .../aplicar` | **403** |
+| Admin, con la descarga a medias | **409**, no deja señal |
+| Admin, con la descarga lista | 202, señal `1.2.0`, servidor apagado con exit 0 |
+
+Y el reemplazo del jar, con archivos reales (`node --test`): reemplaza y guarda
+el anterior; **un jar que no coincide con su hash no se instala** y el viejo
+queda intacto; sin señal no toca nada; señal sin jar descargado no rompe el
+arranque.
+
+Totales: **160 tests backend**, **11 del launcher**, **0 errores de typecheck**.
+
+### El bucle completo, corrido de verdad
+
+Con Electron levantado (`npm start`) contra una carpeta de datos aparte en el
+puerto 8095, un motor de jpackage en 1.1.0 y un jar 1.2.0 **compilado de
+verdad** esperando en `pendiente\` con su SHA-256:
+
+| Paso | Resultado |
+|---|---|
+| El launcher arranca el servidor | responde en 8095 |
+| `GET /actualizaciones` | `versionInstalada 1.1.0`, `versionDisponible 1.2.0`, `listaParaAplicar true` |
+| `POST .../aplicar` | 202 |
+| El servidor baja, el launcher cambia el jar y lo vuelve a levantar | **arriba de nuevo a los ~10 s** |
+| `GET /actualizaciones` después | **`versionInstalada 1.2.0`, `hayActualizacion false`** |
+| El jar en disco | 1.2.0, con el 1.1.0 guardado como `.anterior` |
+| `instalada.txt` / `estado.json` | `1.2.0` / `al-dia` |
+| Señal `aplicar` y jar pendiente | consumidos los dos |
+
+**La prueba negativa, que es la que importa.** Se puso en `pendiente\` un jar
+cuyo contenido no corresponde al hash declarado — lo que se vería si alguien
+cambiara el archivo entre la descarga y el reinicio:
+
+```
+hash declarado: a2e8737533c7db19...
+hash real:      03de04580d985680...
+→ [actualizaciones] El jar pendiente no coincide con su hash: se descarto
+→ VERSION QUE QUEDO CORRIENDO: 1.2.0   (no se instaló nada)
+```
+
+Y de yapa, del log del propio launcher: `No se pudo consultar: Respuesta 404`.
+Esa es la consulta real a `api.github.com` a los 60 segundos del arranque —
+llegó por HTTPS, pasó la lista de hosts permitidos y manejó "todavía no hay
+ninguna release" sin voltear nada.
+
+### Lo que falta
+
+1. **La descarga desde una release no se ejercitó.** La consulta a la API sí
+   (404 manejado correctamente), pero bajar el jar y su `.sha256` de una release
+   real no, porque no hay ninguna publicada y `gh` no está instalado acá. Todo
+   lo que viene después de la descarga sí está probado con archivos reales.
+2. **El aviso no se vio con los ojos.** Se verificó que el código viaja dentro
+   del jar y que el endpoint devuelve exactamente lo que la cinta necesita, pero
+   no hay captura de la cinta en pantalla. Sigue pendiente la auditoría visual
+   de la sección 11.
+3. **Reempaquetar el `setup.exe`**, que ahora además es lo que instala el
+   launcher con capacidad de actualizarse. Sin eso, nada de esto llega al
+   negocio.
+
+---
+
+## 14. La sesión pasó a una cookie HttpOnly — 01/09/2026
+
+Lo encontró Martín mirando la app: *"pero no se ven las imágenes"*.
+
+### El bug
+
+La auditoría del 01/09 dejó `/imagenes/**` como `authenticated()`, y el criterio
+era bueno: antes cualquiera en el wifi del local podía recorrer el catálogo de
+fotos sin loguearse.
+
+Lo que no se vio es que **el token vivía en `localStorage`**. Una etiqueta
+`<img src="/imagenes/foto.jpg">` no puede mandar una cabecera `Authorization` —
+el navegador pide la imagen y se come un 403. Desde el 01/09 **no se veía
+ninguna foto de producto**, ni en Productos ni en la pantalla de Ventas
+(`productos.ts:223`, `ventas.ts:211`).
+
+Medido antes del arreglo: sin token 403, con token 200. Las 31 fotos estaban
+intactas en disco todo el tiempo.
+
+Vale la pena nombrar el patrón, porque va a volver a pasar: **un control de
+acceso correcto puede romper una funcionalidad visible, y los tests no lo
+notaron porque ninguno pedía una imagen como la pide un navegador.** La
+auditoría cerró un agujero real y apagó las fotos del negocio en el mismo
+commit.
+
+### El arreglo
+
+La sesión pasó a una cookie `HttpOnly`, que es lo que FE-02 recomienda para una
+aplicación de navegador. El navegador la manda sola en cada pedido del dominio
+— imágenes incluidas — y ningún script de la página puede leerla.
+
+Arregla las fotos sin tocar una línea de HTML, y de paso cierra lo que la propia
+auditoría había marcado y no había podido resolver: con el token en
+`localStorage`, cualquier XSS era robo de sesión directo.
+
+| | Antes | Ahora |
+|---|---|---|
+| Dónde vive la sesión | `localStorage` | cookie `HttpOnly` |
+| La lee un script inyectado | sí | no |
+| Va en `<img>`, `<a download>`, etc. | no | sí |
+| El token en el cuerpo del login | sí | `@JsonIgnore` |
+| Cerrar sesión | borraba el `localStorage` | lo apaga el servidor |
+
+### Lo que costó, y cómo se pagó
+
+Una cookie la manda el navegador **sola**, también cuando quien dispara el
+pedido es otro sitio. Eso es CSRF, y no existía mientras la sesión iba en una
+cabecera (SESS-10). Van dos defensas:
+
+- `SameSite=Strict` — lo frena en el navegador. Strict y no Lax porque no hay
+  ningún flujo que aterrice logueado desde afuera.
+- `FiltroDeOrigen` — lo frena en el servidor, que es donde no depende de que el
+  navegador se porte bien.
+
+Dos decisiones del filtro que parecen agujeros y no lo son: **los GET no se
+controlan** (no cambian nada, y CORS ya rechaza el origen ajeno igual — se
+verificó: da 403), y **si no viene cabecera `Origin` se deja pasar**, porque
+curl y los scripts no la mandan, mientras que un navegador la manda *siempre*
+que el pedido salga de otro sitio, que es justo el caso a frenar.
+
+### Detalles que no son obvios
+
+**`Secure` sale de `request.isSecure()`, no de una constante.** La app corre en
+HTTP sobre la red del local: con `Secure` fijo en `true` el navegador nunca
+mandaría la cookie y no entraría nadie. Si algún día se le pone HTTPS adelante,
+se activa solo.
+
+**El filtro JWT sigue aceptando la cabecera `Authorization`**, después de la
+cookie. Es para curl, scripts y pruebas; no debilita nada, porque un XSS no
+puede leer una cookie `HttpOnly` y por lo tanto tampoco puede armar la cabecera.
+Lo que sí sería un error es que el *frontend* guardara el token en los dos
+lados, y por eso el login ya no lo devuelve en el cuerpo.
+
+**`credentials: "include"` se puso envolviendo el `fetch` global**, no en los
+doce servicios. En la app instalada front y back comparten origen y la cookie
+viajaría igual, pero si desarrollo y producción se comportan distinto los bugs
+aparecen en uno solo.
+
+**`clearAuth()` se volvió `async` y hay que esperarla.** Si se navega antes de
+que termine, el navegador cancela el pedido de logout y la sesión queda viva del
+otro lado. El typecheck no lo marca: una promesa suelta es válida.
+
+### Verificado, con la app corriendo
+
+| Caso | Resultado |
+|---|---|
+| Login | la cookie sale `#HttpOnly_`, y el token **no** está en el JSON |
+| Foto solo con la cookie (como un `<img>`) | **200**, 4520 bytes, `image/jpeg` |
+| Foto sin cookie | 403 |
+| Las 31 fotos del catálogo | **12 de 12 con URL cargan, 0 fallan** |
+| `GET /productos` solo con cookie | 200 |
+| `POST` con `Origin` ajeno | **403** |
+| `POST` con el `Origin` propio | pasa el control |
+| Cerrar sesión, y pedir una foto después | 200 y luego **403** |
+
+**170 tests backend** (10 nuevos en `SesionEnCookieTest`), 0 errores de
+typecheck.
+
+### Lo que falta
+
+- **No se miró con los ojos.** Se verificó que las fotos vuelven con 200 y el
+  `content-type` correcto, pero la auditoría visual de la sección 11 sigue
+  pendiente.
+- **Sin HTTPS, la cookie viaja en claro por la red del local** — igual que
+  viajaba el `Authorization` antes, así que no es una regresión, pero tampoco
+  quedó resuelto. Es el mismo pendiente que la decisión sobre el acceso desde
+  la LAN (sección 11).
+
+---
+
+## 15. Reempaquetado 1.1.0, y la versión vieja rompiendo la base — 01/09/2026
+
+`DespensaFamily-1.1.0-setup.exe`, 189 MB. Adentro viaja `DespensaFamily.jar`
+con el nombre fijo, que es lo que permite actualizar sin reinstalar.
+
+### Dos bugs que sólo aparecieron al correr el paquete de verdad
+
+Los dos habrían llegado al negocio. Ninguno lo detectaban los tests.
+
+**1. El launcher empaquetado no arrancaba.** `package.json` de Electron lista
+explícitamente qué archivos entran en el `app.asar`:
+
+```json
+"files": ["main.js", "cargando.html"]
+```
+
+Agregué `actualizaciones.js` y no lo agregué ahí. En desarrollo (`npm start`)
+funciona, porque lee del disco. Empaquetado, `require("./actualizaciones")`
+tiraba MODULE_NOT_FOUND — y como una app de Electron empaquetada corre sin
+consola, **moría en silencio**: la ventana quedaba en la pantalla de carga y el
+servidor no arrancaba nunca. Cero mensajes, en ningún log.
+
+Es el tipo de bug que sólo se ve corriendo el `.exe` armado. `npm start` no lo
+muestra, y los 171 tests tampoco.
+
+**2. La versión de agosto rompe la base de la versión nueva.** Del log del
+propio servidor, que registra todos los arranques:
+
+```
+13:00:02  v1.1.0           target\DespensaFamily.jar        migró bien
+13:27:47  v1.1.0           target\DespensaFamily.jar        andaba
+13:42:19  v0.0.1-SNAPSHOT  Programs\DespensaFamily\...      ← la de AGOSTO
+14:08:17  v1.1.0           dist\win-unpacked\...            ya no arranca
+```
+
+A las 13:42 arrancó la **instalación de agosto**, que sigue en
+`%LOCALAPPDATA%\Programs\DespensaFamily\` con su
+`DespensaFamily-0.0.1-SNAPSHOT.jar`. Esa versión tiene `ddl-auto=update` y
+`fechaHora` como `LocalDate`, así que Hibernate "corrigió" el esquema a su
+propio modelo y **bajó `venta.fecha_hora` y `compra.fecha_hora` de
+`TIMESTAMP(6)` a `DATE`**. La versión nueva dejó de arrancar con
+*"wrong column type encountered in column [fecha_hora] in table [compra]"*.
+
+Se descartó que fuera la migración: la sentencia de V1 se probó aislada sobre
+una base de juguete y deja la columna en `TIMESTAMP(6)`, y el dump de la copia
+migrada también.
+
+`V2__fecha_hora_a_timestamp.sql` repara la base. Pero **repara una sola vez**:
+Flyway no vuelve a correr una migración aplicada. Si la versión de agosto se
+abre otra vez, la base vuelve a romperse y V2 ya no va a estar ahí para
+arreglarla.
+
+> **Lo único que lo resuelve de verdad es que no queden dos versiones
+> conviviendo.** El `setup.exe` 1.1.0 se instala ENCIMA del de agosto (mismo
+> AppId, ver sección 4), así que instalarlo elimina el problema. Hasta que eso
+> pase, abrir el ícono viejo del escritorio deja la caja sin sistema.
+
+Es, además, el mejor argumento a favor de la actualización automática de la
+sección 13: el problema de fondo no es esta columna, es que una PC pueda quedar
+corriendo una versión vieja contra datos nuevos.
+
+### El test que faltaba
+
+`MigracionEsquemaViejoTest` comprobaba que la fecha se conservara, mirando el
+**valor** y sólo en `venta`. Eso no habría detectado nada de esto: una columna
+`DATE` con la fecha correcta igual impide arrancar. Ahora se comprueba el
+**tipo** de la columna, en `venta` y en `compra`, que es lo único que mira
+`ddl-auto=validate`.
+
+### Verificado con el paquete corriendo
+
+| | |
+|---|---|
+| Servidor arriba | **8 s** |
+| Login / foto / productos / categorías / ventas | 200 · 200 · 16 · 13 · 3 |
+| Procesos | ventana (Electron) + motor (jpackage), como manda la sección 10 |
+
+**171 tests backend · 11 del launcher · 0 errores de typecheck.**
+
+### Pendiente
+
+- **Instalar el 1.1.0** para que desaparezca la instalación de agosto. Es lo
+  único que cierra el problema de las dos versiones.
+- Sigue sin firma digital: SmartScreen va a mostrar "editor desconocido".
+- El `DespensaFamily-1.0.0-setup.exe` viejo sigue en `empaquetado\`. Conviene
+  borrarlo para no instalarlo por error.
+
+---
+
+## 16. Caja, ingresos, egresos y rentabilidad — 01/09/2026
+
+Implementación completa de las 9 etapas del mapa de cambios (sección previa de
+este documento), en orden, cada una con tests antes de avanzar a la
+siguiente. Migraciones V4 a V8.
+
+### Lo que se construyó
+
+**Etapa 1 — los tres defectos de los reportes**, corregidos con test que
+congela cada uno: la ganancia por fecha ignoraba las promociones (usaba
+`precioUnitario` de lista en vez de `subtotal`), las compras anuladas seguían
+en el listado de movimientos, y `Compra.total` se recalculaba en vez de
+congelarse (V3, con backfill).
+
+**Etapa 2 — el libro de movimientos** (`MovimientoCaja`, V4). Un movimiento
+nunca se edita ni se borra: se revierte con otro de signo contrario que
+apunta al original (`revierteA`). `CajaService` calcula saldo total, efectivo
+físico y electrónico por separado.
+
+**Etapa 3 — venta con método de pago** (V5). El ingreso se crea **dentro de
+la misma transacción** que la venta: si el movimiento falla, la venta
+tampoco se guarda. Probado con un fallo real (no simulado): pasar
+`metodoPago=null` viola el `NOT NULL` de la base al hacer commit, y la venta
+completa —incluido el descuento de stock— se revierte.
+
+**Etapa 4 — pantalla de Caja** (`/caja`): saldo grande, efectivo vs.
+electrónico, ingresos/egresos de hoy, últimos movimientos, y el modal para
+cargar gasto/retiro/aporte/ajuste (solo ADMIN).
+
+**Etapa 5 — compra pagada o a cuenta** (V6). Comprar a cuenta entra stock sin
+tocar caja; `POST /compras/{id}/pagar` genera el egreso recién en ese
+momento, con la fecha del pago y no la de la compra.
+
+**Etapa 6 — historial con filtros + rentabilidad**. `/reportes/rentabilidad`
+separa ventas, costo, ganancia bruta, margen, compras (no es un costo del
+período) y gastos operativos (solo categoría GASTO — RETIRO y APORTE son
+movimientos de capital, no entran). Si nadie cargó gastos en el período, la
+pantalla avisa en vez de mostrar el resultado neto como si fuera un dato
+real.
+
+**Etapa 7 — arqueo**: contar el cajón genera un movimiento AJUSTE con la
+diferencia contra lo esperado, sin apertura ni cierre de sesión (decisión
+explícita, ver sección 6 más abajo). Si da exacto, no se crea ningún
+movimiento.
+
+**Etapa 8 — empleados** (V8, alcance agregado después del mapa original).
+`Empleado` no es `Usuario`: puede existir sin cuenta de acceso, y borrar una
+cuenta no borra su historial de pagos. `DiaTrabajado` es una fila por día
+trabajado, no un booleano — la grilla semanal es la vista, no el dato. Un
+pago es un egreso con categoría `SUELDO` propia (no se mezcla con `GASTO`) y
+monto libre sin período fijo, por decisión del dueño.
+
+**Etapa 9 — cliente opcional en la venta** (V7). Se reconectó una línea
+"Cliente:" que ya existía en el ticket pero era código muerto —referenciaba
+un `<select id="select-cliente">` que ya no estaba en el HTML, así que
+siempre imprimía "Consumidor Final" fijo—.
+
+### Un bug real que encontró la suite completa, no el test aislado
+
+Al agregar overloads como `registrarVenta(detalles, metodoPago)` que delegan
+a `registrarVenta(detalles, metodoPago, cliente)`, la llamada interna es una
+**auto-invocación dentro del mismo bean**: el proxy de Spring que hace
+funcionar `@Transactional` no intercepta llamadas de un método a otro dentro
+de la misma clase. El método delegado corría sin transacción activa.
+
+No lo detectó `VentaConCajaTest` corrido solo —pasaba, porque el mock de
+Spring cachea el contexto y algo lo enmascaraba en ese subconjunto—, lo
+detectó la suite completa: `mvnw test` sin filtro. Se corrigió agregando
+`@Transactional` a **todos** los overloads que delegan, no solo al que hace
+el trabajo real, en `VentaService` y `CajaService`. Motivo de más para correr
+siempre la suite entera antes de dar algo por terminado, no solo la clase que
+se acaba de tocar.
+
+### Verificación
+
+**213 tests backend** (0 fallidos), verificados dos veces: una vez por clase
+recién escrita, después con la suite completa — que fue la que atrapó el bug
+de arriba.
+
+Cada etapa se probó además contra una instancia real corriendo (jar
+compilado, HTTP real, JWT real), en una carpeta de datos descartable para no
+tocar la base real hasta el final:
+
+| Etapa | Verificado |
+|---|---|
+| 3 | Venta $10.000 → caja +$10.000; con tarjeta → electrónico +$10.000, efectivo sin cambios; anular → caja vuelve a 0, quedan las dos filas |
+| 5 | Compra a cuenta → caja sin cambios; marcar pagada → caja −$1.000 |
+| 6 | Venta $2.000/costo $1.200 + gasto $300 → ganancia bruta $800, margen 40%, neto $500 |
+| 7 | Contado $8.500 vs. esperado $10.000 → ajuste EGRESO $1.500; exacto → sin movimiento |
+| 8 | Empleado sin usuario, día marcado dos veces → una sola fila, pago $30.000 → caja −$30.000 y **no** cuenta como gasto operativo en rentabilidad |
+| 9 | Venta con `cliente:"Maria Perez"` → aparece en la respuesta y en el bundle del ticket |
+
+Al final, las 8 migraciones (V1 a V8) corrieron limpio sobre la base real de
+Martín sin perder datos, y las tres pantallas nuevas responden 200 en la app
+empaquetada.
+
+### Lo que no se pudo verificar
+
+**El aspecto visual.** Agent Browser se probó de nuevo a pedido explícito
+—se sospechaba que el problema anterior era por tratarse de una app de
+escritorio— pero **se cuelga al abrir el navegador, con y sin URL, con y sin
+`--headed`**: no es un problema de la app, es el lanzamiento del navegador en
+esta máquina. La verificación de estas pantallas fue por API y por contenido
+del bundle servido (`grep` sobre el JavaScript compilado), no por ojos.
+Ninguna de las pantallas nuevas (Caja, Empleados, los bloques de Rentabilidad
+y el selector de método de pago) tiene una captura real.
+
+### Pendiente
+
+1. **Auditoría visual completa**, arrastrada desde la sección 11 y ahora más
+   grande: se suman Caja, Empleados y los cambios de Ventas/Compras/Reportes
+   a lo que ya faltaba revisar.
+2. **Reempaquetar el `setup.exe`** — el jar del paquete instalado ya tiene
+   todo esto, pero el instalador en `empaquetado\*.exe` sigue siendo el de la
+   sección 15.
+3. **Un campo pendiente de decisión**, ya anotado en la sección de empleados:
+   si hace falta un "monto acordado" opcional para poder mostrar el
+   porcentaje pagado que se pidió originalmente.

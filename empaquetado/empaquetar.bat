@@ -9,13 +9,13 @@ REM  del negocio no ve nada de esto (ni npm, ni Maven, ni Java).
 REM
 REM  Que se arma, en orden:
 REM    front  -> compilado adentro del jar
-REM    jar    -> DespensaFamily-0.0.1-SNAPSHOT.jar
+REM    jar    -> DespensaFamily.jar
 REM    motor  -> build\DespensaFamilyServidor (jpackage: jar + Java adentro)
 REM    app    -> dist\win-unpacked (Electron: la ventana, con el motor adentro)
-REM    setup  -> DespensaFamily-1.0.0-setup.exe (Inno Setup)
+REM    setup  -> DespensaFamily-<version>-setup.exe (Inno Setup)
 REM
 REM  Salida:  empaquetado\dist\win-unpacked\DespensaFamily.exe
-REM           empaquetado\DespensaFamily-1.0.0-setup.exe  (si hay Inno Setup)
+REM           empaquetado\DespensaFamily-<version>-setup.exe  (si hay Inno Setup)
 REM ============================================================
 
 cd /d "%~dp0\.."
@@ -63,12 +63,19 @@ call "%RAIZ%\DespensaFamily\mvnw.cmd" -f "%RAIZ%\DespensaFamily" clean package -
 )
 
 echo.
+REM La version sale del pom: es el unico lugar donde se cambia.
+set "VERSION="
+for /f "tokens=3 delims=<>" %%V in ('findstr /r /c:"^	<version>" "%RAIZ%\DespensaFamily\pom.xml"') do (
+    if not defined VERSION set "VERSION=%%V"
+)
+if not defined VERSION set "VERSION=1.0.0"
+
 echo [4/6] Armando el motor con jpackage ^(el servidor con su propio Java^)...
 if exist "%RAIZ%\empaquetado\entrada" rmdir /s /q "%RAIZ%\empaquetado\entrada"
 if exist "%RAIZ%\empaquetado\build" rmdir /s /q "%RAIZ%\empaquetado\build"
 if exist "%RAIZ%\empaquetado\dist" rmdir /s /q "%RAIZ%\empaquetado\dist"
 mkdir "%RAIZ%\empaquetado\entrada"
-copy /y "%RAIZ%\DespensaFamily\target\DespensaFamily-0.0.1-SNAPSHOT.jar" "%RAIZ%\empaquetado\entrada\" >nul
+copy /y "%RAIZ%\DespensaFamily\target\DespensaFamily.jar" "%RAIZ%\empaquetado\entrada\" >nul
 
 REM Se llama DespensaFamilyServidor y no DespensaFamily porque ya no es el
 REM programa que abre el usuario: es el motor que arranca la ventana. El nombre
@@ -80,11 +87,11 @@ REM jdk.unsupported lo piden varias librerias, jdk.crypto.ec es para TLS.
 "!JDK!\bin\jpackage.exe" ^
     --type app-image ^
     --name DespensaFamilyServidor ^
-    --app-version 1.0.0 ^
+    --app-version !VERSION! ^
     --vendor "Martin Guerra" ^
     --description "Motor de DespensaFamily" ^
     --input "%RAIZ%\empaquetado\entrada" ^
-    --main-jar DespensaFamily-0.0.1-SNAPSHOT.jar ^
+    --main-jar DespensaFamily.jar ^
     --main-class org.springframework.boot.loader.launch.JarLauncher ^
     --icon "%RAIZ%\empaquetado\DespensaFamily.ico" ^
     --dest "%RAIZ%\empaquetado\build" ^
@@ -128,7 +135,7 @@ if not defined ISCC (
     popd
     echo.
     echo   Instalador listo:
-    echo   %RAIZ%\empaquetado\DespensaFamily-1.0.0-setup.exe
+    echo   %RAIZ%\empaquetado\DespensaFamily-!VERSION!-setup.exe
 )
 
 echo.
