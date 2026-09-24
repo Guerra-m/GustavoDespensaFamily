@@ -301,7 +301,8 @@ function renderDetalles() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${producto?.nombre || "Producto"}</td>
+      <!-- DF-SEC-001: nombre del producto, escrito por quien lo carga. -->
+      <td>${producto ? esc(producto.nombre) : "Producto"}</td>
       <td>${formatearCantidadConPaquete(d.cantidad, producto)}</td>
       <td>$${d.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
       <td>${(d.cantidad * d.precioCosto).toFixed(2)}</td>

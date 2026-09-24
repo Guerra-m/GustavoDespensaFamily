@@ -1,4 +1,5 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
+import { esc } from "../../utils/format";
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
@@ -131,7 +132,8 @@ function renderPromociones() {
   promociones.forEach(promo => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${promo.productoNombre ?? `Producto ${promo.productoId}`}</td>
+      <!-- DF-SEC-001: productoNombre lo escribe quien carga el producto. -->
+      <td>${esc(promo.productoNombre) || `Producto ${promo.productoId}`}</td>
       <td>${promo.cantidadLleva}x${promo.cantidadPaga}</td>
       <td><span class="badge-estado ${promo.activo ? "badge-estado--activo" : "badge-estado--inactivo"}">${promo.activo ? "Activo" : "Inactivo"}</span></td>
       <td>
@@ -352,10 +354,12 @@ async function cargarDescuentos() {
   }
 }
 
+// DF-SEC-001: productoNombre/categoriaNombre los escribe quien carga el
+// producto o la categoria, y esta etiqueta termina en innerHTML.
 function etiquetaAlcance(d: Descuento): string {
   return d.alcance === "PRODUCTO"
-    ? (d.productoNombre ?? `Producto ${d.productoId}`)
-    : `Categoría: ${d.categoriaNombre ?? d.categoriaId}`;
+    ? (esc(d.productoNombre) || `Producto ${d.productoId}`)
+    : `Categoría: ${esc(d.categoriaNombre) || d.categoriaId}`;
 }
 
 function renderDescuentos() {

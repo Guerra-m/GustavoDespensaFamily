@@ -164,7 +164,9 @@ async function cargarVentasPorCategoria() {
     tbody.innerHTML = "";
     categorias.forEach(c => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${c.categoriaNombre}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida.toFixed(2)}</td>`;
+      // DF-SEC-001: categoriaNombre lo escribe quien crea la categoria (puede
+      // ser un empleado con PERM_STOCK) y este reporte lo abre el dueño.
+      tr.innerHTML = `<td>${esc(c.categoriaNombre)}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 
@@ -305,7 +307,8 @@ async function cargarMovimientos() {
     tbody.innerHTML = "";
     [...movimientos].reverse().forEach(m => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${m.fecha}</td><td>${m.productoNombre}</td><td>${m.cantidad.toFixed(2)}</td><td>${m.tipo}</td>`;
+      // DF-SEC-001: productoNombre lo escribe quien carga el producto.
+      tr.innerHTML = `<td>${m.fecha}</td><td>${esc(m.productoNombre)}</td><td>${m.cantidad.toFixed(2)}</td><td>${m.tipo}</td>`;
       tbody.appendChild(tr);
     });
 
