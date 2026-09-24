@@ -1,12 +1,17 @@
 import './alertas.css';
+import { esc } from '../../utils/format';
+
 export function showAlert(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) {
   const container = document.getElementById('alert-container');
   if (!container) return;
 
   const alertDiv = document.createElement('div');
   alertDiv.className = `alert alert-${type}`;
+  // DF-SEC-001: defensa en profundidad — hoy los llamadores pasan texto fijo,
+  // pero algunos mensajes de error incluyen datos del servidor (ver
+  // GlobalExceptionHandler), asi que se escapa igual antes de innerHTML.
   alertDiv.innerHTML = `
-    <span>${message}</span>
+    <span>${esc(message)}</span>
     <button>&times;</button>
   `;
 

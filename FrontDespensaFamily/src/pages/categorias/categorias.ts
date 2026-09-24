@@ -54,7 +54,8 @@ function renderCategorias() {
         <button class="btn-eliminar-cat" data-id="${cat.id}" title="Eliminar"><span class="icon" style="--icono:url('/icons/trash-2.svg')"></span></button>
       </div>` : ""}
       <div class="categoria-nombre">${esc(cat.nombre)}</div>
-      <div class="categoria-descripcion">${cat.descripcion || "Sin descripción"}</div>
+      <!-- DF-SEC-001: reproducido en vivo con <img src=x onerror=...> en la descripcion. -->
+      <div class="categoria-descripcion">${cat.descripcion ? esc(cat.descripcion) : "Sin descripción"}</div>
       <div class="categoria-contador">${cantidad} producto${cantidad === 1 ? "" : "s"}</div>
     `;
     grid.appendChild(card);

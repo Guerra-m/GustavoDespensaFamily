@@ -39,14 +39,14 @@ public class DescuentoService {
 
     public DescuentoDTO crear(DescuentoDTO dto) {
         Descuento descuento = new Descuento();
-        aplicarDatos(descuento, dto);
+        aplicarDatos(descuento, dto, null);
         return toDTO(descuentoRepository.save(descuento));
     }
 
     public DescuentoDTO actualizar(Long id, DescuentoDTO dto) {
         Descuento descuento = descuentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Descuento no encontrado"));
-        aplicarDatos(descuento, dto);
+        aplicarDatos(descuento, dto, id);
         return toDTO(descuentoRepository.save(descuento));
     }
 
@@ -71,7 +71,7 @@ public class DescuentoService {
                 .orElse(0.0);
     }
 
-    private void aplicarDatos(Descuento descuento, DescuentoDTO dto) {
+    private void aplicarDatos(Descuento descuento, DescuentoDTO dto, Long idActual) {
         descuento.setAlcance(dto.getAlcance());
         descuento.setPorcentaje(dto.getPorcentaje());
         descuento.setActivo(dto.isActivo());
@@ -82,6 +82,20 @@ public class DescuentoService {
             }
             Producto producto = productoRepository.findById(dto.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            if (dto.isActivo()) {
+                // DF-BUG-004: un segundo descuento activo sobre el mismo
+                // producto rompe findByProductoIdAndActivoTrue (deja de
+                // devolver un unico resultado) y la venta de ese producto
+                // explota con "Query did not return a unique result".
+                // Mismo criterio que PromocionService.validar.
+                descuentoRepository.findByProductoIdAndActivoTrue(producto.getId())
+                        .filter(existente -> !existente.getId().equals(idActual))
+                        .ifPresent(existente -> {
+                            throw new RuntimeException(producto.getNombre() + " ya tiene un descuento activo del "
+                                    + formatearPorcentaje(existente.getPorcentaje())
+                                    + "%. Desactivalo o editalo.");
+                        });
+            }
             descuento.setProducto(producto);
             descuento.setCategoria(null);
         } else {
@@ -90,9 +104,25 @@ public class DescuentoService {
             }
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
                     .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+            if (dto.isActivo()) {
+                descuentoRepository.findByCategoriaIdAndActivoTrue(categoria.getId())
+                        .filter(existente -> !existente.getId().equals(idActual))
+                        .ifPresent(existente -> {
+                            throw new RuntimeException(categoria.getNombre() + " ya tiene un descuento activo del "
+                                    + formatearPorcentaje(existente.getPorcentaje())
+                                    + "%. Desactivalo o editalo.");
+                        });
+            }
             descuento.setCategoria(categoria);
             descuento.setProducto(null);
         }
+    }
+
+    private String formatearPorcentaje(double porcentaje) {
+        if (porcentaje == Math.floor(porcentaje)) {
+            return String.valueOf((long) porcentaje);
+        }
+        return String.valueOf(porcentaje);
     }
 
     private DescuentoDTO toDTO(Descuento d) {

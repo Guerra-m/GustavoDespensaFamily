@@ -1,6 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.guerram.DespensaFamily.dto.DescuentoDTO;
 import com.guerram.DespensaFamily.model.AlcanceDescuento;
@@ -112,6 +113,148 @@ class DescuentoTest {
         descuentoService.actualizar(creado.getId(), creado);
 
         assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(0.0);
+    }
+
+    // DF-BUG-004: un segundo descuento activo sobre el mismo producto rompe
+    // porcentajeEfectivoPara (findByProductoIdAndActivoTrue deja de ser
+    // unico) y la venta explota con "Query did not return a unique result".
+    // Mismo criterio que PromocionService.validar: no dejar crear/activar
+    // un segundo activo para el mismo alcance.
+    @Test
+    void unSegundoDescuentoActivoSobreElMismoProductoSeRechaza() {
+        Producto producto = crearProducto("Leche", null);
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(10)
+                .activo(true)
+                .build());
+
+        assertThatThrownBy(() -> descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(20)
+                .activo(true)
+                .build()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining(producto.getNombre())
+                .hasMessageContaining("10");
+    }
+
+    @Test
+    void unSegundoDescuentoActivoSobreLaMismaCategoriaSeRechaza() {
+        Categoria categoria = categoriaRepository.save(Categoria.builder()
+                .nombre("Lacteos " + System.nanoTime())
+                .build());
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.CATEGORIA)
+                .categoriaId(categoria.getId())
+                .porcentaje(15)
+                .activo(true)
+                .build());
+
+        assertThatThrownBy(() -> descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.CATEGORIA)
+                .categoriaId(categoria.getId())
+                .porcentaje(25)
+                .activo(true)
+                .build()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining(categoria.getNombre());
+    }
+
+    @Test
+    void unSegundoDescuentoInactivoSobreElMismoProductoSePermite() {
+        Producto producto = crearProducto("Yogur", null);
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(10)
+                .activo(true)
+                .build());
+
+        DescuentoDTO segundo = descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(20)
+                .activo(false)
+                .build());
+
+        assertThat(segundo.getId()).isNotNull();
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(10.0);
+    }
+
+    @Test
+    void reactivarUnDescuentoInactivoConOtroActivoSeRechaza() {
+        Producto producto = crearProducto("Manteca", null);
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(10)
+                .activo(true)
+                .build());
+
+        DescuentoDTO inactivo = descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(20)
+                .activo(false)
+                .build());
+
+        inactivo.setActivo(true);
+        assertThatThrownBy(() -> descuentoService.actualizar(inactivo.getId(), inactivo))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining(producto.getNombre());
+    }
+
+    @Test
+    void editarElDescuentoActivoExistenteNoChocaConsigoMismo() {
+        Producto producto = crearProducto("Harina", null);
+
+        DescuentoDTO creado = descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(10)
+                .activo(true)
+                .build());
+
+        creado.setPorcentaje(12);
+        descuentoService.actualizar(creado.getId(), creado);
+
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(12.0);
+    }
+
+    @Test
+    void unDescuentoDeProductoYUnoDeCategoriaSobreElMismoProductoSePermiten() {
+        Categoria categoria = categoriaRepository.save(Categoria.builder()
+                .nombre("Panificados " + System.nanoTime())
+                .build());
+        Producto producto = crearProducto("Pan lactal", categoria);
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.CATEGORIA)
+                .categoriaId(categoria.getId())
+                .porcentaje(10)
+                .activo(true)
+                .build());
+
+        descuentoService.crear(DescuentoDTO.builder()
+                .alcance(AlcanceDescuento.PRODUCTO)
+                .productoId(producto.getId())
+                .porcentaje(20)
+                .activo(true)
+                .build());
+
+        // Producto gana sobre categoria, y el metodo sigue devolviendo un
+        // unico resultado (antes de este fix, un segundo activo del mismo
+        // alcance rompia esto con "no unique result"; el mix producto +
+        // categoria nunca estuvo roto porque son columnas distintas, pero
+        // se deja el caso cubierto explicitamente).
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(20.0);
     }
 
     private Producto crearProducto(String nombre, Categoria categoria) {

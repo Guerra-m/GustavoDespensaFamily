@@ -26,6 +26,29 @@ public class SecurityConfig {
         http
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
+            // DF-SEC-001: XSS almacenado reproducido en vivo (categoria y
+            // producto con <img onerror=...>) ejecutando en la sesion del
+            // dueño. Escapar en el render (ver esc() en front) es la
+            // defensa real (FE-03); esto es la segunda capa (HDR-01):
+            // arranca en Report-Only para medir que no rompe nada antes de
+            // hacerla cumplir — hay un <script> inline en index.html y
+            // estilos inline en varias pantallas que una CSP enforced con
+            // script-src/style-src estrictos rompería (ver reporte de
+            // DF-SEC-001 para el detalle). style-src permite
+            // 'unsafe-inline' a proposito: las pantallas usan atributos
+            // style="..." para variables como --icono; no hay <script>
+            // inline nuevo mas que el de index.html, ya inventariado.
+            .headers(headers -> headers.contentSecurityPolicy(csp -> csp
+                    .policyDirectives(
+                        "default-src 'self'; "
+                        + "script-src 'self'; "
+                        + "object-src 'none'; "
+                        + "base-uri 'self'; "
+                        + "frame-ancestors 'none'; "
+                        + "img-src 'self' data: blob:; "
+                        + "style-src 'self' 'unsafe-inline'; "
+                        + "connect-src 'self'")
+                    .reportOnly()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // --- Publico ---
