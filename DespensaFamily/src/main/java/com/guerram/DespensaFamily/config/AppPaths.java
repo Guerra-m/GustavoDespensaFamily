@@ -46,8 +46,17 @@ public final class AppPaths {
      * propiedades del sistema. Idempotente: se puede llamar más de una vez.
      */
     public static Path bootstrap() {
+        return bootstrap(null);
+    }
+
+    /**
+     * Igual que {@link #bootstrap()}, pero con una carpeta ya decidida por la
+     * configuracion de Spring (un application.properties, un argumento). Si
+     * viene vacia, se resuelve como siempre.
+     */
+    public static Path bootstrap(String homeDefinido) {
         Path home = resolveHome(
-                primerValor(System.getProperty(PROP_HOME), System.getenv(ENV_HOME)),
+                primerValor(homeDefinido, System.getProperty(PROP_HOME), System.getenv(ENV_HOME)),
                 System.getenv("LOCALAPPDATA"),
                 System.getProperty("user.home"));
 

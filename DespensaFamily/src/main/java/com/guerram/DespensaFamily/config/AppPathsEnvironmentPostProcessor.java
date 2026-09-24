@@ -1,6 +1,7 @@
 package com.guerram.DespensaFamily.config;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -11,7 +12,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Prepara la instalacion antes de que Spring resuelva ninguna propiedad:
+ * Prepara la instalacion antes de que Spring cree ningun bean:
  * crea la carpeta de datos, publica ${despensa.*} y garantiza que exista un
  * secreto de firma propio de esta PC.
  *
@@ -24,7 +25,10 @@ public class AppPathsEnvironmentPostProcessor implements EnvironmentPostProcesso
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        Path carpetaDeDatos = AppPaths.bootstrap();
+        // Si la configuracion ya dice donde van los datos (el application.properties
+        // de los tests, o DESPENSA_HOME, que Spring lee como despensa.home), se
+        // respeta. Antes se ignoraba y la suite escribia en la instalacion real.
+        Path carpetaDeDatos = AppPaths.bootstrap(environment.getProperty(AppPaths.PROP_HOME));
 
         try {
             String secreto = SecretoJwt.asegurar(carpetaDeDatos.resolve("config.properties"));
@@ -44,6 +48,11 @@ public class AppPathsEnvironmentPostProcessor implements EnvironmentPostProcesso
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
+        // Despues de cargar los application.properties, para poder leer el
+        // despensa.home que definan. Sigue siendo antes de que se cree ningun
+        // bean: la URL de la base todavia no se resolvio. En produccion main()
+        // ya publico las rutas, asi que el spring.config.import del archivo de
+        // la instalacion las encuentra igual.
+        return ConfigDataEnvironmentPostProcessor.ORDER + 1;
     }
 }
