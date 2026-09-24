@@ -1,14 +1,9 @@
 package com.guerram.DespensaFamily.config;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Properties;
 
 /**
  * Garantiza que cada instalacion firme sus tokens con un secreto propio.
@@ -49,56 +44,14 @@ public final class SecretoJwt {
      * Idempotente: si ya existe uno, lo respeta y no toca el archivo.
      */
     public static String asegurar(Path configProperties) throws IOException {
-        String existente = leer(configProperties);
+        String existente = EditorArchivoPropiedades.leerValor(configProperties, CLAVE);
         if (existente != null && !existente.isBlank()) {
             return existente;
         }
 
         String nuevo = generar();
-        escribir(configProperties, nuevo, existente != null);
+        EditorArchivoPropiedades.escribirValor(configProperties, CLAVE, nuevo, cabecera());
         return nuevo;
-    }
-
-    private static String leer(Path configProperties) throws IOException {
-        if (!Files.isRegularFile(configProperties)) {
-            return null;
-        }
-        Properties propiedades = new Properties();
-        try (InputStream entrada = Files.newInputStream(configProperties)) {
-            propiedades.load(entrada);
-        }
-        return propiedades.getProperty(CLAVE);
-    }
-
-    /**
-     * Se edita el texto en vez de usar {@link Properties#store}: eso reescribe
-     * el archivo entero y se lleva puestos los comentarios y el orden, que son
-     * lo unico que hace entendible un config.properties editado a mano.
-     */
-    private static void escribir(Path configProperties, String secreto, boolean habiaClaveEnBlanco)
-            throws IOException {
-
-        Files.createDirectories(configProperties.toAbsolutePath().getParent());
-
-        if (!Files.exists(configProperties)) {
-            Files.writeString(configProperties, cabecera() + CLAVE + "=" + secreto + "\n",
-                    StandardCharsets.UTF_8);
-            return;
-        }
-
-        String contenido = Files.readString(configProperties, StandardCharsets.UTF_8);
-
-        if (habiaClaveEnBlanco) {
-            contenido = contenido.replaceAll("(?m)^\\s*" + CLAVE + "\\s*[=:].*$",
-                    CLAVE + "=" + secreto);
-            Files.writeString(configProperties, contenido, StandardCharsets.UTF_8);
-            return;
-        }
-
-        String separador = contenido.isEmpty() || contenido.endsWith("\n") ? "" : "\n";
-        Files.writeString(configProperties,
-                separador + cabecera() + CLAVE + "=" + secreto + "\n",
-                StandardCharsets.UTF_8, StandardOpenOption.APPEND);
     }
 
     private static String cabecera() {

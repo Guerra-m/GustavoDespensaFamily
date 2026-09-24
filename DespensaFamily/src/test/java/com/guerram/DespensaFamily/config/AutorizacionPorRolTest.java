@@ -172,6 +172,20 @@ class AutorizacionPorRolTest {
                 .content("{\"porcentaje\":50}").with(EMPLEADO)).andReturn(), "aplicar ganancia global");
     }
 
+    // La clave de Gemini es ADMIN incluso para GET (a diferencia del resto de
+    // /configuracion, donde el GET es de cualquier autenticado): que el
+    // asistente de IA este configurado no es informacion que un empleado
+    // necesite ver.
+    @Test
+    void elEmpleadoNoPuedeVerNiTocarLaClaveDeIa() throws Exception {
+        prohibido(mockMvc.perform(get("/configuracion/ia").with(EMPLEADO)).andReturn(), "ver el estado de la clave de IA");
+        prohibido(mockMvc.perform(put("/configuracion/ia")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"apiKey\":\"cualquier-cosa-bien-larga-1234\"}").with(EMPLEADO)).andReturn(),
+                "cambiar la clave de IA");
+        prohibido(mockMvc.perform(delete("/configuracion/ia").with(EMPLEADO)).andReturn(), "quitar la clave de IA");
+    }
+
     // ------------------------------------------------------------------- ADMIN
 
     @Test

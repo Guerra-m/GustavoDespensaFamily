@@ -136,6 +136,37 @@
   color: var(--color-peligro);
 }
 
+.ia-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #e9ecef;
+  color: #495057;
+}
+
+.ia-badge.configurada {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--color-exito-dark, #1e8449);
+}
+
+.ia-badge.no-configurada {
+  background: rgba(230, 126, 34, 0.15);
+  color: #b9770e;
+}
+
+#btn-quitar-clave-ia.ajuste-boton-secundario {
+  background: #ffffff;
+  color: var(--color-peligro, #c0392b);
+  border: 2px solid var(--color-peligro, #c0392b);
+}
+
+#btn-quitar-clave-ia.ajuste-boton-secundario:hover {
+  background: rgba(192, 57, 43, 0.08);
+  transform: translateY(-2px);
+}
+
 /* RESPONSIVE */
 @media (max-width: 1023px) {
   .content {

@@ -1153,3 +1153,81 @@ y el selector de método de pago) tiene una captura real.
 3. **Un campo pendiente de decisión**, ya anotado en la sección de empleados:
    si hace falta un "monto acordado" opcional para poder mostrar el
    porcentaje pagado que se pidió originalmente.
+
+## 17. Clave de IA y desinstalación — 24/09/2026
+
+### Qué se agregó al `.iss`
+
+- **Página opcional "Asistente de IA (opcional)"**, después de la de tareas
+  (`wpSelectTasks`). Un campo de contraseña (enmascarado) para la clave de
+  Gemini, con el texto explicando para qué sirve (cargar productos desde una
+  foto o un texto), dónde se saca gratis
+  (`https://aistudio.google.com/apikey`) y que se puede dejar vacío. Si ya
+  hay una clave de una instalación anterior, el texto lo avisa y sugiere
+  dejar el campo vacío para conservarla.
+- Al terminar la instalación (`ssPostInstall`), si el campo no está vacío,
+  `GuardarClaveIA` edita `config.properties` como texto —igual que hace
+  `SecretoJwt.java` del lado de Java— agregando o reemplazando solo la línea
+  `despensa.ia.gemini.api-key=...`, sin tocar ninguna otra línea (en
+  particular, sin tocar nunca `jwt.secret`, que es lo que no se puede perder).
+  Si el campo queda vacío no se toca el archivo: una actualización conserva
+  la clave que ya estaba, y una instalación nueva sin IA no crea la línea.
+- Validación mínima en `NextButtonClick`: recorta espacios, rechaza espacios
+  o saltos de línea internos (para no poder inyectar otra propiedad en el
+  archivo), y avisa —sin bloquear— si la clave no empieza con `AIza`.
+- **La clave nunca se loguea ni se muestra**: no hay `Log()` ni `MsgBox` con
+  su valor en ningún punto del script, y no se pasa por línea de comandos ni
+  por variable de entorno de ningún proceso hijo.
+- **Por qué nunca va en el `.iss` ni en el setup.exe**: es una credencial de
+  clase 4/5 (SEC-01 de `11-gestion-de-secretos.md`) — da acceso a la cuota de
+  la cuenta de Gemini de quien la cargó. El repositorio es público, y
+  cualquiera puede descompilar un `.exe` de Inno Setup con `innounp`; si la
+  clave viajara embebida en el instalador, viajaría con él. Por eso se pide
+  una vez por instalación, en memoria, y se escribe únicamente en
+  `%LOCALAPPDATA%\DespensaFamily\config.properties`, que ya está fuera del
+  repositorio y fuera de lo que pisa una actualización.
+
+### Cerrar la app antes de instalar o desinstalar
+
+`DespensaFamily.exe` y `DespensaFamilyServidor.exe` dejan sus archivos
+trabados si siguen corriendo. `PrepareToInstall` (antes de copiar archivos) y
+`InitializeUninstall` (antes de desinstalar) llaman a `CerrarAppSiHaceFalta`:
+
+- Detecta si alguno de los dos procesos está corriendo con `tasklist`
+  redirigido a un archivo temporal (`Exec` no da acceso directo a stdout).
+- Si no hay nada corriendo, sigue sin preguntar nada.
+- Si hay algo corriendo y el instalador no es silencioso
+  (`WizardSilent`/`UninstallSilent`), pregunta con un `MsgBox` de
+  Aceptar/Cancelar; si cancela, se aborta sin error feo (`PrepareToInstall`
+  devuelve un mensaje propio, `InitializeUninstall` devuelve `False`). En
+  modo silencioso cierra directo, sin preguntar.
+- Cierra primero **sin** `/F` (le da tiempo a Electron a avisarle al servidor
+  Java que cierre la base en orden), espera 3 segundos, y solo si algo sigue
+  vivo repite con `/F`.
+
+### La desinstalación conserva los datos siempre
+
+Sin cambios en `[UninstallDelete]` — sigue sin existir, a propósito. Se
+agregó únicamente un aviso al final (`usPostUninstall`, y solo si
+`UninstallSilent()` es falso) que dice dónde quedaron los datos
+(`%LOCALAPPDATA%\DespensaFamily`) y que reinstalar los hace reaparecer.
+
+### Versión en un solo lugar
+
+`#define Version` ahora es `#ifndef Version / #define Version "0.0.0-dev" /
+#endif`, y `empaquetar.bat` le pasa `/DVersion=!VERSION!` a `ISCC.exe` (la
+versión sigue saliendo del `pom.xml`, sin cambios ahí). El nombre de salida
+sigue siendo `DespensaFamily-<version>-setup.exe`.
+
+### Verificación
+
+Compilado con `ISCC.exe /DVersion=1.1.0 DespensaFamily.iss` contra el
+`dist\win-unpacked` real que ya estaba armado en esta máquina: compiló limpio
+(un solo error de tipeo corregido en el camino: `TInputQueryPage` no existe,
+es `TInputQueryWizardPage`) y generó
+`empaquetado\DespensaFamily-1.1.0-setup.exe`. No se instaló ese setup ni se
+tocó `%LOCALAPPDATA%\DespensaFamily` real. No se probó a mano el flujo
+completo del wizard (la página de IA, el cierre de procesos corriendo, ni el
+aviso de desinstalación) porque compilar no es lo mismo que correr el
+instalador — queda para cuando el orquestador corra `empaquetar.bat` y se
+pruebe la instalación real.

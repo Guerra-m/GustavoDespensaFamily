@@ -1,9 +1,13 @@
 package com.guerram.DespensaFamily.controller;
 
 import com.guerram.DespensaFamily.dto.ConfiguracionDTO;
+import com.guerram.DespensaFamily.dto.ia.ClaveIaDTO;
+import com.guerram.DespensaFamily.dto.ia.EstadoIaDTO;
+import com.guerram.DespensaFamily.service.ConfiguracionIaService;
 import com.guerram.DespensaFamily.service.ConfiguracionService;
 import com.guerram.DespensaFamily.util.OptimisticRetry;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -14,6 +18,7 @@ import java.util.Map;
 public class ConfiguracionController {
 
     private final ConfiguracionService configuracionService;
+    private final ConfiguracionIaService configuracionIaService;
 
     @GetMapping
     public ConfiguracionDTO obtener() {
@@ -33,5 +38,26 @@ public class ConfiguracionController {
         }
         int actualizados = OptimisticRetry.ejecutar(() -> configuracionService.aplicarGananciaATodos(porcentaje));
         return Map.of("productosActualizados", actualizados);
+    }
+
+    // Estado de la clave de Gemini (F5). Nunca devuelve la clave en si — ver
+    // EstadoIaDTO y SEC-01/SEC-05 de la biblioteca de seguridad. La ruta ya
+    // esta restringida a ADMIN de forma explicita en SecurityConfig (no
+    // alcanza con la regla general de /configuracion/**, que deja el GET
+    // abierto a cualquier autenticado).
+    @GetMapping("/ia")
+    public EstadoIaDTO obtenerEstadoIa() {
+        return configuracionIaService.obtenerEstado();
+    }
+
+    @PutMapping("/ia")
+    public EstadoIaDTO actualizarClaveIa(@RequestBody ClaveIaDTO dto) {
+        return configuracionIaService.actualizar(dto);
+    }
+
+    @DeleteMapping("/ia")
+    @ResponseStatus(HttpStatus.OK)
+    public EstadoIaDTO quitarClaveIa() {
+        return configuracionIaService.quitar();
     }
 }

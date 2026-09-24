@@ -100,6 +100,12 @@ public class SecurityConfig {
                 .requestMatchers("/promociones/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/descuentos/**").authenticated()
                 .requestMatchers("/descuentos/**").hasRole("ADMIN")
+                // La clave de Gemini es ADMIN incluso para GET: la regla
+                // general de abajo deja el GET de /configuracion/** abierto
+                // a cualquier autenticado (ganancia, nombre del negocio,
+                // etc.), pero saber si el asistente de IA esta configurado
+                // no tiene por que verlo un empleado.
+                .requestMatchers("/configuracion/ia").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/configuracion/**").authenticated()
                 .requestMatchers("/configuracion/**").hasRole("ADMIN")
                 .requestMatchers("/reportes/**").hasRole("ADMIN")

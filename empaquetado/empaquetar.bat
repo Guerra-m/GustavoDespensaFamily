@@ -131,7 +131,7 @@ if not defined ISCC (
     echo   %RAIZ%\empaquetado\dist\win-unpacked\DespensaFamily.exe
 ) else (
     pushd "%RAIZ%\empaquetado"
-    "!ISCC!" DespensaFamily.iss || (echo   ERROR en Inno Setup & popd & pause & exit /b 1)
+    "!ISCC!" /DVersion=!VERSION! DespensaFamily.iss || (echo   ERROR en Inno Setup & popd & pause & exit /b 1)
     popd
     echo.
     echo   Instalador listo:

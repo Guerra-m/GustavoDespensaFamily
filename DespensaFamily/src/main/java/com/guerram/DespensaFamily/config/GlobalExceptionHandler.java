@@ -74,6 +74,15 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    // La clave de Gemini la fijo una variable de entorno de Windows: no se
+    // puede pisar desde la app. 409 porque el pedido es valido pero choca con
+    // el estado actual del servidor, no con datos invalidos del cliente.
+    @ExceptionHandler(ClaveIaPorVariableDeEntornoException.class)
+    public ResponseEntity<Map<String, String>> handleClaveIaPorVariableDeEntorno(ClaveIaPorVariableDeEntornoException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleValidacion(ConstraintViolationException ex) {
         String detalle = ex.getConstraintViolations().stream()

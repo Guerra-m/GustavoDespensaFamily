@@ -72,6 +72,32 @@
         </div>
       </section>
 
+      <!-- ================= ASISTENTE DE IA ================= -->
+      <section class="ajuste-card">
+        <h2>Asistente de IA</h2>
+        <p class="ajuste-ayuda">
+          Usa la API de Gemini para leer productos desde una foto o una lista de texto al cargarlos.
+          Conseguí una clave gratuita en
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com/apikey</a>.
+        </p>
+
+        <p>
+          Estado:
+          <span id="badge-estado-ia" class="ia-badge">Cargando…</span>
+        </p>
+
+        <div class="ajuste-fila">
+          <label>
+            Clave de la API
+            <input type="password" id="input-clave-ia" autocomplete="off" placeholder="Pegá la clave acá" />
+          </label>
+          <button type="button" id="btn-guardar-clave-ia">Guardar</button>
+          <button type="button" id="btn-quitar-clave-ia" class="ajuste-boton-secundario">Quitar</button>
+        </div>
+
+        <p id="error-clave-ia" class="ajuste-resultado error hidden"></p>
+      </section>
+
     </div>
   </main>
 

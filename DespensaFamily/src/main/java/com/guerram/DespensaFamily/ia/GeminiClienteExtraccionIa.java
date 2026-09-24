@@ -43,11 +43,14 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final String apiKey;
+    // La clave vive en un holder mutable (F5, ver ClaveIa) y no en un campo
+    // fijado una sola vez en el constructor: asi ConfiguracionIaService puede
+    // cambiarla desde Ajustes sin reiniciar el servidor.
+    private final ClaveIa claveIa;
     private final String modelo;
 
     public GeminiClienteExtraccionIa(
-            @Value("${despensa.ia.gemini.api-key:}") String apiKey,
+            ClaveIa claveIa,
             // El default sigue al que usa application.properties: cuando eran
             // distintos, correr sin el properties caia en un modelo viejo sin
             // que nada lo dijera.
@@ -55,7 +58,7 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
             @Value("${despensa.ia.gemini.timeout-segundos:45}") int timeoutSegundos,
             ObjectMapper objectMapper
     ) {
-        this.apiKey = apiKey;
+        this.claveIa = claveIa;
         this.modelo = modelo;
         this.objectMapper = objectMapper;
 
@@ -72,7 +75,7 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
     }
 
     public boolean estaConfigurado() {
-        return apiKey != null && !apiKey.isBlank();
+        return claveIa.estaConfigurada();
     }
 
     @Override
@@ -106,7 +109,7 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
                     // Header, no query param: evita que la clave quede en logs de
                     // proxies/balanceadores que sí suelen registrar la URL completa
                     // (ver SEC-05, canales de fuga de secretos).
-                    .header("x-goog-api-key", apiKey)
+                    .header("x-goog-api-key", claveIa.obtener())
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
