@@ -25,7 +25,11 @@ a {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
-  margin-bottom: 30px;
+  /* DF-UX-001: era 30px. En una notebook de 900px de alto, esta única regla
+     (repetida por cada bloque de abajo) es la diferencia entre ver una fila
+     de productos al entrar o una franja vacía — "subir el catálogo" de la
+     auditoría es, en la práctica, sumar todos estos recortes. */
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -45,7 +49,8 @@ h2 {
   font-size: 24px;
   font-weight: 600;
   color: #2c3e50;
-  margin: 30px 0 20px 0;
+  /* Era 30px 0 20px 0 (ver nota de DF-UX-001 en .content h1). */
+  margin: 16px 0 12px 0;
   padding-bottom: 12px;
   border-bottom: 2px solid #e9ecef;
   display: flex;
@@ -81,7 +86,7 @@ h3 {
 input[type="number"] {
   width: 100%;
   padding: 14px 16px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   font-size: 15px;
   border: 2px solid #e9ecef;
   border-radius: 10px;
@@ -169,7 +174,7 @@ button:not(.menu-toggle):not(.btn-stepper):active {
   background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: 14px;
 }
 
 #btn-agregar:hover {
@@ -253,8 +258,8 @@ button.btn-imprimir:hover {
 
 /* GRID DE PRODUCTOS */
 #productos-section {
-  margin: 30px 0;
-  padding: 20px;
+  margin: 16px 0;
+  padding: 16px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -594,7 +599,8 @@ hr {
   border: none;
   height: 2px;
   background: linear-gradient(90deg, transparent, #e9ecef, transparent);
-  margin: 50px 0;
+  /* Era 50px 0 (ver nota de DF-UX-001 en .content h1). */
+  margin: 16px 0;
 }
 
 /* MODAL */
@@ -839,26 +845,83 @@ hr {
   min-width: 480px;
 }
 
-/* La tabla del carrito vive dentro de .carrito (flex:1, columna angosta a
-   propósito). El min-width general de 480px la forzaba a no encogerse,
-   dejando el split real ~50/50 con .registrar en vez del 75/25 esperado. */
-.carrito .tabla-scroll table {
-  min-width: 300px;
+/* ── CARRITO: lista de dos renglones por ítem (DF-UX-001) ──
+   Reemplaza la <table> de 5 columnas (Producto/Cantidad/Precio/Subtotal/
+   Acción), que necesitaba ~524px de ancho mínimo para no recortar nada.
+   Estructura por ítem (ver renderCarrito en ventas.ts):
+     fila1: nombre (+ descuento)         | cantidad (stepper o texto)
+     fila2: subtotal cotizado            | botón Quitar
+   Todo lo que se muestra sigue viniendo de la cotización del backend
+   (DF-BUG-001) — acá solo cambia cómo se dibuja. */
+.carrito-lista-scroll {
+  /* 260px y no más: a 1366x768 (notebook chica) el resto del carrito -header,
+     método de pago, cliente, resumen y atajos- ya ocupa buena parte del
+     alto; con esto "Confirmar Venta" queda visible sin scroll también ahí,
+     no solo en pantallas más altas. Con muchos ítems, la lista scrollea
+     adentro (ver overflow-y) sin arrastrar el resto de la columna. */
+  max-height: 260px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid #f1f3f5;
+}
+
+.carrito-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.carrito-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.carrito-item:last-child {
+  border-bottom: none;
+}
+
+.carrito-item-fila1,
+.carrito-item-fila2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.carrito-item-fila2 {
+  margin-top: 6px;
+}
+
+.carrito-item-nombre {
+  font-size: 13px;
+  color: #2c3e50;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.carrito-item-subtotal {
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 14px;
 }
 
 /* Subir o bajar de a 1 unidad sin borrar la línea y volver a escanear:
    antes, cambiar 3 unidades a 2 significaba "Quitar" y cargar todo de
-   nuevo. Compacto a propósito — la columna Cantidad del carrito es angosta. */
+   nuevo. */
 .carrito-stepper {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
+/* DF-UX-001: eran 20x20px, chicos para tocar con el dedo en una pantalla
+   táctil. La auditoría pide 32px o más — quedan en 34px, con un poco de
+   margen sobre el mínimo. */
 .btn-stepper {
-  width: 20px;
-  height: 20px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   padding: 0;
   margin: 0;
@@ -866,7 +929,7 @@ hr {
   border-radius: 50%;
   background: #fff;
   color: var(--color-primario-dark);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
 }
@@ -878,7 +941,7 @@ hr {
 }
 
 .carrito-cantidad-texto {
-  min-width: 44px;
+  min-width: 36px;
   text-align: center;
   font-size: 13px;
 }
@@ -1029,15 +1092,25 @@ hr {
 }
 
 /* ZONA PRINCIPAL (IZQ + DER) */
+/* DF-UX-001: era `display: flex` con .registrar{flex:3} / .carrito{flex:1}.
+   Ese 3:1 se calculaba sobre el ANCHO TOTAL disponible, así que en una
+   notebook angosta (1024-1366px, navbar fijo de 260px descontado) el
+   carrito quedaba con ~140-200px reales — mucho menos que lo que la tabla
+   de adentro necesitaba (300px de min-width), lo que forzaba el desborde
+   horizontal de TODA la página (84px medidos a 1024px) y tapaba Confirmar.
+   Grid con minmax() le da al carrito un ancho fijo razonable (260-340px,
+   suficiente para la lista de dos renglones de más abajo) y el catálogo se
+   queda con el resto — nunca al revés. */
 .ventas-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: 20px;
   margin-top: 20px;
+  align-items: start;
 }
 
 /* COLUMNA IZQUIERDA */
 .registrar {
-  flex: 3;
   min-width: 0;
   background: white;
   padding: 20px;
@@ -1053,12 +1126,6 @@ hr {
 
 /* COLUMNA DERECHA */
 .carrito {
-  flex: 1;
-  /* Sin esto, un ítem flex nunca se achica por debajo del ancho mínimo de
-     su contenido (la tabla), sin importar flex-grow — por eso .carrito
-     terminaba más ancho que .registrar pese al 3:1 esperado. La tabla
-     sigue scrolleando horizontalmente adentro si hace falta (.tabla-scroll
-     ya tiene overflow-x:auto). */
   min-width: 0;
   background: white;
   padding: 20px;
@@ -1066,7 +1133,11 @@ hr {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-3, 12px);
+  /* Era var(--espacio-3, 12px) entre los 6 bloques de la columna (título,
+     lista, método de pago, cliente, resumen, atajos): a 1366x768 esos 5
+     espacios de más empujaban "Confirmar Venta" 16px por debajo del borde
+     inferior de la pantalla. */
+  gap: 8px;
 }
 
 .carrito h2 {
@@ -1130,7 +1201,7 @@ hr {
 /* RESPONSIVE (celular) */
 @media (max-width: 900px) {
   .ventas-main {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     /* Deja lugar para la barra fija de abajo, si no el último producto del
        catálogo queda tapado detrás. */
     padding-bottom: 84px;

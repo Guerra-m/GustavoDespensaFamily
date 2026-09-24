@@ -63,19 +63,15 @@
     <div class="carrito">
       <h2>Carrito</h2>
 
-      <div class="tabla-scroll" style="max-height: 420px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Cantidad</th>
-              <th>Precio</th>
-              <th>Subtotal</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="tabla-detalle"></tbody>
-        </table>
+      <!-- DF-UX-001: antes era una <table> (Producto/Cantidad/Precio/Subtotal/
+           Acción) que necesitaba ~524px de ancho mínimo — en una notebook la
+           columna del carrito nunca tiene eso, así que Subtotal y "Quitar"
+           quedaban fuera de pantalla o forzaban desborde horizontal de toda
+           la página. Ahora es una lista de dos renglones por ítem (ver
+           renderCarrito en ventas.ts), que se achica con la columna sin
+           perder ningún dato. -->
+      <div class="carrito-lista-scroll">
+        <div id="tabla-detalle" class="carrito-lista"></div>
       </div>
 
       <!-- Cómo se cobra. Antes del total y no en la barra fija de abajo: en
