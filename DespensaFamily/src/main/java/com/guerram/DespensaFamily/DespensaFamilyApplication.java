@@ -1,6 +1,7 @@
 package com.guerram.DespensaFamily;
 
 import com.guerram.DespensaFamily.config.AppPaths;
+import com.guerram.DespensaFamily.config.ErrorDeArranque;
 import com.guerram.DespensaFamily.config.Escritorio;
 import com.guerram.DespensaFamily.config.ModoEscritorio;
 import org.springframework.boot.SpringApplication;
@@ -40,7 +41,15 @@ public class DespensaFamilyApplication {
 			return;
 		}
 
-		SpringApplication.run(DespensaFamilyApplication.class, args);
+		try {
+			SpringApplication.run(DespensaFamilyApplication.class, args);
+		} catch (RuntimeException e) {
+			// La ventana de escritorio no ve esta consola: si el motivo es uno
+			// que el usuario puede resolver (una base de una version mas nueva),
+			// se lo deja escrito para que lo muestre en vez de "no respondio".
+			ErrorDeArranque.anotar(e, carpetaDeDatos.resolve("logs"));
+			throw e;
+		}
 	}
 
 }
