@@ -3,7 +3,7 @@ import { checkAuth } from "../../services/auth.service";
 checkAuth();
 
 import { getProductos } from "../../services/productos.service";
-import { getVentas, createVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
+import { getVentas, createVenta, cotizarVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
 import { getCategorias } from "../../services/categorias.service";
 import { getPromociones } from "../../services/promociones.service";
 import type { Categoria } from "../../models/Categoria";
@@ -12,6 +12,7 @@ import type { Promocion } from "../../models/Promocion";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
 import type { Venta } from "../../models/Venta";
 import type { MetodoPago } from "../../models/MetodoPago";
+import type { Cotizacion } from "../../models/Cotizacion";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora } from "../../utils/format";
@@ -87,6 +88,29 @@ void ultimoCodigoEscaneado;
 let productoSeleccionado: Producto | null = null;
 let categoriaActivaId: number | null = null;
 
+// ---------------- DF-BUG-001: cotización del carrito ----------------
+// Única fuente de precios del carrito: lo que devuelve POST /ventas/cotizar
+// (VentaService.cotizar en el backend), que comparte el cálculo con la venta
+// real. Antes esto se recalculaba acá mismo (subtotalConPromo), aplicando
+// solo promos —nunca descuentos— y sin redondear cantidades pesables: el
+// carrito llegó a mostrar $2.860 para una línea que el ticket y la base
+// cobraban $286.
+let cotizacionActual: Cotizacion | null = null;
+let cotizando = false;
+let secuenciaCotizacion = 0;
+let handleDebounceCotizacion: ReturnType<typeof setTimeout> | null = null;
+
+// ---------------- DF-BUG-003: idempotencia de la confirmación ----------------
+let ventaEnCurso = false;
+let claveIdempotenciaActual: string | null = null;
+
+function generarClaveIdempotencia(): string {
+  // crypto.randomUUID existe en todos los navegadores/Electron que usa la
+  // app; sin fallback a propósito, si faltara es mejor que rompa fuerte acá
+  // y no que se generen claves débiles.
+  return crypto.randomUUID();
+}
+
 function esProductoPesable(producto: Producto): boolean {
   return producto.tipoCantidad === "PESO";
 }
@@ -154,20 +178,6 @@ async function cargarProductos() {
   );
   renderFiltrosCategorias();
   renderProductosGrid();
-}
-
-// Mismo cálculo que el backend (VentaService.calcularSubtotal) — solo para
-// el preview del carrito antes de confirmar. La fuente de verdad real es
-// siempre la respuesta del backend al registrar la venta.
-function subtotalConPromo(producto: Producto, cantidad: number): number {
-  const promo = promosPorProducto.get(producto.id!);
-  if (promo && producto.tipoCantidad === "UNIDAD") {
-    const grupos = Math.floor(cantidad / promo.cantidadLleva);
-    const resto = cantidad % promo.cantidadLleva;
-    const unidadesAPagar = grupos * promo.cantidadPaga + resto;
-    return unidadesAPagar * producto.precioVenta;
-  }
-  return producto.precioVenta * cantidad;
 }
 
 async function cargarVentas() {
@@ -343,14 +353,36 @@ function seleccionarProducto(producto: Producto) {
 /* =======================
    CARRITO
 ======================= */
+
+// La línea cotizada para este item, si ya llegó del backend. Se busca por
+// productoId nomás (no por cantidad): mientras la cotización nueva está en
+// vuelo (debounce/red), mostrar la última que llegó para ese producto es
+// mejor que un guion — y en cuanto se ajuste la cantidad, la próxima
+// respuesta la reemplaza.
+function lineaCotizadaPara(item: DetalleVentaRequest) {
+  return cotizacionActual?.lineas.find(l => l.productoId === item.productoId);
+}
+
+function indicadorDescuento(linea: ReturnType<typeof lineaCotizadaPara>): string {
+  if (!linea) return "";
+  if (linea.descuentoPorcentaje) return `<span class="carrito-descuento">-${formatearCantidad(linea.descuentoPorcentaje)}%</span>`;
+  if (linea.promoDescripcion) return `<span class="carrito-descuento">${esc(linea.promoDescripcion)}</span>`;
+  return "";
+}
+
+// Solo dibuja lo que ya se sabe (carrito + última cotización disponible).
+// No dispara ningún pedido de red — eso es tarea de programarCotizacion.
 function renderCarrito() {
   tablaDetalle.innerHTML = "";
-  let total = 0;
 
   carrito.forEach((item, index) => {
     const prod = productos.find(p => p.id === item.productoId)!;
-    const subtotal = subtotalConPromo(prod, item.cantidad);
-    total += subtotal;
+    const linea = lineaCotizadaPara(item);
+    // Sin cotización todavía para esta línea (recién agregada, primera
+    // vuelta): "…" en vez de inventar un precio del lado del cliente — eso
+    // es exactamente lo que causaba DF-BUG-001.
+    const subtotalTexto = linea ? `$${linea.subtotal.toFixed(2)}` : "…";
+    const avisoStock = linea?.stockInsuficiente ? `<div class="carrito-sin-stock">Sin stock suficiente</div>` : "";
 
     // El +/- solo aparece en productos por unidad: en los por peso, tocar
     // "+1" no tiene sentido (la fracción mínima es el gramo) y lo que hace
@@ -365,22 +397,22 @@ function renderCarrito() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${esc(prod.nombre)}</td>
+      <td>${esc(prod.nombre)} ${indicadorDescuento(linea)}${avisoStock}</td>
       <td>${stepper}</td>
       <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
-      <td>$${subtotal.toFixed(2)}</td>
+      <td>${subtotalTexto}</td>
       <td><button class="btn-quitar" data-index="${index}">Quitar</button></td>
     `;
     tablaDetalle.appendChild(tr);
   });
 
-  spanTotal.textContent = total.toFixed(2);
+  actualizarTotal();
 
   document.querySelectorAll(".btn-quitar").forEach(btn => {
     btn.addEventListener("click", () => {
       const index = Number((btn as HTMLElement).dataset.index);
       carrito.splice(index, 1);
-      renderCarrito();
+      onCarritoCambio();
     });
   });
 
@@ -397,9 +429,84 @@ function renderCarrito() {
       } else {
         item.cantidad = nueva;
       }
-      renderCarrito();
+      onCarritoCambio();
     });
   });
+}
+
+function actualizarTotal() {
+  if (!carrito.length) {
+    spanTotal.textContent = "0.00";
+    return;
+  }
+  if (cotizando && !cotizacionActual) {
+    // Primera cotización de este carrito, todavía sin ninguna respuesta
+    // previa que mostrar mientras tanto.
+    spanTotal.textContent = "Calculando…";
+    return;
+  }
+  if (cotizacionActual) {
+    spanTotal.textContent = cotizando
+      ? `${cotizacionActual.total.toFixed(2)} (actualizando…)`
+      : cotizacionActual.total.toFixed(2);
+    return;
+  }
+  spanTotal.textContent = "—";
+}
+
+// DF-BUG-001: pide la cotización real al backend con un debounce de 250ms —
+// tipear "3" y después "0" para 30 unidades no tiene que disparar dos
+// pedidos, solo el último importa. `secuenciaCotizacion` descarta cualquier
+// respuesta que no sea la del ÚLTIMO pedido programado (una respuesta vieja
+// que llega tarde no puede pisar a una más nueva que ya llegó, o peor, a un
+// carrito que mientras tanto se vació).
+function programarCotizacion() {
+  if (handleDebounceCotizacion) clearTimeout(handleDebounceCotizacion);
+
+  if (!carrito.length) {
+    cotizacionActual = null;
+    cotizando = false;
+    secuenciaCotizacion++; // invalida cualquier pedido en vuelo
+    actualizarTotal();
+    return;
+  }
+
+  cotizando = true;
+  actualizarTotal();
+
+  const miSecuencia = ++secuenciaCotizacion;
+  const detallesPedidos = carrito.map(item => ({ ...item }));
+
+  handleDebounceCotizacion = setTimeout(async () => {
+    try {
+      const cotizacion = await cotizarVenta(detallesPedidos);
+      if (miSecuencia !== secuenciaCotizacion) return; // ya no es la vigente
+
+      cotizacionActual = cotizacion;
+      cotizando = false;
+      renderCarrito();
+    } catch (error) {
+      if (miSecuencia !== secuenciaCotizacion) return;
+
+      cotizando = false;
+      // Se conserva la última cotización buena (si había): un error de red
+      // momentáneo no tiene que borrar el total que ya se sabía correcto.
+      mostrarToast(
+        `No se pudo actualizar el total: ${(error as Error).message || "error de red"}`,
+        true
+      );
+      actualizarTotal();
+    }
+  }, 250);
+}
+
+// Todo lo que cambia el carrito pasa por acá: redibuja con lo que ya se sabe
+// y programa la cotización real. También invalida la clave de idempotencia
+// de la confirmación anterior — un carrito distinto es un pedido distinto.
+function onCarritoCambio() {
+  claveIdempotenciaActual = null;
+  renderCarrito();
+  programarCotizacion();
 }
 
 // Agrega cantidad al carrito, sumando a la línea existente si el producto
@@ -413,7 +520,7 @@ function agregarAlCarrito(productoId: number, cantidad: number) {
   } else {
     carrito.push({ productoId, cantidad });
   }
-  renderCarrito();
+  onCarritoCambio();
 }
 
 // Descuenta localmente lo vendido, sin volver a pedir todo el listado
@@ -594,39 +701,69 @@ btnAgregar.addEventListener("click", () => {
   mostrarToast("Producto agregado al carrito");
 });
 
-btnConfirmar.addEventListener("click", async () => {
+// DF-BUG-003: un único camino para confirmar, usado tanto por el click del
+// botón como por el atajo Ctrl+Enter (antes cada uno tenía su propio
+// entrypoint y ninguno se cuidaba de una segunda llamada en simultáneo — un
+// doble click real llegó a crear dos ventas del mismo carrito en el mismo
+// milisegundo). `ventaEnCurso` corta cualquier llamada mientras la anterior
+// sigue en vuelo, y el botón se deshabilita como refuerzo visual — mismo
+// patrón que compras.ts y login.ts.
+async function confirmarVenta() {
+  if (ventaEnCurso) return;
   if (!carrito.length) { mostrarToast("No hay productos en la venta", true); return; }
 
-  let ventaCreada;
+  ventaEnCurso = true;
+  btnConfirmar.disabled = true;
+  const textoOriginalBtnConfirmar = btnConfirmar.textContent;
+  btnConfirmar.textContent = "Confirmando...";
+
+  // Un UUID por intento (crypto.randomUUID). Si esta misma clave ya viajó en
+  // un intento anterior que falló por red, se reutiliza (no se regenera acá
+  // arriba) para que el backend pueda reconocer el reintento como el MISMO
+  // pedido — ver VentaController / V12__venta_clave_idempotencia.
+  const clave = claveIdempotenciaActual ?? (claveIdempotenciaActual = generarClaveIdempotencia());
+  const cotizacionDeEsteCarrito = cotizacionActual;
+
   try {
     const cliente = inputCliente.value.trim();
-    ventaCreada = await createVenta({
+    const ventaCreada = await createVenta({
       detalles: carrito,
       metodoPago: metodoPagoSeleccionado,
       cliente: cliente || undefined
-    });
+    }, clave);
+
+    // Éxito: el próximo intento (si el vendedor arma otro carrito) es un
+    // pedido nuevo, con su propia clave.
+    claveIdempotenciaActual = null;
+
+    actualizarStockLocal(carrito);
+    carrito = [];
+    cotizacionActual = null;
+    // A diferencia del método de pago, el cliente sí se limpia: el próximo
+    // carrito casi seguro es para otra persona, y dejarlo puesto sería un
+    // error mucho más probable que útil.
+    inputCliente.value = "";
+    renderCarrito();
+    cargarVentas();
+
+    await imprimirTicket(ventaCreada, cotizacionDeEsteCarrito);
+
+    mostrarToast("Venta registrada exitosamente");
+    inputBuscarProducto.focus();
   } catch (error) {
     // Antes esto quedaba sin manejar: la venta fallaba en silencio, sin
     // toast ni error visible, y el carrito quedaba "colgado". Ahora se
-    // avisa y el carrito se conserva intacto para poder reintentar.
+    // avisa y el carrito se conserva intacto para poder reintentar — con la
+    // MISMA clave de idempotencia, que no se tocó en este catch.
     mostrarToast((error as Error).message || "Error al registrar venta", true);
-    return;
+  } finally {
+    ventaEnCurso = false;
+    btnConfirmar.disabled = false;
+    btnConfirmar.textContent = textoOriginalBtnConfirmar;
   }
+}
 
-  actualizarStockLocal(carrito);
-  carrito = [];
-  // A diferencia del método de pago, el cliente sí se limpia: el próximo
-  // carrito casi seguro es para otra persona, y dejarlo puesto sería un
-  // error mucho más probable que útil.
-  inputCliente.value = "";
-  renderCarrito();
-  cargarVentas();
-
-  await imprimirTicket(ventaCreada);
-
-  mostrarToast("Venta registrada exitosamente");
-  inputBuscarProducto.focus();
-});
+btnConfirmar.addEventListener("click", confirmarVenta);
 
 btnCerrarDetalle.addEventListener("click", () => modalDetalle.classList.add("hidden"));
 
@@ -725,7 +862,7 @@ document.addEventListener("keydown", (e) => {
   if (productoSeleccionado && inputBuscarProducto.dataset.id) return;
 
   e.preventDefault();
-  btnConfirmar.click();
+  confirmarVenta();
 });
 
 // El escaneo por cámara está desactivado: en el mostrador se usa el lector de
@@ -767,7 +904,7 @@ function etiquetaMetodoPago(metodo: MetodoPago): string {
   return etiquetas[metodo];
 }
 
-async function imprimirTicket(venta: Venta) {
+async function imprimirTicket(venta: Venta, cotizacion?: Cotizacion | null) {
   if (!productos.length) await cargarProductos();
 
   const response = await getDetalleVenta(venta.id!);
@@ -780,9 +917,20 @@ async function imprimirTicket(venta: Venta) {
     const producto = productos.find(p => p.id === d.productoId);
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
+    // DF-BUG-001: antes el ticket mostraba "1 u × $2860 = $286" sin ninguna
+    // aclaración de por qué el precio unitario no coincide con el subtotal —
+    // ahora se anota el % o el combo que se aplicó, usando la cotización de
+    // ESTE carrito (misma fuente que ya fijó el total real de la venta).
+    const linea = cotizacion?.lineas.find(l => l.productoId === d.productoId);
+    const indicador = linea?.descuentoPorcentaje
+      ? ` <span style="font-size:8px">(-${formatearCantidad(linea.descuentoPorcentaje)}%)</span>`
+      : linea?.promoDescripcion
+        ? ` <span style="font-size:8px">(${esc(linea.promoDescripcion)})</span>`
+        : "";
+
     filas += `
       <tr>
-        <td>${esc(nombre)}</td>
+        <td>${esc(nombre)}${indicador}</td>
         <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
         <td style="text-align:right">$${d.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
         <td style="text-align:right">$${d.subtotal.toFixed(2)}</td>

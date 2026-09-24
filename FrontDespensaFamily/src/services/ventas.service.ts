@@ -1,6 +1,8 @@
 import type { VentaDetalleResponse } from "../models/VentaDetalleResponse";
 import type { Venta } from "../models/Venta";
 import type { VentaRequest } from "../models/VentaRequest";
+import type { Cotizacion } from "../models/Cotizacion";
+import type { DetalleVentaRequest } from "../models/DetalleVentaRequest";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/ventas`;
@@ -11,10 +13,18 @@ export async function getVentas(): Promise<Venta[]> {
   return res.json();
 }
 
-export async function createVenta(venta: VentaRequest): Promise<Venta> {
+// DF-BUG-003: idempotencyKey es opcional a propósito — sin ella esto se
+// comporta exactamente igual que antes (ver VentaController). El caller
+// (ventas.ts) manda un UUID por intento de confirmar para que un doble clic
+// o un reintento por red no generen dos ventas.
+export async function createVenta(venta: VentaRequest, idempotencyKey?: string): Promise<Venta> {
   const res = await fetch(BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    headers: {
+      "Content-Type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      ...getAuthHeaders()
+    },
     body: JSON.stringify(venta)
   });
   if (!res.ok) {
@@ -26,6 +36,24 @@ export async function createVenta(venta: VentaRequest): Promise<Venta> {
     const error = new Error(mensaje) as Error & { status?: number };
     error.status = res.status;
     throw error;
+  }
+  return res.json();
+}
+
+// DF-BUG-001: lo que cobraría registrarVenta con este carrito ahora mismo,
+// calculado en el servidor (VentaService.cotizar) — comparte el mismo método
+// que la venta real, así que el total que ve el carrito es siempre el que
+// después se cobra.
+export async function cotizarVenta(detalles: DetalleVentaRequest[]): Promise<Cotizacion> {
+  const res = await fetch(`${BASE_URL}/cotizar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ detalles })
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const mensaje = body?.error || "No se pudo calcular el total";
+    throw new Error(mensaje);
   }
   return res.json();
 }

@@ -1,6 +1,8 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.dto.CotizacionDTO;
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
+import com.guerram.DespensaFamily.dto.LineaCotizadaDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.dto.VentaDetalleResponseDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
@@ -66,6 +68,26 @@ public class VentaService {
 
     @Transactional
     public VentaDTO registrarVenta(List<DetalleVentaRequestDTO> detallesDTO, MetodoPago metodoPago, String cliente) {
+        return registrarVenta(detallesDTO, metodoPago, cliente, null);
+    }
+
+    // DF-BUG-003: variante con Idempotency-Key. Si ya existe una venta con
+    // esta clave, la devuelve tal cual en vez de crear otra — cubre tanto el
+    // reintento secuencial (doble clic donde el segundo llega despues de que
+    // el primero ya hizo commit) como, en combinacion con la unique
+    // constraint de la base (V12) y el catch en VentaController, el caso
+    // concurrente donde las dos peticiones pasan este chequeo casi juntas.
+    @Transactional
+    public VentaDTO registrarVenta(List<DetalleVentaRequestDTO> detallesDTO, MetodoPago metodoPago, String cliente,
+            String claveIdempotencia) {
+
+        String clave = normalizarClave(claveIdempotencia);
+        if (clave != null) {
+            Optional<Venta> existente = ventaRepository.findByClaveIdempotencia(clave);
+            if (existente.isPresent()) {
+                return Mapper.toDTO(existente.get());
+            }
+        }
 
         Venta venta = new Venta();
         venta.setFechaHora(LocalDateTime.now());
@@ -73,6 +95,7 @@ public class VentaService {
         venta.setMetodoPago(metodoPago);
         venta.setCliente(cliente != null && !cliente.isBlank() ? cliente.trim() : null);
         venta.setUsuario(usuarioActual());
+        venta.setClaveIdempotencia(clave);
 
         double total = 0;
         List<DetalleVenta> detalles = new ArrayList<>();
@@ -90,33 +113,20 @@ public class VentaService {
             Producto producto = productoRepository.buscarParaActualizarStock(dto.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+            LineaCalculada calc = calcularLinea(producto, dto.getCantidad());
 
-            double cantidad = Cantidades.redondear(dto.getCantidad());
-
-            // 🔒 VALIDACIONES
-            if (cantidad <= 0) {
-                throw new RuntimeException("Cantidad inválida");
-            }
-
-            if ("UNIDAD".equals(producto.getTipoCantidad())) {
-                if (cantidad % 1 != 0) {
-                    throw new RuntimeException("Este producto no permite decimales");
-                }
-            }
-
-            if (producto.getStock() < cantidad) {
+            if (calc.stockInsuficiente()) {
                 throw new RuntimeException("Stock insuficiente");
             }
 
-
-            producto.setStock(producto.getStock() - cantidad);
+            producto.setStock(producto.getStock() - calc.cantidad());
 
             DetalleVenta dv = new DetalleVenta();
             dv.setProducto(producto);
-            dv.setCantidad(cantidad);
-            dv.setPrecioUnitario(producto.getPrecioVenta());
+            dv.setCantidad(calc.cantidad());
+            dv.setPrecioUnitario(calc.precioUnitario());
             dv.setPrecioCosto(producto.getPrecioCosto());
-            dv.setSubtotal(calcularSubtotal(producto, cantidad));
+            dv.setSubtotal(calc.subtotal());
             dv.setVenta(venta);
 
             total += dv.getSubtotal();
@@ -146,6 +156,22 @@ public class VentaService {
         return Mapper.toDTO(venta);
     }
 
+    // DF-BUG-001: el resultado de calcular UNA linea, sin persistir nada.
+    // Unico lugar donde se hace esta cuenta — lo usan registrarVenta (que
+    // ademas descuenta stock y guarda) y cotizar (que solo lee). Que las dos
+    // pasen por aca es lo que garantiza que el total que ve el cliente en el
+    // carrito sea el mismo que despues se cobra: antes el frontend
+    // recalculaba esto por su cuenta en ventas.ts, aplicando solo promos
+    // (nunca descuentos) y sin redondear cantidades pesables.
+    private record LineaCalculada(
+            double cantidad,
+            double precioUnitario,
+            double subtotal,
+            Double descuentoPorcentaje,
+            String promoDescripcion,
+            boolean stockInsuficiente) {
+    }
+
     // Aplica el combo o el descuento activo del producto (si existe) al
     // precio de la línea. Solo lectura de Promocion/Descuento — no agrega
     // otra escritura concurrente al lado del @Version de Producto ya
@@ -156,11 +182,29 @@ public class VentaService {
     // combo, porque el descuento aplica a cualquier tipoCantidad (el combo
     // solo a UNIDAD) y es el más simple de calcular sobre el total de la
     // línea de forma consistente.
-    private double calcularSubtotal(Producto producto, double cantidad) {
+    //
+    // No decrementa stock ni lo valida mas alla de marcarlo insuficiente: es
+    // quien llama (registrarVenta) el que decide si eso rechaza la linea o
+    // no (cotizar no rechaza, ver clase LineaCotizadaDTO).
+    private LineaCalculada calcularLinea(Producto producto, double cantidadSolicitada) {
+        double cantidad = Cantidades.redondear(cantidadSolicitada);
+
+        if (cantidad <= 0) {
+            throw new RuntimeException("Cantidad inválida");
+        }
+
+        if ("UNIDAD".equals(producto.getTipoCantidad()) && cantidad % 1 != 0) {
+            throw new RuntimeException("Este producto no permite decimales");
+        }
+
+        boolean stockInsuficiente = producto.getStock() < cantidad;
+
         double porcentajeDescuento = descuentoService.porcentajeEfectivoPara(producto);
         if (porcentajeDescuento > 0) {
             double precioConDescuento = producto.getPrecioVenta() * (1 - porcentajeDescuento / 100);
-            return Dinero.redondear(precioConDescuento * cantidad);
+            double subtotal = Dinero.redondear(precioConDescuento * cantidad);
+            return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, porcentajeDescuento, null,
+                    stockInsuficiente);
         }
 
         if ("UNIDAD".equals(producto.getTipoCantidad())) {
@@ -172,10 +216,54 @@ public class VentaService {
                 long grupos = cant / lleva;
                 long resto = cant % lleva;
                 long unidadesAPagar = grupos * paga + resto;
-                return Dinero.redondear(unidadesAPagar * producto.getPrecioVenta());
+                double subtotal = Dinero.redondear(unidadesAPagar * producto.getPrecioVenta());
+                return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, null,
+                        lleva + "x" + paga, stockInsuficiente);
             }
         }
-        return Dinero.redondear(producto.getPrecioVenta() * cantidad);
+
+        double subtotal = Dinero.redondear(producto.getPrecioVenta() * cantidad);
+        return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, null, null, stockInsuficiente);
+    }
+
+    // DF-BUG-001: lo que cobraria registrarVenta con este carrito, SIN
+    // persistir nada ni tocar stock/caja. No usa buscarParaActualizarStock
+    // (bloqueo pesimista) a proposito: cotizar se llama en cada tecla del
+    // carrito (debounce de por medio en el frontend) y no tiene sentido que
+    // compita por el mismo lock que usan las ventas reales — es una lectura,
+    // no una reserva.
+    @Transactional(readOnly = true)
+    public CotizacionDTO cotizar(List<DetalleVentaRequestDTO> detallesDTO) {
+        List<LineaCotizadaDTO> lineas = new ArrayList<>();
+        double total = 0;
+
+        for (DetalleVentaRequestDTO dto : detallesDTO) {
+            Producto producto = productoRepository.findById(dto.getProductoId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            LineaCalculada calc = calcularLinea(producto, dto.getCantidad());
+
+            lineas.add(LineaCotizadaDTO.builder()
+                    .productoId(producto.getId())
+                    .cantidad(calc.cantidad())
+                    .precioUnitario(calc.precioUnitario())
+                    .subtotal(calc.subtotal())
+                    .descuentoPorcentaje(calc.descuentoPorcentaje())
+                    .promoDescripcion(calc.promoDescripcion())
+                    .stockInsuficiente(calc.stockInsuficiente())
+                    .build());
+
+            total += calc.subtotal();
+        }
+
+        return CotizacionDTO.builder()
+                .lineas(lineas)
+                .total(Dinero.redondear(total))
+                .build();
+    }
+
+    private String normalizarClave(String claveIdempotencia) {
+        return (claveIdempotencia != null && !claveIdempotencia.isBlank()) ? claveIdempotencia.trim() : null;
     }
 
     // Devuelve TAMBIEN las anuladas, con su estado, para que el listado las
@@ -187,6 +275,12 @@ public class VentaService {
                 .stream()
                 .map(Mapper::toDTO)
                 .toList();
+    }
+
+    /** DF-BUG-003: usado por el controller para resolver un choque de clave concurrente. */
+    @Transactional(readOnly = true)
+    public Optional<VentaDTO> buscarPorClaveIdempotencia(String claveIdempotencia) {
+        return ventaRepository.findByClaveIdempotencia(claveIdempotencia).map(Mapper::toDTO);
     }
 
     public VentaDTO buscarPorId(Long id) {

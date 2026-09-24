@@ -41,6 +41,15 @@ public class Venta {
     private String anuladaPor;
     private LocalDateTime fechaAnulacion;
 
+    // DF-BUG-003: clave que manda el frontend por intento de confirmar la
+    // venta (un UUID por click). Nullable porque las ventas viejas y las que
+    // se crean sin pasar por el header (tests, integraciones) no la tienen;
+    // unique para que la propia base sea la ultima linea de defensa contra
+    // dos peticiones concurrentes con la misma clave (ver V12 y
+    // VentaService.registrarVenta).
+    @Column(name = "clave_idempotencia", unique = true, length = 64)
+    private String claveIdempotencia;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoVenta estado;
