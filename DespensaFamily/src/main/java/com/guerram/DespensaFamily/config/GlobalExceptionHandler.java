@@ -8,10 +8,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.TransactionSystemException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -88,6 +96,90 @@ public class GlobalExceptionHandler {
         String detalle = ex.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining("; "));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "Datos inválidos");
+        body.put("detalle", detalle);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // DF-BUG-006. Las cuatro de abajo son errores del pedido, no del
+    // servidor. Antes las dos primeras (que no son RuntimeException) caian
+    // al manejo por defecto de Spring, que manda el error a /error; como
+    // /error no estaba permitido, el cliente recibia un 403 vacio que
+    // parecia un problema de permisos. Las otras dos si llegaban a
+    // handleRuntime, pero con el mensaje crudo de Jackson o de conversion
+    // —nombres de clase incluidos, com.guerram...MetodoPago— (API-08).
+    // Mismo formato que handleValidacion: {error, detalle}.
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleBodyInvalido(MethodArgumentNotValidException ex) {
+        String detalle = ex.getBindingResult().getFieldErrors().stream()
+                .map(GlobalExceptionHandler::mensajeDeCampo)
+                .distinct()
+                .collect(Collectors.joining("; "));
+        return datosInvalidos(detalle.isEmpty() ? "Revisá los datos enviados" : detalle);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroFaltante(MissingServletRequestParameterException ex) {
+        return datosInvalidos("Falta el parámetro obligatorio '" + ex.getParameterName() + "'");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroConFormatoInvalido(MethodArgumentTypeMismatchException ex) {
+        return datosInvalidos("El parámetro '" + ex.getName() + "' tiene un formato inválido");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleCuerpoIlegible(HttpMessageNotReadableException ex) {
+        InvalidFormatException formato = causaDeTipo(ex, InvalidFormatException.class);
+        if (formato != null) {
+            String campo = formato.getPath().stream()
+                    .map(JacksonException.Reference::getPropertyName)
+                    .filter(nombre -> nombre != null)
+                    .collect(Collectors.joining("."));
+            String detalle = "El valor '" + formato.getValue() + "' no es válido"
+                    + (campo.isEmpty() ? "" : " para '" + campo + "'");
+            Class<?> tipo = formato.getTargetType();
+            if (tipo != null && tipo.isEnum()) {
+                detalle += ". Valores posibles: " + Arrays.stream(tipo.getEnumConstants())
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+            }
+            return datosInvalidos(detalle);
+        }
+        return datosInvalidos("El cuerpo del pedido no es un JSON válido");
+    }
+
+    private static String mensajeDeCampo(FieldError error) {
+        // Si el DTO trae su propio mensaje (message = "..."), ya esta en
+        // castellano y se usa tal cual. Si es el de la libreria, depende del
+        // idioma de la JVM ("must not be blank"): se arma uno propio.
+        String plantilla = null;
+        if (error.contains(ConstraintViolation.class)) {
+            plantilla = error.unwrap(ConstraintViolation.class).getMessageTemplate();
+        }
+        boolean mensajePropio = plantilla != null && !plantilla.startsWith("{");
+        if (mensajePropio) {
+            return error.getDefaultMessage();
+        }
+        String codigo = error.getCode() == null ? "" : error.getCode();
+        return switch (codigo) {
+            case "NotBlank", "NotNull", "NotEmpty" -> "El campo '" + error.getField() + "' es obligatorio";
+            default -> "El campo '" + error.getField() + "' no es válido";
+        };
+    }
+
+    private static <T extends Throwable> T causaDeTipo(Throwable ex, Class<T> tipo) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (tipo.isInstance(t)) {
+                return tipo.cast(t);
+            }
+        }
+        return null;
+    }
+
+    private static ResponseEntity<Map<String, Object>> datosInvalidos(String detalle) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("error", "Datos inválidos");
         body.put("detalle", detalle);

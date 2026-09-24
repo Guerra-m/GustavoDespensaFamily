@@ -59,6 +59,14 @@ public class SecurityConfig {
                 .requestMatchers("/usuario/logout").permitAll()
                 .requestMatchers("/", "/*.html", "/assets/**", "/src/**", "/favicon.ico").permitAll()
 
+                // DF-BUG-006: es a donde Spring despacha cualquier error que
+                // no resuelva un @ExceptionHandler. Cerrado, el error real se
+                // perdia y el cliente veia un 403 vacio, como si fuera de
+                // permisos. Solo devuelve status y un texto generico (Spring
+                // Boot no incluye mensaje ni stack trace por defecto), asi que
+                // abrirlo no expone nada (API-08).
+                .requestMatchers("/error").permitAll()
+
                 // El celular que escanea no tiene sesión propia (ver
                 // EscaneoService) — solo puede publicar un código dentro de
                 // una sesión que ya generó un usuario autenticado desde
