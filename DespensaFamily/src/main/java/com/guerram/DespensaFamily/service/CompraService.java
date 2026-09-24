@@ -2,11 +2,15 @@ package com.guerram.DespensaFamily.service;
 
 import com.guerram.DespensaFamily.dto.*;
 import com.guerram.DespensaFamily.mapper.Mapper;
+import com.guerram.DespensaFamily.model.CategoriaMovimiento;
 import com.guerram.DespensaFamily.model.Compra;
 import com.guerram.DespensaFamily.model.EstadoCompra;
 import com.guerram.DespensaFamily.model.DetalleCompra;
+import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.Producto;
+import com.guerram.DespensaFamily.model.TipoMovimiento;
 import com.guerram.DespensaFamily.repository.CompraRepository;
+import com.guerram.DespensaFamily.repository.MovimientoCajaRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
 import com.guerram.DespensaFamily.util.Cantidades;
 import com.guerram.DespensaFamily.util.Dinero;
@@ -24,15 +28,24 @@ public class CompraService {
 
     private final CompraRepository compraRepository;
     private final ProductoRepository productoRepository;
+    private final CajaService cajaService;
+    private final MovimientoCajaRepository movimientoCajaRepository;
 
     // Ver comentario equivalente en VentaService.registrarVenta: mismo
     // riesgo de concurrencia sobre producto.stock, misma solución.
     @Transactional
     public CompraDTO registrarCompra(CompraRequestDTO request) {
 
+        // null se trata como pagada=true: es el caso mas comun (se le paga al
+        // proveedor al recibir la mercaderia) y el default que ya tenian
+        // implicitamente las compras antes de que existiera este campo.
+        boolean pagada = request.getPagada() == null || request.getPagada();
+
         Compra compra = new Compra();
         compra.setFechaHora(LocalDateTime.now());
         compra.setProveedor(request.getProveedor());
+        compra.setPagada(pagada);
+        compra.setMetodoPago(request.getMetodoPago());
         var auth = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
         compra.setUsuario(auth != null ? auth.getName() : null);
@@ -44,6 +57,8 @@ public class CompraService {
         List<DetalleCompraRequestDTO> enOrden = request.getDetalles().stream()
                 .sorted(java.util.Comparator.comparing(DetalleCompraRequestDTO::getProductoId))
                 .toList();
+
+        double total = 0;
 
         for (DetalleCompraRequestDTO dto : enOrden) {
 
@@ -92,11 +107,60 @@ public class CompraService {
             dc.setSubtotal(Dinero.redondear(cantidad * dto.getPrecioCosto()));
             dc.setCompra(compra);
 
+            total += dc.getSubtotal();
             detalles.add(dc);
         }
 
+        compra.setTotal(Dinero.redondear(total));
         compra.setDetalles(detalles);
         compraRepository.save(compra);
+
+        // Dentro de la MISMA transaccion que la compra (Fase 11 del mapa de
+        // cambios), y solo si esta pagada: una compra a cuenta entra
+        // mercaderia sin sacar plata de caja todavia.
+        if (pagada && compra.getTotal() > 0) {
+            cajaService.registrarMovimiento(
+                    TipoMovimiento.EGRESO,
+                    CategoriaMovimiento.COMPRA,
+                    compra.getTotal(),
+                    request.getMetodoPago(),
+                    "Compra #" + compra.getId(),
+                    null,
+                    compra.getId());
+        }
+
+        return Mapper.toDTO(compra);
+    }
+
+    /**
+     * Marca como pagada una compra que habia quedado a cuenta, y recien ahi
+     * genera el egreso — con la fecha de HOY, no la de la compra: la plata
+     * sale de caja el dia que se paga de verdad, no el dia que entro la
+     * mercaderia.
+     */
+    @Transactional
+    public CompraDTO marcarPagada(Long id) {
+        Compra compra = compraRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
+
+        if (compra.getEstado() == EstadoCompra.ANULADA) {
+            throw new RuntimeException("No se puede pagar una compra anulada");
+        }
+        if (compra.isPagada()) {
+            throw new RuntimeException("La compra ya está pagada");
+        }
+
+        compra.setPagada(true);
+        compraRepository.save(compra);
+
+        cajaService.registrarMovimiento(
+                TipoMovimiento.EGRESO,
+                CategoriaMovimiento.COMPRA,
+                compra.getTotal(),
+                compra.getMetodoPago(),
+                "Compra #" + compra.getId() + " (pagada después)",
+                null,
+                compra.getId());
 
         return Mapper.toDTO(compra);
     }
@@ -174,6 +238,13 @@ public class CompraService {
         compra.setAnuladaPor(usuarioActual());
         compra.setFechaAnulacion(LocalDateTime.now());
         compraRepository.save(compra);
+
+        // Si estaba pagada, revierte el egreso (mismo criterio que anular una
+        // venta). Si estaba a cuenta, no hay ningun movimiento que revertir:
+        // nunca salio plata de caja por esta compra.
+        movimientoCajaRepository
+                .findByCompraIdAndCategoriaAndRevierteAIsNull(compra.getId(), CategoriaMovimiento.COMPRA)
+                .ifPresent(m -> cajaService.revertirMovimiento(m.getId()));
     }
 
     private String usuarioActual() {

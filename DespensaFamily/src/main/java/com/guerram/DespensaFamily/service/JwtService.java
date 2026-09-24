@@ -27,10 +27,17 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String username, String rol) {
+    // Los permisos quedan grabados en el token, no se relee la base en cada
+    // pedido (mismo criterio que el rol): si el dueño le prende un permiso a
+    // alguien que ya tiene la sesión abierta, no se ve hasta el próximo
+    // login. Es el mismo tradeoff que ya existía para el rol.
+    public String generateToken(String username, String rol, boolean puedeGestionarProductos, boolean puedeVerCaja) {
         return Jwts.builder()
                 .setSubject(username)
-                .addClaims(Map.of("rol", rol))
+                .addClaims(Map.of(
+                        "rol", rol,
+                        "stock", puedeGestionarProductos,
+                        "caja", puedeVerCaja))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

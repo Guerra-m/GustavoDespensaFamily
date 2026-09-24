@@ -45,4 +45,10 @@ public class CompraController {
     public void anularCompra(@PathVariable Long id) {
         OptimisticRetry.ejecutar(() -> compraService.anularCompra(id));
     }
+
+    /** Marca como pagada una compra que había quedado a cuenta (Fase 11). */
+    @PostMapping("/{id}/pagar")
+    public CompraDTO marcarPagada(@PathVariable Long id) {
+        return compraService.marcarPagada(id);
+    }
 }

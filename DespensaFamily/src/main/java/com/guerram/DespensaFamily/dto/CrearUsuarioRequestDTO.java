@@ -18,4 +18,7 @@ public class CrearUsuarioRequestDTO {
     private String nombre;
 
     private String rol = "EMPLEADO";
+
+    private boolean puedeGestionarProductos;
+    private boolean puedeVerCaja;
 }

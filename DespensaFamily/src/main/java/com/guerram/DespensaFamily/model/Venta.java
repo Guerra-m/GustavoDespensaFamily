@@ -20,6 +20,18 @@ public class Venta {
     private LocalDateTime fechaHora;
     private double total;
 
+    // Como se cobro. Denormalizado ademas del movimiento de caja que genera
+    // (ver VentaService.registrarVenta): el ticket y el listado necesitan
+    // mostrarlo sin salir a buscarlo a otra tabla.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metodo_pago")
+    private MetodoPago metodoPago;
+
+    // Nombre de quien compra, opcional y de texto libre — sale en el ticket.
+    // No es una entidad a proposito (decision del dueño): sirve para saber a
+    // quien es el ticket, no para agrupar compras por persona.
+    private String cliente;
+
     // Quien la hizo. Sin esto, con dos o tres empleados rotando en la caja no
     // hay forma de reconstruir que paso.
     private String usuario;
@@ -40,6 +52,11 @@ public class Venta {
     public void prePersist() {
         if (estado == null) {
             estado = EstadoVenta.ACTIVA;
+        }
+        // Mismo default que la columna en la base (V5): cubre las ventas de
+        // pruebas que arman el objeto sin pasar por VentaService.
+        if (metodoPago == null) {
+            metodoPago = MetodoPago.EFECTIVO;
         }
     }
 

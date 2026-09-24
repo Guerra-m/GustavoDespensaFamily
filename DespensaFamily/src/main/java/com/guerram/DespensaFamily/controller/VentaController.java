@@ -20,7 +20,9 @@ public class VentaController {
 
     @PostMapping
     public VentaDTO registrarVenta(@Valid  @RequestBody VentaRequestDTO request) {
-        return OptimisticRetry.ejecutar(() -> ventaService.registrarVenta(request.getDetalles()));
+        return OptimisticRetry.ejecutar(
+                () -> ventaService.registrarVenta(
+                        request.getDetalles(), request.getMetodoPago(), request.getCliente()));
     }
 
     @GetMapping

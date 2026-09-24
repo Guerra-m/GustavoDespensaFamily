@@ -15,6 +15,8 @@ public class VentaDetalleResponseDTO {
     private Long id;
     private LocalDateTime fechaHora;
     private double total;
+    private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
+    private String cliente;
     private List<DetalleVentaDTO> detalles;
     private EstadoVenta estado;
     private String usuario;

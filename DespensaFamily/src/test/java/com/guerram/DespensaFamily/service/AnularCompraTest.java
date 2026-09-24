@@ -51,6 +51,7 @@ class AnularCompraTest {
         CompraRequestDTO pedido = new CompraRequestDTO();
         pedido.setProveedor("Mayorista");
         pedido.setDetalles(List.of(new DetalleCompraRequestDTO(p.getId(), cantidad, costo)));
+        pedido.setMetodoPago(com.guerram.DespensaFamily.model.MetodoPago.EFECTIVO);
         return compraService.registrarCompra(pedido);
     }
 

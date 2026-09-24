@@ -78,6 +78,16 @@ class AutorizacionPorRolTest {
     }
 
     @Test
+    void elEmpleadoVeElAvisoDeActualizacionPeroNoPuedeAplicarla() throws Exception {
+        // Ver el aviso si: si la caja se va a reiniciar, el que esta atendiendo
+        // tiene que poder entender por que. Aplicarla no: apaga el servidor.
+        permitido(mockMvc.perform(get("/actualizaciones").with(EMPLEADO)).andReturn(),
+                "ver si hay una actualizacion");
+        prohibido(mockMvc.perform(post("/actualizaciones/aplicar").with(EMPLEADO)).andReturn(),
+                "aplicar una actualizacion");
+    }
+
+    @Test
     void elEmpleadoNoPuedeAnularUnaVenta() throws Exception {
         // El agujero mas caro de todos: vender, cobrar y borrar el registro.
         prohibido(mockMvc.perform(delete("/ventas/1").with(EMPLEADO)).andReturn(), "anular una venta");
@@ -91,6 +101,50 @@ class AutorizacionPorRolTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nombre\":\"X\"}").with(EMPLEADO)).andReturn(), "crear una categoria");
         prohibido(mockMvc.perform(delete("/categorias/1").with(EMPLEADO)).andReturn(), "borrar una categoria");
+    }
+
+    @Test
+    void elEmpleadoSinPermisoNoVeNadaDeCaja() throws Exception {
+        // Esta regla CAMBIO el 02/09/2026, y el test cambio con ella.
+        //
+        // Antes decia que el empleado veia el saldo y los ultimos movimientos,
+        // con el argumento de que el que atiende necesita saber con que
+        // efectivo cuenta para dar vuelto. Martin lo probo en la aplicacion y
+        // lo marco como bug: "aunque el empleado pepe no tenga permiso de
+        // caja, puede ver la caja". Manda el dueño, y ademas tiene razon de
+        // fondo — el permiso se llama PERM_CAJA, "puede ver caja": si no se lo
+        // prendieron, no la ve. Para vender no hace falta, la pantalla de
+        // Ventas no consulta caja.
+        //
+        // El caso con el permiso prendido vive en PermisosGranularesTest.
+        prohibido(mockMvc.perform(get("/caja").with(EMPLEADO)).andReturn(), "ver el saldo de caja sin permiso");
+        prohibido(mockMvc.perform(get("/caja/ultimos").with(EMPLEADO)).andReturn(), "ver los ultimos movimientos sin permiso");
+        prohibido(mockMvc.perform(get("/caja/movimientos?desde=2026-01-01&hasta=2026-01-01").with(EMPLEADO))
+                .andReturn(), "ver el historial completo de caja");
+        prohibido(mockMvc.perform(post("/caja/movimientos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tipo\":\"EGRESO\",\"categoria\":\"RETIRO\",\"monto\":1000,"
+                        + "\"metodoPago\":\"EFECTIVO\",\"descripcion\":\"x\"}").with(EMPLEADO))
+                .andReturn(), "cargar un movimiento de caja");
+        prohibido(mockMvc.perform(post("/caja/movimientos/1/revertir").with(EMPLEADO))
+                .andReturn(), "revertir un movimiento de caja");
+        prohibido(mockMvc.perform(post("/caja/arqueo")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"efectivoContado\":1000}").with(EMPLEADO))
+                .andReturn(), "hacer un arqueo");
+    }
+
+    @Test
+    void elEmpleadoNoPuedeVerNiTocarEmpleados() throws Exception {
+        // Es informacion salarial del negocio: todo del dueño.
+        prohibido(mockMvc.perform(get("/empleados").with(EMPLEADO)).andReturn(), "listar empleados");
+        prohibido(mockMvc.perform(post("/empleados")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"X\"}").with(EMPLEADO)).andReturn(), "crear un empleado");
+        prohibido(mockMvc.perform(post("/empleados/1/pagar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"monto\":1000,\"metodoPago\":\"EFECTIVO\"}").with(EMPLEADO))
+                .andReturn(), "pagarle a un empleado");
     }
 
     @Test

@@ -1,0 +1,31 @@
+-- Devuelve fecha_hora a timestamp en venta y compra.
+--
+-- No es una correccion de V1: V1 hace exactamente esto y esta probado. Existe
+-- porque una base que YA migro puede volver a quedar en DATE, y Flyway nunca
+-- vuelve a correr una migracion aplicada.
+--
+-- Como pasa, medido el 01/09/2026 en la maquina de Martin:
+--
+--   13:00  v1.1.0   migra la base, fecha_hora queda en timestamp(6)
+--   13:42  v0.0.1   arranca la version instalada de AGOSTO contra la misma
+--                   carpeta de datos. Esa version tiene ddl-auto=update y
+--                   fechaHora como LocalDate, asi que Hibernate "corrige" el
+--                   esquema a su modelo y baja las dos columnas a DATE.
+--   14:08  v1.1.0   ya no arranca: Schema-validation, wrong column type
+--                   encountered in column [fecha_hora] in table [compra].
+--
+-- O sea: mientras exista una instalacion vieja apuntando a la misma base, cada
+-- vez que alguien la abra por costumbre —el icono del escritorio sigue ahi— la
+-- base queda inservible para la version nueva. Esta migracion la repara sola en
+-- el siguiente arranque en vez de dejar la caja parada.
+--
+-- Es la razon de fondo por la que la actualizacion automatica importa: la unica
+-- solucion definitiva es que no queden dos versiones conviviendo.
+--
+-- Ampliar DATE a TIMESTAMP no pierde nada: la hora ya se habia perdido cuando la
+-- version vieja trunco la columna, y los registros anteriores al 01/09 nunca
+-- tuvieron hora porque el campo era LocalDate. Correrlo sobre una columna que ya
+-- es timestamp no hace nada.
+
+alter table venta alter column fecha_hora timestamp(6);
+alter table compra alter column fecha_hora timestamp(6);

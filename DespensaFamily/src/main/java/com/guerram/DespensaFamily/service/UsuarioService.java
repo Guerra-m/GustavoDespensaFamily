@@ -8,6 +8,7 @@ import com.guerram.DespensaFamily.model.Roles;
 import com.guerram.DespensaFamily.dto.CambiarPasswordDTO;
 import com.guerram.DespensaFamily.dto.CrearUsuarioRequestDTO;
 import com.guerram.DespensaFamily.dto.LoginResponseDTO;
+import com.guerram.DespensaFamily.dto.PermisosUsuarioDTO;
 import com.guerram.DespensaFamily.dto.UsuarioDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
 import com.guerram.DespensaFamily.model.Usuario;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class UsuarioService  {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final LimitadorDeIntentos limitadorDeIntentos;
+    private final EmpleadoService empleadoService;
 
     // Hash bcrypt de una contrasena cualquiera. Solo se usa para gastar el
     // mismo tiempo de comparacion cuando el usuario no existe.
@@ -109,8 +112,9 @@ public class UsuarioService  {
         limitadorDeIntentos.registrarExito(claveIp);
 
         String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
-        String token = jwtService.generateToken(username, rol);
-        return new LoginResponseDTO("Login exitoso", token, rol, usuario.isDebeCambiarPassword());
+        String token = jwtService.generateToken(
+                username, rol, usuario.isPuedeGestionarProductos(), usuario.isPuedeVerCaja());
+        return new LoginResponseDTO("Login exitoso", token, rol, usuario.isDebeCambiarPassword(), usuario.isPuedeGestionarProductos(), usuario.isPuedeVerCaja());
     }
 
     private void frenarSiCorresponde(String claveUsuario, String claveIp) {
@@ -135,6 +139,10 @@ public class UsuarioService  {
                 .toList();
     }
 
+    // Usuario + Empleado como una sola operacion: si vincularConUsuario
+    // fallara, el usuario tampoco queda creado a medias (mismo criterio que
+    // venta+caja, ver VentaService).
+    @Transactional
     public UsuarioDTO crearUsuario(CrearUsuarioRequestDTO dto) {
         if (usuarioRepository.findByUsername(dto.getUsername()).isPresent()) {
             throw new RuntimeException("El nombre de usuario ya existe");
@@ -146,7 +154,29 @@ public class UsuarioService  {
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .nombre(dto.getNombre())
                 .rol(rol)
+                .puedeGestionarProductos(dto.isPuedeGestionarProductos())
+                .puedeVerCaja(dto.isPuedeVerCaja())
                 .build();
+        Usuario guardado = usuarioRepository.save(usuario);
+
+        // Quien va a trabajar en el local queda disponible para marcar sus
+        // dias y pagarle sin cargarlo dos veces (ver EmpleadoService.vincularConUsuario).
+        empleadoService.vincularConUsuario(guardado.getUsername(), guardado.getNombre());
+
+        return Mapper.toDTO(guardado);
+    }
+
+    // Solo toca los permisos: no se puede reasignar rol, contraseña o
+    // nombre desde acá (esas no fueron pedidas y ya tienen su propio camino
+    // — cambiarPassword y, para rol/nombre, no hay edición hoy).
+    @Transactional
+    public UsuarioDTO actualizarPermisos(Long id, PermisosUsuarioDTO dto) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        usuario.setPuedeGestionarProductos(dto.isPuedeGestionarProductos());
+        usuario.setPuedeVerCaja(dto.isPuedeVerCaja());
+
         return Mapper.toDTO(usuarioRepository.save(usuario));
     }
 

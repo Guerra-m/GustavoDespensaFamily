@@ -13,4 +13,6 @@ public class UsuarioDTO {
     private String username;
     private String nombre;
     private String rol;
+    private boolean puedeGestionarProductos;
+    private boolean puedeVerCaja;
 }

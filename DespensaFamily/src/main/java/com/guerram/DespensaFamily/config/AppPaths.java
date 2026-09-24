@@ -30,6 +30,7 @@ public final class AppPaths {
     public static final String PROP_IMAGENES = "despensa.imagenes";
     public static final String PROP_BACKUPS = "despensa.backups";
     public static final String PROP_LOGS = "despensa.logs";
+    public static final String PROP_ACTUALIZACIONES = "despensa.actualizaciones";
 
     /** Permite mover la carpeta de datos sin recompilar (útil para probar). */
     private static final String ENV_HOME = "DESPENSA_HOME";
@@ -55,6 +56,7 @@ public final class AppPaths {
         publicar(PROP_IMAGENES, crear(imagenes(home)));
         publicar(PROP_BACKUPS, crear(backups(home)));
         publicar(PROP_LOGS, crear(logs(home)));
+        publicar(PROP_ACTUALIZACIONES, crear(actualizaciones(home)));
 
         return home;
     }
@@ -83,6 +85,18 @@ public final class AppPaths {
 
     static Path logs(Path home) {
         return home.resolve("logs");
+    }
+
+    /**
+     * Donde el launcher deja el jar nuevo y el informe de qué encontró.
+     *
+     * <p>Va con los datos y no al lado del programa por la misma razón que todo
+     * lo demás de esta carpeta: el instalador pisa la carpeta del programa. Una
+     * actualización a medio bajar no tiene por qué sobrevivir a una
+     * reinstalación, pero tampoco puede estorbarla.
+     */
+    static Path actualizaciones(Path home) {
+        return home.resolve("actualizaciones");
     }
 
     private static Path crear(Path carpeta) {

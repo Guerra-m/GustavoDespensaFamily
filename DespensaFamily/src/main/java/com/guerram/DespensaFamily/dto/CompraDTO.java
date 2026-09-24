@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 public class CompraDTO {
     private Long id;
     private LocalDateTime fechaHora;
+    private double total;
+    private boolean pagada;
+    private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
     private String proveedor;
     private String usuario;
     private com.guerram.DespensaFamily.model.EstadoCompra estado;

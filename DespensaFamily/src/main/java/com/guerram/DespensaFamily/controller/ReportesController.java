@@ -4,6 +4,7 @@ import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
+import com.guerram.DespensaFamily.dto.reportes.RentabilidadDTO;
 import com.guerram.DespensaFamily.dto.reportes.ResumenVentasDTO;
 import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.service.ReportesService;
@@ -59,6 +60,14 @@ public class ReportesController {
             @RequestParam LocalDate hasta
     ) {
         return reportesService.gananciaPorFecha(desde, hasta);
+    }
+
+    @GetMapping("/rentabilidad")
+    public RentabilidadDTO rentabilidad(
+            @RequestParam LocalDate desde,
+            @RequestParam LocalDate hasta
+    ) {
+        return reportesService.rentabilidad(desde, hasta);
     }
 
     @GetMapping("/movimientos")

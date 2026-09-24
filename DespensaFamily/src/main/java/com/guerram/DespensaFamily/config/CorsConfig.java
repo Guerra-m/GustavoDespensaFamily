@@ -23,11 +23,13 @@ public class CorsConfig {
                         // navegador los bloqueaba en preflight.
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        // La auth es Bearer token en localStorage, no cookies
-                        // (confirmado: ningún fetch del frontend usa
-                        // credentials:"include") — allowCredentials(true) solo
-                        // ampliaba la superficie sin necesidad (API-06).
-                        .allowCredentials(false);
+                        // La sesión viaja en una cookie HttpOnly, así que en
+                        // desarrollo (front en 5173, back en 8080) el navegador
+                        // solo la manda si el servidor acepta credenciales.
+                        // Es seguro porque los orígenes de arriba son una lista
+                        // explícita: allowCredentials(true) con "*" lo rechaza
+                        // el propio navegador, y con razón (API-06).
+                        .allowCredentials(true);
             }
         };
     }

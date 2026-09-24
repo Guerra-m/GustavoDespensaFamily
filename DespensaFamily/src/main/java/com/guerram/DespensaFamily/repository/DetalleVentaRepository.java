@@ -89,11 +89,19 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
             @Param("hasta") LocalDateTime hasta
     );
 
+    // La ganancia se calcula sobre lo que REALMENTE se cobro (subtotal), no
+    // sobre cantidad * precioUnitario. Con una promocion activa (ej. 3x2) el
+    // subtotal ya cobra menos unidades de las que salieron por precio de lista,
+    // y cantidad * (precioUnitario - precioCosto) ignora eso por completo:
+    // con un 3x2 de $1.000 y costo $600 sobre 3 unidades, la ganancia real es
+    // $200 (se cobraron 2, costaron 3) y la formula vieja daba $1.200, seis
+    // veces mas. subtotal - cantidad*precioCosto da el numero correcto sin
+    // necesitar saber si hubo promocion o no.
     @Query("""
     SELECT new com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO(
         CAST(v.fechaHora AS LocalDate),
         SUM(dv.subtotal),
-        SUM(dv.cantidad * (dv.precioUnitario - dv.precioCosto))
+        SUM(dv.subtotal - dv.cantidad * dv.precioCosto)
     )
     FROM DetalleVenta dv
     JOIN dv.venta v

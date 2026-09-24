@@ -13,6 +13,9 @@ import java.util.List;
 public class CompraDetalleResponseDTO {
     private Long id;
     private LocalDateTime fechaHora;
+    private double total;
+    private boolean pagada;
+    private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
     private String proveedor;
     private List<DetalleCompraDTO> detalles;
     private String usuario;

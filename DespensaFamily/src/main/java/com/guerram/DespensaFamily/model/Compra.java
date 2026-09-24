@@ -21,6 +21,21 @@ public class Compra {
     private LocalDateTime fechaHora;
     private String proveedor;
 
+    // Congelado al registrar la compra (ver CompraService.registrarCompra), no
+    // recalculado sumando detalles cada vez. Es un hecho historico igual que
+    // Venta.total: si el dia de manana cambia como se redondea un subtotal, las
+    // compras viejas no tienen por que cambiar de importe con retroactividad.
+    private double total;
+
+    // Si ya se le pago al proveedor. false = a cuenta: entro la mercaderia
+    // pero no salio plata de caja todavia (ver CompraService y Fase 11 del
+    // mapa de cambios). Se puede marcar pagada despues con /compras/{id}/pagar.
+    private boolean pagada;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metodo_pago")
+    private MetodoPago metodoPago;
+
     // Quien la registro (ver el comentario equivalente en Venta).
     private String usuario;
 
