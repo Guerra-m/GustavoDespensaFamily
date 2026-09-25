@@ -3,7 +3,7 @@ import { checkAuth, getUsername, isAdmin, puedeVerCaja } from "../../services/au
 checkAuth();
 
 import { getProductos } from "../../services/productos.service";
-import { getVentas, createVenta, cotizarVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
+import { getVentasPaginado, createVenta, cotizarVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
 import { getCategorias } from "../../services/categorias.service";
 import { getPromociones } from "../../services/promociones.service";
 import { getDescuentos } from "../../services/descuentos.service";
@@ -222,8 +222,23 @@ async function cargarProductos() {
   }
 }
 
-async function cargarVentas() {
-  const ventas = await getVentas();
+// DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas
+// (~13 MB/año). El historial pagina en el servidor -- TAMANIO_PAGINA_VENTAS
+// filas por vez, con Anterior/Siguiente. paginaVentasActual es 0-based,
+// igual que el parametro `page` del backend.
+const TAMANIO_PAGINA_VENTAS = 50;
+let paginaVentasActual = 0;
+let totalPaginasVentas = 1;
+
+const btnPaginaAnterior = document.getElementById("btn-pagina-anterior") as HTMLButtonElement;
+const btnPaginaSiguiente = document.getElementById("btn-pagina-siguiente") as HTMLButtonElement;
+const textoPaginaVentas = document.getElementById("texto-pagina-ventas") as HTMLSpanElement;
+
+async function cargarVentas(page: number = paginaVentasActual) {
+  const pagina = await getVentasPaginado(page, TAMANIO_PAGINA_VENTAS);
+  paginaVentasActual = pagina.pagina;
+  totalPaginasVentas = Math.max(pagina.totalPaginas, 1);
+
   tablaVentas.innerHTML = "";
 
   // Sin permiso de caja el servidor devuelve solo las ventas propias del día
@@ -231,7 +246,14 @@ async function cargarVentas() {
   const titulo = document.getElementById("titulo-ventas-registradas");
   if (titulo) titulo.textContent = puedeVerCaja() ? "Ventas Registradas" : "Tus ventas de hoy";
 
-  [...ventas].reverse().forEach(v => {
+  textoPaginaVentas.textContent = `Página ${paginaVentasActual + 1} de ${totalPaginasVentas} (${pagina.totalElementos} ventas)`;
+  btnPaginaAnterior.disabled = paginaVentasActual <= 0;
+  btnPaginaSiguiente.disabled = paginaVentasActual >= totalPaginasVentas - 1;
+
+  // El backend ya ordena mas nueva primero (ORDER BY fecha_hora DESC) --
+  // antes esto hacia [...ventas].reverse() porque GET /ventas sin paginar
+  // venia en orden de insercion ascendente.
+  pagina.contenido.forEach(v => {
     if (!v.id) return;
 
     const anulada = v.estado === "ANULADA";
@@ -905,7 +927,7 @@ async function confirmarVenta() {
     // error mucho más probable que útil.
     inputCliente.value = "";
     renderCarrito();
-    cargarVentas();
+    cargarVentas(0); // la venta que se acaba de confirmar es la más nueva -> página 0
 
     await imprimirTicket(ventaCreada, cotizacionDeEsteCarrito);
 
@@ -930,6 +952,13 @@ btnCerrarDetalle.addEventListener("click", () => modalDetalle.classList.add("hid
 
 btnVerVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.remove("hidden"));
 btnCerrarVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.add("hidden"));
+
+btnPaginaAnterior.addEventListener("click", () => {
+  if (paginaVentasActual > 0) cargarVentas(paginaVentasActual - 1);
+});
+btnPaginaSiguiente.addEventListener("click", () => {
+  if (paginaVentasActual < totalPaginasVentas - 1) cargarVentas(paginaVentasActual + 1);
+});
 
 inputBuscarProducto.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;

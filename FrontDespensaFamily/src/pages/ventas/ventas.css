@@ -988,6 +988,25 @@ hr {
   min-width: 0;
 }
 
+/* DF-PERF-001: paginado del historial de ventas. */
+.paginado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.paginado button {
+  padding: 4px 10px;
+}
+
+.paginado button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .tabla-scroll::-webkit-scrollbar {
   width: 8px;
 }

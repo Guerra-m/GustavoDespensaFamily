@@ -137,6 +137,14 @@
           <tbody id="tabla-ventas"></tbody>
         </table>
       </div>
+      <!-- DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas.
+           Ahora se pagina en el servidor (GET /ventas/pagina) y esto solo
+           mueve de pagina, no vuelve a traer todo. -->
+      <div id="paginado-ventas" class="paginado">
+        <button type="button" id="btn-pagina-anterior">&laquo; Anterior</button>
+        <span id="texto-pagina-ventas"></span>
+        <button type="button" id="btn-pagina-siguiente">Siguiente &raquo;</button>
+      </div>
       <button type="button" id="btn-cerrar-ventas-registradas">Cerrar</button>
     </div>
   </div>
