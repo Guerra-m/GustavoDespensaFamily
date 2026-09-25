@@ -33,10 +33,72 @@ public class ProductoService {
     @Value("${despensa.imagenes}")
     private final String carpetaImagenes;
 
+    private static final String UNIDAD = "UNIDAD";
+    private static final String PESO = "PESO";
+
+    // DF-DATA-001: alta/edicion aceptaban tipoCantidad nulo, stock decimal en
+    // un producto por unidad y combinaciones incoherentes (UNIDAD + "kg", el
+    // caso real de "Fiambres variados"). Mapper.toEntity ya pone defaults
+    // sensatos al crear, pero un tipoCantidad/unidadMedida explicito e
+    // incoherente enviado por API (Postman, el asistente de IA, etc. — no
+    // todo pasa por el formulario, que ya sincroniza esto en el frontend) no
+    // pasaba por ningun control del lado del servidor.
+    private void normalizarYValidarTipoYUnidad(Producto producto) {
+        String tipo = producto.getTipoCantidad();
+        if (tipo == null) tipo = UNIDAD;
+        if (!UNIDAD.equals(tipo) && !PESO.equals(tipo)) {
+            throw new RuntimeException("tipoCantidad debe ser UNIDAD o PESO");
+        }
+        producto.setTipoCantidad(tipo);
+
+        String unidad = producto.getUnidadMedida();
+        if (UNIDAD.equals(tipo)) {
+            if (unidad == null || unidad.isBlank()) unidad = "u";
+            if (!"u".equals(unidad)) {
+                throw new RuntimeException(
+                        "Un producto por unidad no puede tener unidad de medida '" + unidad + "'; debe ser 'u'");
+            }
+            // El stock de un producto por unidad se cuenta, no se pesa: 2,5
+            // unidades no es un dato valido de negocio (es media unidad
+            // partida, y eso solo tiene sentido para lo que se vende por
+            // peso). getStock() ya viene redondeado a 3 decimales
+            // (Cantidades), asi que el modulo detecta cualquier fraccion real.
+            if (producto.getStock() % 1 != 0) {
+                throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
+            }
+        } else {
+            // PESO: cualquier unidad de peso/volumen sirve (kg, g, lt...),
+            // menos "u" -eso es exactamente la incoherencia de "Fiambres
+            // variados"-. Sin unidad explicita, kg es el default razonable
+            // del rubro almacen.
+            if (unidad == null || unidad.isBlank() || "u".equals(unidad)) unidad = "kg";
+        }
+        producto.setUnidadMedida(unidad);
+    }
+
+    // DF-BUG-009: sin esto, dos productos con el mismo codigo de barras
+    // convivian en la base y el escaner del punto de venta elegia siempre el
+    // primero (ventas.ts usaba productos.find). Ignora vacio/nulo -varios
+    // productos sin codigo no chocan entre si- y, a proposito, NO filtra por
+    // activo: un producto dado de baja sigue "dueño" de su codigo hasta que
+    // alguien decida reusarlo a mano (ver V14__codigo_barras_unico.sql).
+    private void validarCodigoBarrasUnico(Long idActual, String codigoBarras) {
+        if (codigoBarras == null || codigoBarras.isBlank()) return;
+
+        productoRepository.findByCodigoBarras(codigoBarras)
+                .filter(existente -> !existente.getId().equals(idActual))
+                .ifPresent(existente -> {
+                    throw new RuntimeException(
+                            "Ya existe el producto '" + existente.getNombre() + "' con ese código de barras");
+                });
+    }
+
     public ProductoDTO crearProducto(ProductoDTO dto, MultipartFile imagen) throws IOException {
 
         Producto producto = Mapper.toEntity(dto);
         producto.setActivo(true);
+        normalizarYValidarTipoYUnidad(producto);
+        validarCodigoBarrasUnico(null, producto.getCodigoBarras());
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
@@ -136,6 +198,14 @@ public class ProductoService {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+        // Validar el código de barras ANTES de tocar la entidad gestionada:
+        // findByCodigoBarras es un SELECT, y Hibernate hace autoflush de
+        // cualquier cambio pendiente antes de correr un SELECT. Si el
+        // producto ya tuviera el código nuevo seteado, ese autoflush disparaba
+        // la violación de constraint directo en la base (un
+        // ConstraintViolationException feo) en vez de este mensaje claro.
+        validarCodigoBarrasUnico(id, dto.getCodigoBarras());
+
         producto.setNombre(dto.getNombre());
         producto.setPrecioVenta(dto.getPrecioVenta());
         producto.setPrecioCosto(dto.getPrecioCosto());
@@ -143,10 +213,11 @@ public class ProductoService {
         producto.setStock(dto.getStock());
         producto.setCodigoBarras(dto.getCodigoBarras());
         producto.setProveedor(dto.getProveedor());
-        producto.setTipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD");
-        producto.setUnidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u");
+        producto.setTipoCantidad(dto.getTipoCantidad());
+        producto.setUnidadMedida(dto.getUnidadMedida());
         producto.setFraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0);
         producto.setUnidadesPorPaquete(dto.getUnidadesPorPaquete());
+        normalizarYValidarTipoYUnidad(producto);
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
@@ -199,6 +270,14 @@ public class ProductoService {
 
         if (stock != null && stock < 0) {
             throw new RuntimeException("El stock no puede ser negativo");
+        }
+
+        // DF-DATA-001: el PATCH es el otro camino (ademas de alta/edicion) por
+        // el que un producto por unidad podia terminar con stock fraccionado
+        // (ej. dejar 2,5 chupetines) sin pasar nunca por VentaService.
+        if (stock != null && "UNIDAD".equals(producto.getTipoCantidad())
+                && Cantidades.redondear(stock) % 1 != 0) {
+            throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
         }
 
         if (precioVenta != null) producto.setPrecioVenta(precioVenta);
