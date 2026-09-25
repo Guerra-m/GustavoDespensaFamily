@@ -384,6 +384,14 @@ function actualizarActivoCat() {
   });
 }
 
+// DF-PERF-001: con el catálogo completo (2.024 productos en la auditoría)
+// la grilla llegaba a 39.589 nodos DOM y 146ms por tecla. El escáner y el
+// Enter con código de barras (procesarCodigoEscaneado) buscan sobre el
+// array `productos` completo, NO sobre lo que está en pantalla, así que
+// bajar esto no les saca alcance: siguen encontrando cualquier producto,
+// esté o no entre estas tarjetas.
+const MAX_TARJETAS_POS = 60;
+
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
   // El catálogo cambió (filtro o categoría): la marca de navegación por
@@ -408,7 +416,18 @@ function renderProductosGrid(filtro: string = "") {
     return;
   }
 
-  productosFiltrados.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+  const truncado = productosFiltrados.length > MAX_TARJETAS_POS;
+  const aRenderizar = truncado ? productosFiltrados.slice(0, MAX_TARJETAS_POS) : productosFiltrados;
+
+  aRenderizar.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+
+  if (truncado) {
+    const aviso = document.createElement("div");
+    aviso.className = "aviso-mas-productos";
+    aviso.textContent =
+      `Mostrando ${MAX_TARJETAS_POS} de ${productosFiltrados.length} — escribí más para encontrar el resto, o escaneá su código de barras`;
+    productosGrid.appendChild(aviso);
+  }
 }
 
 function seleccionarProducto(producto: Producto) {

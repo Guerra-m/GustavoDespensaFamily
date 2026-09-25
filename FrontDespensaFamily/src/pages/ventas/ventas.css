@@ -310,6 +310,18 @@ button.btn-imprimir:hover {
   color: #6c757d;
 }
 
+/* DF-PERF-001: aviso cuando el catálogo filtrado tiene más productos que
+   tarjetas se muestran (MAX_TARJETAS_POS). */
+.aviso-mas-productos {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 12px;
+  margin-top: 4px;
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+}
+
 /* ── BLOQUES DE CATEGORÍA (fuera del registrar) ── */
 #categorias-section {
   display: flex;
