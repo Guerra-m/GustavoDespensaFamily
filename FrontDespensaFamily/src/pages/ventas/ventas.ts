@@ -43,7 +43,7 @@ botonesMetodoPago.forEach(btn => {
   });
 });
 
-const tablaDetalle = document.getElementById("tabla-detalle") as HTMLTableSectionElement;
+const tablaDetalle = document.getElementById("tabla-detalle") as HTMLDivElement;
 const tablaVentas = document.getElementById("tabla-ventas") as HTMLTableSectionElement;
 const spanTotal = document.getElementById("total") as HTMLSpanElement;
 
@@ -372,6 +372,15 @@ function indicadorDescuento(linea: ReturnType<typeof lineaCotizadaPara>): string
 
 // Solo dibuja lo que ya se sabe (carrito + última cotización disponible).
 // No dispara ningún pedido de red — eso es tarea de programarCotizacion.
+//
+// DF-UX-001: antes esto armaba una <tr> de 5 columnas (Producto/Cantidad/
+// Precio/Subtotal/Acción) que necesitaba ~524px de ancho mínimo para no
+// recortar nada — en una notebook la columna del carrito nunca tiene eso.
+// Ahora cada ítem es una tarjeta de dos renglones (nombre + cantidad arriba,
+// subtotal + quitar abajo) que se envuelve/achica con el ancho disponible
+// sin perder ningún dato. Sigue mostrando el subtotal cotizado por el
+// backend (DF-BUG-001) y el indicador de descuento/stock, nada de eso se
+// tocó.
 function renderCarrito() {
   tablaDetalle.innerHTML = "";
 
@@ -395,15 +404,20 @@ function renderCarrito() {
           <button class="btn-stepper" data-index="${index}" data-delta="1" aria-label="Agregar una unidad">+</button>
         </div>`;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(prod.nombre)} ${indicadorDescuento(linea)}${avisoStock}</td>
-      <td>${stepper}</td>
-      <td>$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</td>
-      <td>${subtotalTexto}</td>
-      <td><button class="btn-quitar" data-index="${index}">Quitar</button></td>
+    const fila = document.createElement("div");
+    fila.className = "carrito-item";
+    fila.innerHTML = `
+      <div class="carrito-item-fila1">
+        <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
+        ${stepper}
+      </div>
+      <div class="carrito-item-fila2">
+        <span class="carrito-item-subtotal">${subtotalTexto}</span>
+        <button class="btn-quitar" data-index="${index}">Quitar</button>
+      </div>
+      ${avisoStock}
     `;
-    tablaDetalle.appendChild(tr);
+    tablaDetalle.appendChild(fila);
   });
 
   actualizarTotal();

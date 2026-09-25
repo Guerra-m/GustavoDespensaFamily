@@ -11,10 +11,28 @@ const estado = document.getElementById("estado") as HTMLParagraphElement;
 const ultimoCodigoBox = document.getElementById("ultimo-codigo") as HTMLDivElement;
 const ultimoCodigoValor = document.getElementById("ultimo-codigo-valor") as HTMLElement;
 
+const readerDiv = document.getElementById("reader") as HTMLDivElement;
+
+// DF-CAM-001: getUserMedia exige un contexto seguro (HTTPS o localhost). Si
+// la caja y el celular se conectan por HTTP en la LAN (que es el único modo
+// que soporta hoy esta app), el navegador ni siquiera pregunta por la
+// cámara, y antes esto terminaba mostrando "Revisá los permisos del
+// navegador" — un error que no tiene nada que ver con la causa real y manda
+// a la vendedora a buscar un permiso que no existe. Se detecta ANTES de
+// intentar abrir la cámara, para no disparar ese pedido inútil.
+function contextoInseguro(): boolean {
+  return window.isSecureContext === false || !navigator.mediaDevices;
+}
+
 const params = new URLSearchParams(window.location.search);
 const sesionId = params.get("sesion");
 
-if (!sesionId) {
+if (contextoInseguro()) {
+  readerDiv.classList.add("hidden");
+  estado.textContent =
+    "No se puede usar la cámara: esta conexión no es segura (HTTP, no HTTPS), y por eso el navegador no da acceso. " +
+    "Mientras tanto, usá el lector de códigos de barras en la caja, o escribí el código a mano en la pantalla de venta.";
+} else if (!sesionId) {
   estado.textContent = "Falta el código de sesión. Volvé a escanear el QR desde la caja.";
 } else {
   iniciar(sesionId);
