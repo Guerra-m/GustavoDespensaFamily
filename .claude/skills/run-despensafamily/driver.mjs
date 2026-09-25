@@ -1,6 +1,6 @@
 // Smoke driver for DespensaFamily (login -> home), used by the
-// run-despensafamily skill. Requires the backend (8080) and frontend
-// (5173) dev servers already running. See SKILL.md for how to start them.
+// run-despensafamily skill. Requires the backend serving the built app
+// (port 8080 by default) already running. See SKILL.md for how to start it.
 //
 // Usage:
 //   node driver.mjs                        # full login smoke flow
@@ -15,10 +15,14 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SHOTS = join(HERE, "screenshots");
 mkdirSync(SHOTS, { recursive: true });
 
-// IMPORTANT: must be "localhost", not "127.0.0.1" - the backend's
-// CorsConfig only allows the "http://localhost:5173" origin, so
-// 127.0.0.1 gets rejected by CORS on the login POST. See Gotchas.
-const FRONT = "http://localhost:5173";
+// Puerto 8080: el backend sirve el frontend YA COMPILADO desde el mismo
+// origen (ver vite.config.ts, outDir -> resources/static), así que no hace
+// falta -- y no conviene-- pegarle al dev server de Vite en 5173. En esta
+// máquina el 5173 es OTRO proyecto (Fondo Familiar): apuntar ahí hace que
+// este driver navegue a una app distinta en vez de fallar limpio.
+// Configurable con DESPENSA_PORT por si el backend corre en otro puerto
+// (por ejemplo, la base H2 temporal de la suite E2E en el 18106).
+const FRONT = `http://localhost:${process.env.DESPENSA_PORT || 8080}`;
 const USERNAME = process.env.DESPENSA_USER || "admin";
 const PASSWORD = process.env.DESPENSA_PASS || "admin123";
 

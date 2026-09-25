@@ -1,0 +1,13 @@
+{
+  "name": "despensafamily-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Suite E2E (Playwright) del flujo de venta de DespensaFamily. Ver README.md de esta carpeta.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}
