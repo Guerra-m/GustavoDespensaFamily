@@ -65,3 +65,7 @@ empaquetado/escritorio/node_modules/
 # publicacion y pesa 66 MB.
 empaquetado/publicacion/
 empaquetado/*-setup.exe
+
+# Catalogo real del negocio (2183+ productos, Excel). Dato de produccion,
+# no fixture de test: nunca se commitea.
+listaDeProductos/

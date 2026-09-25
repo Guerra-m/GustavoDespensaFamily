@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -179,5 +181,26 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * DF-SEC-004: sin este bean, Spring Boot arranca su propio
+     * {@code UserDetailsService} en memoria — un usuario "user" con una
+     * contraseña generada al azar que además IMPRIME por consola en cada
+     * arranque ("Using generated security password..."). No lo usa nadie:
+     * la autenticacion real es JwtAuthFilter, que resuelve el usuario
+     * directo contra UsuarioRepository, no contra un UserDetailsService.
+     * Declarar este bean (aunque no haga nada mas que rechazar todo) le
+     * dice a Spring Boot que ya hay uno y apaga esa autoconfiguracion
+     * (UserDetailsServiceAutoConfiguration se auto-desactiva si detecta un
+     * bean de este tipo) — un usuario y contraseña que nadie pidio, en un
+     * log que cualquiera con acceso al arranque puede leer.
+     */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            throw new UsernameNotFoundException(
+                    "Este proyecto no usa UserDetailsService: la autenticacion es via JwtAuthFilter contra UsuarioRepository.");
+        };
     }
 }

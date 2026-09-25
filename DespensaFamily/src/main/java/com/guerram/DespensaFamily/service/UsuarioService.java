@@ -59,13 +59,36 @@ public class UsuarioService  {
         return cambiarPasswordDe(username, passwordActual, nuevaPassword);
     }
 
+    // DF-SEC-004: antes esto no tenia ningun freno — 20 intentos seguidos
+    // adivinando la contrasena actual pasaban sin demora, la misma ventana
+    // que ya se habia cerrado en login() (ver frenarSiCorresponde). Mismo
+    // criterio (AUTN-03): demora progresiva por clave, nunca bloqueo de
+    // cuenta. La clave es "password:" + username, separada de "usuario:"
+    // que usa el login, a proposito: machacar el cambio de contrasena no
+    // tiene por que gastarle el margen a quien intenta loguearse, y
+    // viceversa.
+    //
+    // DF-BUG-007 aplica igual de fuerte aca: DemasiadosIntentosException
+    // mapea a 429 y el fallo de contrasena actual sigue siendo un
+    // RuntimeException generico que el handler global manda a 400 — nunca
+    // 401, porque el frontend borra la sesion ante cualquier 401 y esto es
+    // "Mi Perfil", no el login.
     public Usuario cambiarPasswordDe(String username, String passwordActual, String nuevaPassword) {
+        String clave = clavePasswordDe(username);
+
+        limitadorDeIntentos.esperaPendiente(clave).ifPresent(espera -> {
+            throw new DemasiadosIntentosException(espera);
+        });
+
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
+            limitadorDeIntentos.registrarFallo(clave);
             throw new RuntimeException("Contraseña actual incorrecta");
         }
+
+        limitadorDeIntentos.registrarExito(clave);
 
         PoliticaDePassword.validar(nuevaPassword);
 
@@ -74,6 +97,10 @@ public class UsuarioService  {
         // pidiendo al que entra con la generada por el instalador.
         usuario.setDebeCambiarPassword(false);
         return usuarioRepository.save(usuario);
+    }
+
+    private static String clavePasswordDe(String username) {
+        return "password:" + username;
     }
     // LOGIN
     // Dos cosas que antes no hacia, las dos medidas en la auditoria:
@@ -125,10 +152,15 @@ public class UsuarioService  {
         });
     }
 
-    /** Solo para tests: deja las dos claves sin castigo acumulado. */
+    /** Solo para tests: deja las dos claves de login sin castigo acumulado. */
     public void olvidarIntentos(String username, String ip) {
         limitadorDeIntentos.registrarExito("usuario:" + username);
         limitadorDeIntentos.registrarExito("ip:" + ip);
+    }
+
+    /** Solo para tests: deja el freno de cambio de contraseña sin castigo acumulado. */
+    public void olvidarIntentosDeCambioDePassword(String username) {
+        limitadorDeIntentos.registrarExito(clavePasswordDe(username));
     }
 
     public List<UsuarioDTO> listarUsuarios() {
