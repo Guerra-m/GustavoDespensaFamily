@@ -6,14 +6,9 @@ a {
   color: inherit; /* usa el color del padre */
 }
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 .ventas-container {
   max-width: 1500px;
@@ -1015,10 +1010,6 @@ hr {
    navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
 @media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-
   #productos-grid,
   .categoria-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
