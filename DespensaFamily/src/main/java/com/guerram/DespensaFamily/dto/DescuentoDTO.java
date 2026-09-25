@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.AlcanceDescuento;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -25,7 +27,7 @@ public class DescuentoDTO {
 
     @DecimalMin(value = "1", message = "El descuento tiene que ser mayor a 0%")
     @DecimalMax(value = "99", message = "El descuento tiene que ser menor a 100%")
-    private double porcentaje;
+    private BigDecimal porcentaje;
 
     private boolean activo;
 }

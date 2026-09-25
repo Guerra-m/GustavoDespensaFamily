@@ -10,6 +10,7 @@ import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.MovimientoCaja;
 import com.guerram.DespensaFamily.model.TipoMovimiento;
 import com.guerram.DespensaFamily.repository.MovimientoCajaRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ class SaldoNoDependeDelRelojTest {
                 .fechaHora(LocalDateTime.now().plusSeconds(5))
                 .tipo(TipoMovimiento.INGRESO)
                 .categoria(CategoriaMovimiento.APORTE)
-                .monto(monto)
+                .monto(BigDecimal.valueOf(monto))
                 .metodoPago(MetodoPago.EFECTIVO)
                 .descripcion("Movimiento con el reloj corrido")
                 .usuario("duenio-de-prueba")
@@ -65,23 +66,24 @@ class SaldoNoDependeDelRelojTest {
     @Test
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void unMovimientoConLaFechaCorridaIgualEntraEnElSaldo() {
-        double antes = cajaService.estadoDeCaja().getSaldoTotal();
+        BigDecimal antes = cajaService.estadoDeCaja().getSaldoTotal();
 
         guardarMovimientoConFechaAdelantada(1234);
 
-        assertThat(cajaService.estadoDeCaja().getSaldoTotal() - antes)
+        assertThat(cajaService.estadoDeCaja().getSaldoTotal().subtract(antes))
                 .as("el saldo es lo que dice el libro, no lo que el reloj alcanzo a ver")
-                .isEqualTo(1234.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(1234.0));
     }
 
     @Test
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void elEfectivoDelCajonTampocoSeSalteaEseMovimiento() {
-        double antes = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal antes = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         guardarMovimientoConFechaAdelantada(500);
 
-        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja() - antes).isEqualTo(500.0);
+        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja().subtract(antes))
+                .isEqualByComparingTo(BigDecimal.valueOf(500.0));
     }
 
     /**
@@ -94,7 +96,9 @@ class SaldoNoDependeDelRelojTest {
         RegistrarMovimientoRequestDTO aporte = new RegistrarMovimientoRequestDTO();
         aporte.setTipo(TipoMovimiento.INGRESO);
         aporte.setCategoria(CategoriaMovimiento.APORTE);
-        aporte.setMonto(Math.max(10_000, Math.abs(cajaService.estadoDeCaja().getEfectivoEnCaja()) + 10_000));
+        BigDecimal efectivoActual = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal piso = efectivoActual.abs().add(BigDecimal.valueOf(10_000));
+        aporte.setMonto(piso.max(BigDecimal.valueOf(10_000)));
         aporte.setMetodoPago(MetodoPago.EFECTIVO);
         aporte.setDescripcion("Piso de efectivo para el test de arqueo");
         cajaService.registrarMovimientoManual(aporte);
@@ -107,27 +111,27 @@ class SaldoNoDependeDelRelojTest {
         // ajuste por una diferencia que no existe.
         sembrarEfectivoSuficiente();
 
-        double efectivoAntes = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal efectivoAntes = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         guardarMovimientoConFechaAdelantada(800);
 
         ArqueoRequestDTO pedido = new ArqueoRequestDTO();
-        pedido.setEfectivoContado(efectivoAntes + 800);
+        pedido.setEfectivoContado(efectivoAntes.add(BigDecimal.valueOf(800)));
 
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido);
 
         assertThat(resultado.getEfectivoEsperado())
                 .as("lo esperado tiene que incluir el movimiento que ya esta guardado")
-                .isEqualTo(efectivoAntes + 800);
+                .isEqualByComparingTo(efectivoAntes.add(BigDecimal.valueOf(800)));
         assertThat(resultado.getDiferencia())
                 .as("y entonces contar bien no puede generar un faltante inventado")
-                .isEqualTo(0.0);
+                .isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(resultado.getMovimiento())
                 .as("sin diferencia real no se escribe un AJUSTE de plata, pero DF-UX-006"
                         + " igual deja una constancia de monto 0 en el historial")
                 .isNotNull();
         assertThat(resultado.getMovimiento().getMonto())
                 .as("la constancia no puede mover el saldo")
-                .isEqualTo(0.0);
+                .isEqualByComparingTo(BigDecimal.ZERO);
     }
 }

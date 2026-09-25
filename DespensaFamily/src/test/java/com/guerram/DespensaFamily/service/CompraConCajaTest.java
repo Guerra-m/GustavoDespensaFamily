@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -38,8 +40,8 @@ class CompraConCajaTest {
     private Producto producto() {
         return productoRepository.save(Producto.builder()
                 .nombre("Producto de prueba compra+caja")
-                .precioCosto(100).precioVenta(150).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(150)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -47,7 +49,7 @@ class CompraConCajaTest {
     private CompraRequestDTO pedido(Long productoId, Boolean pagada, MetodoPago metodo) {
         CompraRequestDTO request = new CompraRequestDTO();
         request.setProveedor("Proveedor de prueba");
-        request.setDetalles(List.of(new DetalleCompraRequestDTO(productoId, 10.0, 100.0))); // total 1000
+        request.setDetalles(List.of(new DetalleCompraRequestDTO(productoId, BigDecimal.valueOf(10.0), BigDecimal.valueOf(100.0)))); // total 1000
         request.setPagada(pagada);
         request.setMetodoPago(metodo);
         return request;
@@ -63,7 +65,7 @@ class CompraConCajaTest {
 
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
         assertThat(compra.isPagada()).isTrue();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(-1000.0);
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(-1000.0));
     }
 
     @Test
@@ -80,7 +82,7 @@ class CompraConCajaTest {
         // la caja NO se movio. El proveedor todavia no cobro.
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
         assertThat(compra.isPagada()).isFalse();
-        assertThat(despues.getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(despues.getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
     }
 
     @Test
@@ -91,13 +93,13 @@ class CompraConCajaTest {
         CompraDTO compra = compraService.registrarCompra(pedido(p.getId(), false, MetodoPago.EFECTIVO));
 
         // Todavia no se movio nada
-        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
 
         // Se paga despues
         CompraDTO pagada = compraService.marcarPagada(compra.getId());
 
         assertThat(pagada.isPagada()).isTrue();
-        assertThat(cajaService.estadoDeCaja().getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(-1000.0);
+        assertThat(cajaService.estadoDeCaja().getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(-1000.0));
     }
 
     @Test
@@ -120,7 +122,7 @@ class CompraConCajaTest {
         compraService.anularCompra(compra.getId());
 
         // El saldo vuelve a estar como si la compra nunca hubiera pasado
-        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
     }
 
     @Test
@@ -134,6 +136,6 @@ class CompraConCajaTest {
 
         compraService.anularCompra(compra.getId());
 
-        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(cajaService.estadoDeCaja().getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
     }
 }

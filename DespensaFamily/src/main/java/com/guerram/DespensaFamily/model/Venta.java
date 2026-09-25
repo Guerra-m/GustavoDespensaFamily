@@ -3,6 +3,7 @@ package com.guerram.DespensaFamily.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,7 +19,8 @@ public class Venta {
     // pero guardaba solo el dia, asi que dos ventas de la misma jornada eran
     // indistinguibles y el ticket no podia decir a que hora se cobro.
     private LocalDateTime fechaHora;
-    private double total;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal total;
 
     // Como se cobro. Denormalizado ademas del movimiento de caja que genera
     // (ver VentaService.registrarVenta): el ticket y el listado necesitan

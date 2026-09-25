@@ -28,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,7 +102,7 @@ public class VentaService {
         venta.setUsuario(usuarioActual());
         venta.setClaveIdempotencia(clave);
 
-        double total = 0;
+        BigDecimal total = BigDecimal.ZERO;
         List<DetalleVenta> detalles = new ArrayList<>();
 
         // Siempre en el mismo orden de id. Dos ventas que tocan los mismos dos
@@ -123,7 +124,7 @@ public class VentaService {
                 throw new RuntimeException("Stock insuficiente");
             }
 
-            producto.setStock(producto.getStock() - calc.cantidad());
+            producto.setStock(producto.getStock().subtract(calc.cantidad()));
 
             DetalleVenta dv = new DetalleVenta();
             dv.setProducto(producto);
@@ -135,7 +136,7 @@ public class VentaService {
             dv.setPromoDescripcion(calc.promoDescripcion());
             dv.setVenta(venta);
 
-            total += dv.getSubtotal();
+            total = total.add(dv.getSubtotal());
             detalles.add(dv);
         }
 
@@ -148,7 +149,7 @@ public class VentaService {
         // venta tampoco se guarda (ver Fase 10 del mapa de cambios). Un total
         // en cero (venta sin detalles no deberia poder pasar, pero por las
         // dudas) no genera movimiento: no hay plata que haya entrado.
-        if (venta.getTotal() > 0) {
+        if (venta.getTotal().compareTo(BigDecimal.ZERO) > 0) {
             cajaService.registrarMovimiento(
                     TipoMovimiento.INGRESO,
                     CategoriaMovimiento.VENTA,
@@ -170,10 +171,10 @@ public class VentaService {
     // recalculaba esto por su cuenta en ventas.ts, aplicando solo promos
     // (nunca descuentos) y sin redondear cantidades pesables.
     private record LineaCalculada(
-            double cantidad,
-            double precioUnitario,
-            double subtotal,
-            Double descuentoPorcentaje,
+            BigDecimal cantidad,
+            BigDecimal precioUnitario,
+            BigDecimal subtotal,
+            BigDecimal descuentoPorcentaje,
             String promoDescripcion,
             boolean stockInsuficiente) {
     }
@@ -192,10 +193,10 @@ public class VentaService {
     // No decrementa stock ni lo valida mas alla de marcarlo insuficiente: es
     // quien llama (registrarVenta) el que decide si eso rechaza la linea o
     // no (cotizar no rechaza, ver clase LineaCotizadaDTO).
-    private LineaCalculada calcularLinea(Producto producto, double cantidadSolicitada) {
-        double cantidad = Cantidades.redondear(cantidadSolicitada);
+    private LineaCalculada calcularLinea(Producto producto, BigDecimal cantidadSolicitada) {
+        BigDecimal cantidad = Cantidades.redondear(cantidadSolicitada);
 
-        if (cantidad <= 0) {
+        if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Cantidad inválida");
         }
 
@@ -206,16 +207,19 @@ public class VentaService {
         // en fracciones (0,5 chupetin). La regla real del negocio es al
         // reves: solo lo que se vende por PESO admite decimales: todo lo
         // demas se rechaza.
-        if (!"PESO".equals(producto.getTipoCantidad()) && cantidad % 1 != 0) {
+        boolean tieneDecimales = cantidad.stripTrailingZeros().scale() > 0;
+        if (!"PESO".equals(producto.getTipoCantidad()) && tieneDecimales) {
             throw new RuntimeException("Este producto no permite decimales");
         }
 
-        boolean stockInsuficiente = producto.getStock() < cantidad;
+        boolean stockInsuficiente = producto.getStock().compareTo(cantidad) < 0;
 
-        double porcentajeDescuento = descuentoService.porcentajeEfectivoPara(producto);
-        if (porcentajeDescuento > 0) {
-            double precioConDescuento = producto.getPrecioVenta() * (1 - porcentajeDescuento / 100);
-            double subtotal = Dinero.redondear(precioConDescuento * cantidad);
+        BigDecimal porcentajeDescuento = descuentoService.porcentajeEfectivoPara(producto);
+        if (porcentajeDescuento.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal factor = BigDecimal.ONE.subtract(
+                    porcentajeDescuento.divide(BigDecimal.valueOf(100), 10, java.math.RoundingMode.HALF_UP));
+            BigDecimal precioConDescuento = producto.getPrecioVenta().multiply(factor);
+            BigDecimal subtotal = Dinero.redondear(precioConDescuento.multiply(cantidad));
             return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, porcentajeDescuento, null,
                     stockInsuficiente);
         }
@@ -223,19 +227,20 @@ public class VentaService {
         if ("UNIDAD".equals(producto.getTipoCantidad())) {
             var promo = promocionService.promoActivaPara(producto.getId());
             if (promo.isPresent()) {
-                int lleva = promo.get().getCantidadLleva();
-                int paga = promo.get().getCantidadPaga();
-                long cant = (long) cantidad;
+                long lleva = promo.get().getCantidadLleva();
+                long paga = promo.get().getCantidadPaga();
+                long cant = cantidad.longValueExact();
                 long grupos = cant / lleva;
                 long resto = cant % lleva;
                 long unidadesAPagar = grupos * paga + resto;
-                double subtotal = Dinero.redondear(unidadesAPagar * producto.getPrecioVenta());
+                BigDecimal subtotal = Dinero.redondear(
+                        BigDecimal.valueOf(unidadesAPagar).multiply(producto.getPrecioVenta()));
                 return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, null,
                         lleva + "x" + paga, stockInsuficiente);
             }
         }
 
-        double subtotal = Dinero.redondear(producto.getPrecioVenta() * cantidad);
+        BigDecimal subtotal = Dinero.redondear(producto.getPrecioVenta().multiply(cantidad));
         return new LineaCalculada(cantidad, producto.getPrecioVenta(), subtotal, null, null, stockInsuficiente);
     }
 
@@ -248,7 +253,7 @@ public class VentaService {
     @Transactional(readOnly = true)
     public CotizacionDTO cotizar(List<DetalleVentaRequestDTO> detallesDTO) {
         List<LineaCotizadaDTO> lineas = new ArrayList<>();
-        double total = 0;
+        BigDecimal total = BigDecimal.ZERO;
 
         for (DetalleVentaRequestDTO dto : detallesDTO) {
             Producto producto = productoRepository.findById(dto.getProductoId())
@@ -266,7 +271,7 @@ public class VentaService {
                     .stockInsuficiente(calc.stockInsuficiente())
                     .build());
 
-            total += calc.subtotal();
+            total = total.add(calc.subtotal());
         }
 
         return CotizacionDTO.builder()
@@ -343,7 +348,7 @@ public class VentaService {
         for (DetalleVenta detalle : venta.getDetalles()) {
             Producto producto = detalle.getProducto();
             producto.setStock(
-                    producto.getStock() + detalle.getCantidad()
+                    producto.getStock().add(detalle.getCantidad())
             );
         }
 

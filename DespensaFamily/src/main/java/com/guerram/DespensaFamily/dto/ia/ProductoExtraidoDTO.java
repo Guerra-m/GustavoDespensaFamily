@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.ia;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +25,7 @@ public class ProductoExtraidoDTO {
 
     // null si la IA no pudo leer el precio en la imagen/texto — nunca se
     // inventa un valor. El front lo marca como "falta precio" en ese caso.
-    private Double precio;
+    private BigDecimal precio;
 
     // "ALTA" | "MEDIA" | "BAJA": que tan segura dice estar la IA de este
     // renglon. El front resalta en amarillo/rojo lo que no es ALTA para que

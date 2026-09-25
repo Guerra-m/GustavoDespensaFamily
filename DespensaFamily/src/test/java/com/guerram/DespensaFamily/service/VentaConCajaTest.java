@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,8 +41,9 @@ class VentaConCajaTest {
     private Producto producto(double precioVenta, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre("Producto de prueba caja")
-                .precioCosto(precioVenta / 2).precioVenta(precioVenta).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(precioVenta / 2)).precioVenta(BigDecimal.valueOf(precioVenta))
+                .porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -54,13 +57,13 @@ class VentaConCajaTest {
 
         // Registrar venta de $10.000 en efectivo
         VentaDTO venta = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         // Resultado: Caja = X + 10.000, venta registrada, movimiento +$10.000
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(venta.getTotal()).isEqualTo(10000.0);
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(10000.0);
-        assertThat(despues.getEfectivoEnCaja() - antes.getEfectivoEnCaja()).isEqualTo(10000.0);
+        assertThat(venta.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
+        assertThat(despues.getEfectivoEnCaja().subtract(antes.getEfectivoEnCaja())).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
     }
 
     @Test
@@ -69,12 +72,12 @@ class VentaConCajaTest {
         EstadoCajaDTO antes = cajaService.estadoDeCaja();
         Producto p = producto(5000, 5);
 
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.TARJETA);
+        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.TARJETA);
 
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(5000.0);
-        assertThat(despues.getSaldoElectronico() - antes.getSaldoElectronico()).isEqualTo(5000.0);
-        assertThat(despues.getEfectivoEnCaja()).isEqualTo(antes.getEfectivoEnCaja());
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(5000.0));
+        assertThat(despues.getSaldoElectronico().subtract(antes.getSaldoElectronico())).isEqualByComparingTo(BigDecimal.valueOf(5000.0));
+        assertThat(despues.getEfectivoEnCaja()).isEqualByComparingTo(antes.getEfectivoEnCaja());
     }
 
     @Test
@@ -84,13 +87,13 @@ class VentaConCajaTest {
         Producto p = producto(8000, 5);
 
         VentaDTO venta = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         ventaService.anularVenta(venta.getId());
 
         // El saldo vuelve a estar como si la venta nunca hubiera pasado
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(despues.getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
 
         // Pero el movimiento original sigue en el libro (no se borra, se revierte)
         assertThat(cajaService.ultimosMovimientos())
@@ -110,7 +113,7 @@ class VentaConCajaTest {
         // metodo_pago es NOT NULL en la base y el insert falla al hacer
         // flush de la transaccion.
         assertThatThrownBy(() -> ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 2.0)), null))
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(2.0))), null))
                 .isInstanceOf(RuntimeException.class);
 
         // Resultado esperado: NO debe existir una venta nueva, y el stock del
@@ -118,6 +121,6 @@ class VentaConCajaTest {
         // movimiento de caja fallido habria sido peor que ninguno de los dos.
         assertThat(ventaService.listarVentas()).hasSize((int) ventasAntes);
         Producto releido = productoRepository.findById(p.getId()).orElseThrow();
-        assertThat(releido.getStock()).isEqualTo(5.0);
+        assertThat(releido.getStock()).isEqualByComparingTo(BigDecimal.valueOf(5.0));
     }
 }

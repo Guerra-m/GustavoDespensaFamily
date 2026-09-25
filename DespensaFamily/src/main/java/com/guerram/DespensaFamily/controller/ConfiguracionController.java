@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -39,8 +40,8 @@ public class ConfiguracionController {
     }
 
     @PostMapping("/aplicar-ganancia-global")
-    public Map<String, Object> aplicarGananciaGlobal(@RequestBody Map<String, Double> body) {
-        Double porcentaje = body.get("porcentaje");
+    public Map<String, Object> aplicarGananciaGlobal(@RequestBody Map<String, BigDecimal> body) {
+        BigDecimal porcentaje = body.get("porcentaje");
         if (porcentaje == null) {
             throw new RuntimeException("Falta el porcentaje de ganancia");
         }

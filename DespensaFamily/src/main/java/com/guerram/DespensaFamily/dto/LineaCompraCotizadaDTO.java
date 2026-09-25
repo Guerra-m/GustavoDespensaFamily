@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 /**
@@ -17,9 +19,9 @@ import lombok.*;
 public class LineaCompraCotizadaDTO {
     private Long productoId;
     private String productoNombre;
-    private double precioCostoActual;
-    private double precioVentaActual;
-    private double precioVentaNuevo;
+    private BigDecimal precioCostoActual;
+    private BigDecimal precioVentaActual;
+    private BigDecimal precioVentaNuevo;
 
     /**
      * true si precioVentaNuevo difiere de precioVentaActual en mas de 50%,

@@ -2,64 +2,76 @@ package com.guerram.DespensaFamily.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Redondeo de importes al centavo.
  *
- * <p>Mismo problema que {@link Cantidades} resolvio para el stock, pero del
- * lado de la plata: el double no representa los decimales exactos, asi que un
- * costo de 123,45 con 33% de ganancia daba un precio de venta de
- * {@code 164.1885} — cuatro decimales, que despues salian tal cual en la
- * pantalla y en el ticket.
+ * <p>Migrado de double a BigDecimal (DF-DEBT-001): el double no representa
+ * los decimales exactos, asi que un costo de 123,45 con 33% de ganancia daba
+ * un precio de venta de {@code 164.1885} — cuatro decimales, que despues
+ * salian tal cual en la pantalla y en el ticket. BigDecimal con escala fija
+ * y HALF_UP saca el problema de raiz en vez de solo esconder el sintoma con
+ * un redondeo manual sobre double.
  *
- * <p>El redondeo estaba aplicado en ConfiguracionService pero no en
- * CompraService, que es el otro lugar donde se calcula un precio de venta.
- * Tener la operacion en un solo lado evita que la proxima vez se arregle la
- * mitad otra vez.
+ * <p>Las comparaciones son con {@code compareTo}/{@code equals} de
+ * BigDecimal via assertEquals con dos BigDecimal (que usa equals, sensible a
+ * la escala) — por eso siempre se compara contra un valor ya escalado a 2
+ * decimales, igual que devuelve {@link Dinero#redondear}.
  */
 class DineroTest {
 
     @Test
     void redondeaAlCentavo() {
-        assertEquals(164.19, Dinero.redondear(164.1885), 0.0001);
+        assertEquals(new BigDecimal("164.19"), Dinero.redondear(new BigDecimal("164.1885")));
     }
 
     @Test
     void elCasoQueAparecioEnLaAuditoria() {
         // costo 123.45 + 33% de ganancia
-        double costo = 123.45;
-        assertEquals(164.19, Dinero.redondear(costo + costo * 33 / 100), 0.0001);
+        BigDecimal costo = new BigDecimal("123.45");
+        assertEquals(new BigDecimal("164.19"), Dinero.precioConGanancia(costo, new BigDecimal("33")));
     }
 
     @Test
     void unImporteYaRedondeadoNoCambia() {
-        assertEquals(100.0, Dinero.redondear(100.0), 0.0001);
-        assertEquals(99.99, Dinero.redondear(99.99), 0.0001);
+        assertEquals(new BigDecimal("100.00"), Dinero.redondear(new BigDecimal("100.00")));
+        assertEquals(new BigDecimal("99.99"), Dinero.redondear(new BigDecimal("99.99")));
     }
 
     @Test
     void redondeaParaArribaDesdeLaMitad() {
-        assertEquals(0.13, Dinero.redondear(0.125), 0.0001);
+        assertEquals(new BigDecimal("0.13"), Dinero.redondear(new BigDecimal("0.125")));
     }
 
     @Test
     void arreglaLaColaBinariaDelDouble() {
-        // 0.1 + 0.2 da 0.30000000000000004 en binario.
-        assertEquals(0.3, Dinero.redondear(0.1 + 0.2), 0.0001);
+        // Con double, 0.1 + 0.2 da 0.30000000000000004. Con BigDecimal
+        // construido desde String no hay cola binaria que arreglar: la
+        // prueba deja constancia de que la suma exacta ya viene bien.
+        BigDecimal total = new BigDecimal("0.1").add(new BigDecimal("0.2"));
+        assertEquals(new BigDecimal("0.30"), Dinero.redondear(total));
     }
 
     @Test
     void esIdempotente() {
-        double una = Dinero.redondear(164.1885);
-        assertEquals(una, Dinero.redondear(una), 0.0001);
+        BigDecimal una = Dinero.redondear(new BigDecimal("164.1885"));
+        assertEquals(una, Dinero.redondear(una));
     }
 
     @Test
-    void dejaPasarLoQueNoEsUnNumero() {
-        // Igual que Cantidades: que la validacion de cada service decida, en
-        // vez de convertirlo en un 0 que parece un importe valido.
-        assertEquals(Double.NaN, Dinero.redondear(Double.NaN));
-        assertEquals(Double.POSITIVE_INFINITY, Dinero.redondear(Double.POSITIVE_INFINITY));
+    void dejaPasarNull() {
+        // Igual que Cantidades: que la validacion de cada service decida en
+        // vez de que Dinero invente un valor.
+        assertNull(Dinero.redondear(null));
+    }
+
+    @Test
+    void precioConGananciaCero() {
+        BigDecimal costo = new BigDecimal("50.00");
+        assertEquals(new BigDecimal("50.00"), Dinero.precioConGanancia(costo, BigDecimal.ZERO));
     }
 }

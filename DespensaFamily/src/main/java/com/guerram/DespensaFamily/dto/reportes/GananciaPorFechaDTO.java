@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.reportes;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 import java.time.LocalDate;
@@ -11,6 +13,6 @@ import java.time.LocalDate;
 @Builder
 public class GananciaPorFechaDTO {
     private LocalDate fecha;
-    private Double totalVentas;
-    private Double ganancia;
+    private BigDecimal totalVentas;
+    private BigDecimal ganancia;
 }

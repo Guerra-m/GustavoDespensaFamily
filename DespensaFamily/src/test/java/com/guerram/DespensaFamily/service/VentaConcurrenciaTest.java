@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
 import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
@@ -47,13 +49,13 @@ class VentaConcurrenciaTest {
 
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto de prueba de concurrencia")
-                .precioCosto(5)
-                .precioVenta(10)
-                .porcentajeGanancia(30)
-                .stock(stockInicial)
+                .precioCosto(BigDecimal.valueOf(5))
+                .precioVenta(BigDecimal.valueOf(10))
+                .porcentajeGanancia(BigDecimal.valueOf(30))
+                .stock(BigDecimal.valueOf(stockInicial))
                 .tipoCantidad("UNIDAD")
                 .unidadMedida("u")
-                .fraccionMinima(1.0)
+                .fraccionMinima(BigDecimal.valueOf(1.0))
                 .activo(true)
                 .build());
 
@@ -74,7 +76,7 @@ class VentaConcurrenciaTest {
                     }
                     OptimisticRetry.ejecutar(() ->
                             ventaService.registrarVenta(
-                                    List.of(new DetalleVentaRequestDTO(producto.getId(), 1))
+                                    List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1)))
                             )
                     );
                 }))
@@ -92,7 +94,7 @@ class VentaConcurrenciaTest {
         }
 
         Producto actualizado = productoRepository.findById(producto.getId()).orElseThrow();
-        assertEquals(stockInicial - hilos, actualizado.getStock(),
+        assertEquals(0, BigDecimal.valueOf(stockInicial - hilos).compareTo(actualizado.getStock()),
                 "el stock final tiene que reflejar las " + hilos + " ventas, ninguna se puede haber perdido");
     }
 }

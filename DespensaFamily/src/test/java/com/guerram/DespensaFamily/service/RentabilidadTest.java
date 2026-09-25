@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -66,8 +68,8 @@ class RentabilidadTest {
         LocalDate hoy = LocalDate.now();
         Producto p = productoRepository.save(Producto.builder()
                 .nombre("Producto rentabilidad")
-                .precioCosto(600).precioVenta(1000).porcentajeGanancia(66.67)
-                .stock(10).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(600)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(66.67))
+                .stock(BigDecimal.valueOf(10)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
@@ -75,13 +77,13 @@ class RentabilidadTest {
 
         // Vender genera ganancia bruta ($400 por unidad: 1000 - 600)
         ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         // Cargar un gasto de $150 no relacionado con mercaderia
         RegistrarMovimientoRequestDTO gasto = new RegistrarMovimientoRequestDTO();
         gasto.setTipo(TipoMovimiento.EGRESO);
         gasto.setCategoria(CategoriaMovimiento.GASTO);
-        gasto.setMonto(150);
+        gasto.setMonto(BigDecimal.valueOf(150));
         gasto.setMetodoPago(MetodoPago.EFECTIVO);
         gasto.setDescripcion("Insumos de limpieza");
         cajaService.registrarMovimientoManual(gasto);
@@ -89,11 +91,11 @@ class RentabilidadTest {
         RentabilidadDTO despues = reportesService.rentabilidad(hoy, hoy);
 
         assertThat(despues.isGastosCargados()).isTrue();
-        assertThat(despues.getGananciaBruta() - antes.getGananciaBruta()).isEqualTo(400.0);
-        assertThat(despues.getGastosTotales() - antes.getGastosTotales()).isEqualTo(150.0);
+        assertThat(despues.getGananciaBruta().subtract(antes.getGananciaBruta())).isEqualByComparingTo(BigDecimal.valueOf(400.0));
+        assertThat(despues.getGastosTotales().subtract(antes.getGastosTotales())).isEqualByComparingTo(BigDecimal.valueOf(150.0));
         // El resultado neto SI baja por el gasto — pero la ganancia bruta no,
         // porque comprar/gastar y vender son cosas distintas (Fase 9).
-        assertThat(despues.getResultadoNeto() - antes.getResultadoNeto()).isEqualTo(250.0);
+        assertThat(despues.getResultadoNeto().subtract(antes.getResultadoNeto())).isEqualByComparingTo(BigDecimal.valueOf(250.0));
     }
 
     @Test
@@ -108,15 +110,15 @@ class RentabilidadTest {
         RegistrarMovimientoRequestDTO retiro = new RegistrarMovimientoRequestDTO();
         retiro.setTipo(TipoMovimiento.EGRESO);
         retiro.setCategoria(CategoriaMovimiento.RETIRO);
-        retiro.setMonto(9999);
+        retiro.setMonto(BigDecimal.valueOf(9999));
         retiro.setMetodoPago(MetodoPago.EFECTIVO);
         retiro.setDescripcion("Retiro personal");
         cajaService.registrarMovimientoManual(retiro);
 
         RentabilidadDTO despues = reportesService.rentabilidad(hoy, hoy);
 
-        assertThat(despues.getGastosTotales()).isEqualTo(antes.getGastosTotales());
-        assertThat(despues.getResultadoNeto()).isEqualTo(antes.getResultadoNeto());
+        assertThat(despues.getGastosTotales()).isEqualByComparingTo(antes.getGastosTotales());
+        assertThat(despues.getResultadoNeto()).isEqualByComparingTo(antes.getResultadoNeto());
     }
 
     @Test
@@ -129,21 +131,21 @@ class RentabilidadTest {
         LocalDate hoy = LocalDate.now();
         Producto p = productoRepository.save(Producto.builder()
                 .nombre("Producto compra sin venta")
-                .precioCosto(50).precioVenta(75).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(50)).precioVenta(BigDecimal.valueOf(75)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         RentabilidadDTO antes = reportesService.rentabilidad(hoy, hoy);
 
         cajaService.registrarMovimiento(
-                TipoMovimiento.EGRESO, CategoriaMovimiento.COMPRA, 500, MetodoPago.EFECTIVO,
+                TipoMovimiento.EGRESO, CategoriaMovimiento.COMPRA, BigDecimal.valueOf(500), MetodoPago.EFECTIVO,
                 "Compra de prueba", null, null);
 
         RentabilidadDTO despues = reportesService.rentabilidad(hoy, hoy);
 
-        assertThat(despues.getComprasTotales() - antes.getComprasTotales()).isEqualTo(500.0);
-        assertThat(despues.getGananciaBruta()).isEqualTo(antes.getGananciaBruta());
-        assertThat(despues.getResultadoNeto()).isEqualTo(antes.getResultadoNeto());
+        assertThat(despues.getComprasTotales().subtract(antes.getComprasTotales())).isEqualByComparingTo(BigDecimal.valueOf(500.0));
+        assertThat(despues.getGananciaBruta()).isEqualByComparingTo(antes.getGananciaBruta());
+        assertThat(despues.getResultadoNeto()).isEqualByComparingTo(antes.getResultadoNeto());
     }
 }

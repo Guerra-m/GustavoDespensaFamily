@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
@@ -10,16 +12,16 @@ import lombok.*;
 @Builder
 public class DetalleVentaDTO {
     private Long id;
-    private double cantidad;
-    private double precioUnitario;
+    private BigDecimal cantidad;
+    private BigDecimal precioUnitario;
 
     // DF-SEC-003: null para quien no ve costos (ver PermisosDeLectura), y
     // en ese caso el campo no viaja en el JSON. Double y no double por eso.
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Double precioCosto;
+    private BigDecimal precioCosto;
 
-    private double subtotal;
-    private Double descuentoPorcentaje;
+    private BigDecimal subtotal;
+    private BigDecimal descuentoPorcentaje;
     private String promoDescripcion;
     private Long ventaId;
     private Long productoId;

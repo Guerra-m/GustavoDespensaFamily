@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.empleados;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.MetodoPago;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +20,7 @@ import lombok.Setter;
 public class PagarEmpleadoRequestDTO {
 
     @DecimalMin(value = "0.0", inclusive = false, message = "El monto debe ser mayor a 0")
-    private double monto;
+    private BigDecimal monto;
 
     @NotNull(message = "El método de pago es obligatorio")
     private MetodoPago metodoPago;

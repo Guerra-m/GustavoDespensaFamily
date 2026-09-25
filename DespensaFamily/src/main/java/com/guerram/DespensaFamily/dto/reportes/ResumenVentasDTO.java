@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.reportes;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 @Getter
@@ -8,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class ResumenVentasDTO {
-    private Double totalVentas;
+    private BigDecimal totalVentas;
     private Long cantidadVentas;
-    private Double ganancia;
+    private BigDecimal ganancia;
 }

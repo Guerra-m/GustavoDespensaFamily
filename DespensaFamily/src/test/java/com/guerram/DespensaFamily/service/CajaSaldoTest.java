@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,7 +41,7 @@ class CajaSaldoTest {
         RegistrarMovimientoRequestDTO dto = new RegistrarMovimientoRequestDTO();
         dto.setTipo(tipo);
         dto.setCategoria(categoria);
-        dto.setMonto(monto);
+        dto.setMonto(BigDecimal.valueOf(monto));
         dto.setMetodoPago(metodo);
         dto.setDescripcion(descripcion);
         return dto;
@@ -57,8 +59,8 @@ class CajaSaldoTest {
 
         // Resultado: Caja = X + 10.000, y el efectivo tambien sube 10.000
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(10000.0);
-        assertThat(despues.getEfectivoEnCaja() - antes.getEfectivoEnCaja()).isEqualTo(10000.0);
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
+        assertThat(despues.getEfectivoEnCaja().subtract(antes.getEfectivoEnCaja())).isEqualByComparingTo(BigDecimal.valueOf(10000.0));
     }
 
     @Test
@@ -73,7 +75,7 @@ class CajaSaldoTest {
 
         // Resultado: Caja = X - 20.000
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(-20000.0);
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(-20000.0));
     }
 
     @Test
@@ -88,7 +90,7 @@ class CajaSaldoTest {
 
         // El saldo vuelve a estar como si el movimiento nunca hubiera pasado
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal()).isEqualTo(antes.getSaldoTotal());
+        assertThat(despues.getSaldoTotal()).isEqualByComparingTo(antes.getSaldoTotal());
     }
 
     @Test
@@ -163,8 +165,8 @@ class CajaSaldoTest {
 
         // Sube el saldo total y el electronico, pero el efectivo del cajon no se mueve.
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(7000.0);
-        assertThat(despues.getSaldoElectronico() - antes.getSaldoElectronico()).isEqualTo(7000.0);
-        assertThat(despues.getEfectivoEnCaja()).isEqualTo(antes.getEfectivoEnCaja());
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(7000.0));
+        assertThat(despues.getSaldoElectronico().subtract(antes.getSaldoElectronico())).isEqualByComparingTo(BigDecimal.valueOf(7000.0));
+        assertThat(despues.getEfectivoEnCaja()).isEqualByComparingTo(antes.getEfectivoEnCaja());
     }
 }

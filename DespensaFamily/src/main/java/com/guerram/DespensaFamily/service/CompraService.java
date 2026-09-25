@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +62,7 @@ public class CompraService {
                 .sorted(java.util.Comparator.comparing(DetalleCompraRequestDTO::getProductoId))
                 .toList();
 
-        double total = 0;
+        BigDecimal total = BigDecimal.ZERO;
 
         for (DetalleCompraRequestDTO dto : enOrden) {
 
@@ -69,36 +70,36 @@ public class CompraService {
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
             // REDONDEO
-            double cantidad = Cantidades.redondear(dto.getCantidad());
+            BigDecimal cantidad = Cantidades.redondear(dto.getCantidad());
 
             //  VALIDACIONES
-            if (cantidad <= 0) {
+            if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new RuntimeException("Cantidad inválida");
             }
 
             if ("UNIDAD".equals(producto.getTipoCantidad())) {
-                if (cantidad % 1 != 0) {
+                if (cantidad.stripTrailingZeros().scale() > 0) {
                     throw new RuntimeException("Este producto no permite decimales");
                 }
             }
 
-            if (dto.getPrecioCosto() <= 0) {
+            if (dto.getPrecioCosto() == null || dto.getPrecioCosto().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new RuntimeException("Precio de costo inválido");
             }
 
             // STOCK
-            producto.setStock(producto.getStock() + cantidad);
+            producto.setStock(producto.getStock().add(cantidad));
 
             //  COSTO Y PRECIO
             // El costo previo queda en el detalle para poder deshacer la
             // compra entera despues (ver anularCompra).
-            double costoPrevio = producto.getPrecioCosto();
+            BigDecimal costoPrevio = producto.getPrecioCosto();
             producto.setPrecioCosto(dto.getPrecioCosto());
 
             // Redondeado al centavo: sin esto quedaban precios como 164.1885,
             // que despues salian con cuatro decimales en la pantalla y en el
             // ticket (ver Dinero).
-            double porcentaje = producto.getPorcentajeGanancia();
+            BigDecimal porcentaje = producto.getPorcentajeGanancia();
             producto.setPrecioVenta(Dinero.precioConGanancia(dto.getPrecioCosto(), porcentaje));
 
             // DETALLE
@@ -107,10 +108,10 @@ public class CompraService {
             dc.setCantidad(cantidad);
             dc.setPrecioCosto(dto.getPrecioCosto());
             dc.setPrecioCostoAnterior(costoPrevio);
-            dc.setSubtotal(Dinero.redondear(cantidad * dto.getPrecioCosto()));
+            dc.setSubtotal(Dinero.redondear(cantidad.multiply(dto.getPrecioCosto())));
             dc.setCompra(compra);
 
-            total += dc.getSubtotal();
+            total = total.add(dc.getSubtotal());
             detalles.add(dc);
         }
 
@@ -121,7 +122,7 @@ public class CompraService {
         // Dentro de la MISMA transaccion que la compra (Fase 11 del mapa de
         // cambios), y solo si esta pagada: una compra a cuenta entra
         // mercaderia sin sacar plata de caja todavia.
-        if (pagada && compra.getTotal() > 0) {
+        if (pagada && compra.getTotal().compareTo(BigDecimal.ZERO) > 0) {
             cajaService.registrarMovimiento(
                     TipoMovimiento.EGRESO,
                     CategoriaMovimiento.COMPRA,
@@ -243,8 +244,8 @@ public class CompraService {
             Producto producto = productoRepository.buscarParaActualizarStock(detalle.getProducto().getId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            double stockResultante = Cantidades.redondear(producto.getStock() - detalle.getCantidad());
-            if (stockResultante < 0) {
+            BigDecimal stockResultante = Cantidades.redondear(producto.getStock().subtract(detalle.getCantidad()));
+            if (stockResultante.compareTo(BigDecimal.ZERO) < 0) {
                 // Ya se vendio parte de lo que entro con esta compra: dejar el
                 // stock en negativo seria peor que no anular.
                 throw new RuntimeException(
@@ -265,7 +266,7 @@ public class CompraService {
                 // (la misma cuenta que hizo registrarCompra). Si cualquiera de
                 // los dos difiere, algo paso despues — una edicion manual o
                 // otra compra mas nueva — y restaurar seria pisarlo.
-                double precioVentaQueDejoEstaCompra = Dinero.precioConGanancia(
+                BigDecimal precioVentaQueDejoEstaCompra = Dinero.precioConGanancia(
                         detalle.getPrecioCosto(), producto.getPorcentajeGanancia());
 
                 boolean costoSinCambios = valoresIguales(producto.getPrecioCosto(), detalle.getPrecioCosto());
@@ -303,8 +304,11 @@ public class CompraService {
     // doubles con == es fragil (arrastre de precision entre el double en
     // memoria y el DOUBLE de la base). Ver Dinero para el mismo criterio de
     // redondeo.
-    private boolean valoresIguales(double a, double b) {
-        return Math.abs(a - b) < 0.005;
+    private boolean valoresIguales(BigDecimal a, BigDecimal b) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        return a.subtract(b).abs().compareTo(new BigDecimal("0.005")) < 0;
     }
 
     // DF-RISK-001: lo que pasaria a costar CADA linea si se confirmara esta
@@ -320,11 +324,13 @@ public class CompraService {
             Producto producto = productoRepository.findById(dto.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            double precioVentaActual = producto.getPrecioVenta();
-            double precioVentaNuevo = Dinero.precioConGanancia(dto.getPrecioCosto(), producto.getPorcentajeGanancia());
+            BigDecimal precioVentaActual = producto.getPrecioVenta();
+            BigDecimal precioVentaNuevo = Dinero.precioConGanancia(dto.getPrecioCosto(), producto.getPorcentajeGanancia());
 
-            boolean cambioSignificativo = precioVentaActual > 0
-                    && Math.abs(precioVentaNuevo - precioVentaActual) / precioVentaActual > 0.5;
+            boolean cambioSignificativo = precioVentaActual.compareTo(BigDecimal.ZERO) > 0
+                    && precioVentaNuevo.subtract(precioVentaActual).abs()
+                            .divide(precioVentaActual, 10, java.math.RoundingMode.HALF_UP)
+                            .compareTo(new BigDecimal("0.5")) > 0;
 
             lineas.add(LineaCompraCotizadaDTO.builder()
                     .productoId(producto.getId())

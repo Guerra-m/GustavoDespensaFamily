@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.CompraDTO;
@@ -62,8 +64,8 @@ class RentabilidadConReversionesTest {
     private Producto productoDePrueba() {
         return productoRepository.save(Producto.builder()
                 .nombre("Producto de prueba reversiones")
-                .precioCosto(100).precioVenta(200).porcentajeGanancia(100)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(200)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -71,8 +73,8 @@ class RentabilidadConReversionesTest {
     private CompraDTO comprar(Producto producto, double cantidad, double costoUnitario, boolean pagada) {
         DetalleCompraRequestDTO detalle = new DetalleCompraRequestDTO();
         detalle.setProductoId(producto.getId());
-        detalle.setCantidad(cantidad);
-        detalle.setPrecioCosto(costoUnitario);
+        detalle.setCantidad(BigDecimal.valueOf(cantidad));
+        detalle.setPrecioCosto(BigDecimal.valueOf(costoUnitario));
 
         CompraRequestDTO compra = new CompraRequestDTO();
         compra.setProveedor("Proveedor de prueba");
@@ -87,7 +89,7 @@ class RentabilidadConReversionesTest {
         RegistrarMovimientoRequestDTO dto = new RegistrarMovimientoRequestDTO();
         dto.setTipo(TipoMovimiento.EGRESO);
         dto.setCategoria(CategoriaMovimiento.GASTO);
-        dto.setMonto(monto);
+        dto.setMonto(BigDecimal.valueOf(monto));
         dto.setMetodoPago(MetodoPago.EFECTIVO);
         dto.setDescripcion(descripcion);
         return cajaService.registrarMovimientoManual(dto);
@@ -97,23 +99,23 @@ class RentabilidadConReversionesTest {
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void anularUnaCompraPagadaLaSacaDeComprasTotales() {
         // Estado: rentabilidad de hoy, con lo que haya.
-        double comprasAntes = hoy().getComprasTotales();
+        BigDecimal comprasAntes = hoy().getComprasTotales();
         Producto producto = productoDePrueba();
 
         // Accion: comprar $5.000 pagando en el momento.
         CompraDTO compra = comprar(producto, 10, 500, true);
-        assertThat(hoy().getComprasTotales() - comprasAntes)
+        assertThat(hoy().getComprasTotales().subtract(comprasAntes))
                 .as("la compra pagada tiene que sumar una vez")
-                .isEqualTo(5000.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(5000.0));
 
         // Accion: anularla. La caja se revierte con un movimiento de signo
         // contrario, que es lo que la consulta contaba como otra compra.
         compraService.anularCompra(compra.getId());
 
         // Esperado: es como si la compra nunca hubiera pasado.
-        assertThat(hoy().getComprasTotales() - comprasAntes)
+        assertThat(hoy().getComprasTotales().subtract(comprasAntes))
                 .as("una compra anulada no puede seguir contando, y menos contar el doble")
-                .isEqualTo(0.0);
+                .isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -123,18 +125,20 @@ class RentabilidadConReversionesTest {
 
         MovimientoCajaDTO movimiento = gasto(1000, "Luz de prueba");
         RentabilidadDTO conGasto = hoy();
-        assertThat(conGasto.getGastosTotales() - antes.getGastosTotales()).isEqualTo(1000.0);
-        assertThat(conGasto.getResultadoNeto() - antes.getResultadoNeto()).isEqualTo(-1000.0);
+        assertThat(conGasto.getGastosTotales().subtract(antes.getGastosTotales()))
+                .isEqualByComparingTo(BigDecimal.valueOf(1000.0));
+        assertThat(conGasto.getResultadoNeto().subtract(antes.getResultadoNeto()))
+                .isEqualByComparingTo(BigDecimal.valueOf(-1000.0));
 
         cajaService.revertirMovimiento(movimiento.getId());
 
         RentabilidadDTO despues = hoy();
-        assertThat(despues.getGastosTotales() - antes.getGastosTotales())
+        assertThat(despues.getGastosTotales().subtract(antes.getGastosTotales()))
                 .as("un gasto revertido no es un gasto")
-                .isEqualTo(0.0);
-        assertThat(despues.getResultadoNeto() - antes.getResultadoNeto())
+                .isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(despues.getResultadoNeto().subtract(antes.getResultadoNeto()))
                 .as("y el resultado neto tiene que volver a donde estaba, no darse vuelta")
-                .isEqualTo(0.0);
+                .isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -142,11 +146,12 @@ class RentabilidadConReversionesTest {
     void unGastoQueNadieRevirtioSigueContando() {
         // Triangulacion: el arreglo no puede pasarse de largo y dejar de
         // contar los movimientos normales, que son la mayoria.
-        double gastosAntes = hoy().getGastosTotales();
+        BigDecimal gastosAntes = hoy().getGastosTotales();
 
         gasto(700, "Insumos de prueba");
 
-        assertThat(hoy().getGastosTotales() - gastosAntes).isEqualTo(700.0);
+        assertThat(hoy().getGastosTotales().subtract(gastosAntes))
+                .isEqualByComparingTo(BigDecimal.valueOf(700.0));
     }
 
     @Test
@@ -154,17 +159,17 @@ class RentabilidadConReversionesTest {
     void unaCompraACuentaNoCuentaHastaQueSePaga() {
         // Triangulacion por el otro lado: comprasTotales sale del libro de
         // caja, asi que una compra que todavia no saco plata no puede figurar.
-        double comprasAntes = hoy().getComprasTotales();
+        BigDecimal comprasAntes = hoy().getComprasTotales();
         Producto producto = productoDePrueba();
 
         CompraDTO compra = comprar(producto, 4, 250, false);
-        assertThat(hoy().getComprasTotales() - comprasAntes)
+        assertThat(hoy().getComprasTotales().subtract(comprasAntes))
                 .as("una compra a cuenta todavia no movio plata")
-                .isEqualTo(0.0);
+                .isEqualByComparingTo(BigDecimal.ZERO);
 
         compraService.marcarPagada(compra.getId());
-        assertThat(hoy().getComprasTotales() - comprasAntes)
+        assertThat(hoy().getComprasTotales().subtract(comprasAntes))
                 .as("y al pagarla, cuenta una sola vez")
-                .isEqualTo(1000.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(1000.0));
     }
 }

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import java.util.List;
 import lombok.*;
 
@@ -11,5 +13,5 @@ import lombok.*;
 @Builder
 public class CotizacionDTO {
     private List<LineaCotizadaDTO> lineas;
-    private double total;
+    private BigDecimal total;
 }

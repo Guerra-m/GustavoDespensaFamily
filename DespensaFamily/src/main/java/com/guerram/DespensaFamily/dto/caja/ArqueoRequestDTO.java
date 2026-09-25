@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.caja;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +14,7 @@ import lombok.Setter;
 public class ArqueoRequestDTO {
 
     @NotNull(message = "Hay que indicar cuánto efectivo se contó")
-    private Double efectivoContado;
+    private BigDecimal efectivoContado;
 
     /** Opcional: por qué se explica la diferencia ("faltaba en el cambio de turno"). */
     private String descripcion;

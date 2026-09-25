@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.repository;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.EstadoVenta;
 import com.guerram.DespensaFamily.model.Venta;
 import org.springframework.data.domain.Page;
@@ -18,12 +20,12 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     Optional<Venta> findByClaveIdempotencia(String claveIdempotencia);
 
     @Query("""
-    SELECT COALESCE(SUM(v.total), 0.0)
+    SELECT COALESCE(SUM(v.total), 0)
     FROM Venta v
     WHERE v.fechaHora BETWEEN :desde AND :hasta
     AND v.estado = 'ACTIVA'
     """)
-    Double totalVentasEntreFechas(
+    BigDecimal totalVentasEntreFechas(
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta
     );

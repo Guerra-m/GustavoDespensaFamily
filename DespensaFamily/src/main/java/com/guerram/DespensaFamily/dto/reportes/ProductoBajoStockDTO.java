@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.reportes;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 @Getter
@@ -10,5 +12,5 @@ import lombok.*;
 public class ProductoBajoStockDTO {
     private Long id;
     private String nombre;
-    private double stock;
+    private BigDecimal stock;
 }

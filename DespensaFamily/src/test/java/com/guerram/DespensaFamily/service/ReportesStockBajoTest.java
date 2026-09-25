@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.ConfiguracionDTO;
@@ -37,8 +39,8 @@ class ReportesStockBajoTest {
     private Producto productoConStock(String nombre, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre(nombre)
-                .precioCosto(100).precioVenta(150).porcentajeGanancia(50)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(150)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -47,7 +49,7 @@ class ReportesStockBajoTest {
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void sinLimiteExplicitoUsaElUmbralConfiguradoYNoElFijoDeCinco() {
         ConfiguracionDTO dto = new ConfiguracionDTO();
-        dto.setUmbralStockBajo(11.0);
+        dto.setUmbralStockBajo(BigDecimal.valueOf(11.0));
         configuracionService.actualizar(dto);
 
         Producto producto = productoConStock("DF-BUG-008 stock 8 con umbral 11", 8.0);
@@ -63,7 +65,7 @@ class ReportesStockBajoTest {
         // Triangulacion: bajando el umbral configurado a 3, un producto con
         // stock 8 no puede seguir apareciendo como "bajo stock".
         ConfiguracionDTO dto = new ConfiguracionDTO();
-        dto.setUmbralStockBajo(3.0);
+        dto.setUmbralStockBajo(BigDecimal.valueOf(3.0));
         configuracionService.actualizar(dto);
 
         Producto producto = productoConStock("DF-BUG-008 stock 8 con umbral 3", 8.0);
@@ -74,7 +76,7 @@ class ReportesStockBajoTest {
 
         // Restaurar el umbral por defecto para no afectar otros tests de la corrida.
         ConfiguracionDTO restaurar = new ConfiguracionDTO();
-        restaurar.setUmbralStockBajo(10.0);
+        restaurar.setUmbralStockBajo(BigDecimal.valueOf(10.0));
         configuracionService.actualizar(restaurar);
     }
 
@@ -82,19 +84,19 @@ class ReportesStockBajoTest {
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void unLimiteExplicitoSigueTeniendoPrioridadSobreElConfigurado() {
         ConfiguracionDTO dto = new ConfiguracionDTO();
-        dto.setUmbralStockBajo(2.0);
+        dto.setUmbralStockBajo(BigDecimal.valueOf(2.0));
         configuracionService.actualizar(dto);
 
         Producto producto = productoConStock("DF-BUG-008 limite explicito", 8.0);
 
         // Aunque el umbral configurado sea 2 (no alcanzaria), un limite
         // explicito de 11 en la llamada tiene que seguir mandando.
-        List<ProductoBajoStockDTO> resultado = reportesService.productosConBajoStock(11.0);
+        List<ProductoBajoStockDTO> resultado = reportesService.productosConBajoStock(BigDecimal.valueOf(11.0));
 
         assertThat(resultado).anySatisfy(p -> assertThat(p.getId()).isEqualTo(producto.getId()));
 
         ConfiguracionDTO restaurar = new ConfiguracionDTO();
-        restaurar.setUmbralStockBajo(10.0);
+        restaurar.setUmbralStockBajo(BigDecimal.valueOf(10.0));
         configuracionService.actualizar(restaurar);
     }
 }

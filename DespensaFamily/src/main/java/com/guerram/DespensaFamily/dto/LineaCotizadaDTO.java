@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 /**
@@ -15,12 +17,12 @@ import lombok.*;
 @Builder
 public class LineaCotizadaDTO {
     private Long productoId;
-    private double cantidad;
-    private double precioUnitario;
-    private double subtotal;
+    private BigDecimal cantidad;
+    private BigDecimal precioUnitario;
+    private BigDecimal subtotal;
 
     /** Null si no hay descuento por % activo para esta linea. */
-    private Double descuentoPorcentaje;
+    private BigDecimal descuentoPorcentaje;
 
     /** Null si no hay combo activo. Ej: "3x2". */
     private String promoDescripcion;

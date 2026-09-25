@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.model.EstadoVenta;
@@ -46,14 +48,14 @@ class RastroDeVentasTest {
     private Producto unProducto() {
         return productoRepository.save(Producto.builder()
                 .nombre("Producto para rastro")
-                .precioCosto(50).precioVenta(100).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
-                .fraccionMinima(1.0).activo(true)
+                .precioCosto(BigDecimal.valueOf(50)).precioVenta(BigDecimal.valueOf(100)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
+                .fraccionMinima(BigDecimal.valueOf(1.0)).activo(true)
                 .build());
     }
 
     private VentaDTO venderUnaUnidadDe(Producto p) {
-        return ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 1)));
+        return ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1))));
     }
 
     @Test
@@ -124,7 +126,7 @@ class RastroDeVentasTest {
     @WithMockUser(username = "duenio", roles = "ADMIN")
     void anularDosVecesNoDevuelveElStockDosVeces() {
         Producto p = unProducto();
-        double stockInicial = p.getStock();
+        BigDecimal stockInicial = p.getStock();
         VentaDTO venta = venderUnaUnidadDe(p);
 
         ventaService.anularVenta(venta.getId());
@@ -134,6 +136,6 @@ class RastroDeVentasTest {
             // ya estaba anulada
         }
 
-        assertEquals(stockInicial, productoRepository.findById(p.getId()).orElseThrow().getStock());
+        assertEquals(0, stockInicial.compareTo(productoRepository.findById(p.getId()).orElseThrow().getStock()));
     }
 }

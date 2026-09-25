@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -44,14 +46,14 @@ class CompraAnuladaEnReportesTest {
     void unaCompraAnuladaNoApareceEnMovimientos() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto para anular su compra")
-                .precioCosto(100).precioVenta(150).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(150)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         CompraRequestDTO request = new CompraRequestDTO();
         request.setProveedor("Proveedor de prueba");
-        request.setDetalles(List.of(new DetalleCompraRequestDTO(producto.getId(), 10.0, 100.0)));
+        request.setDetalles(List.of(new DetalleCompraRequestDTO(producto.getId(), BigDecimal.valueOf(10.0), BigDecimal.valueOf(100.0))));
         request.setMetodoPago(com.guerram.DespensaFamily.model.MetodoPago.EFECTIVO);
 
         var compra = compraService.registrarCompra(request);

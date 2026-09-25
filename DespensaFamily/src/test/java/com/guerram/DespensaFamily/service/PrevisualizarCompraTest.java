@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.CompraCotizacionDTO;
 import com.guerram.DespensaFamily.dto.DetalleCompraRequestDTO;
 import com.guerram.DespensaFamily.dto.LineaCompraCotizadaDTO;
@@ -34,11 +36,11 @@ class PrevisualizarCompraTest {
     private Producto productoConCosto(double costo, double porcentajeGanancia) {
         return productoRepository.save(Producto.builder()
                 .nombre("Fideos de prueba")
-                .precioCosto(costo)
-                .precioVenta(costo + costo * porcentajeGanancia / 100)
-                .porcentajeGanancia(porcentajeGanancia)
-                .stock(10).tipoCantidad("UNIDAD").unidadMedida("u")
-                .fraccionMinima(1.0).activo(true)
+                .precioCosto(BigDecimal.valueOf(costo))
+                .precioVenta(BigDecimal.valueOf(costo + costo * porcentajeGanancia / 100))
+                .porcentajeGanancia(BigDecimal.valueOf(porcentajeGanancia))
+                .stock(BigDecimal.valueOf(10)).tipoCantidad("UNIDAD").unidadMedida("u")
+                .fraccionMinima(BigDecimal.valueOf(1.0)).activo(true)
                 .build());
     }
 
@@ -49,20 +51,20 @@ class PrevisualizarCompraTest {
         Producto p = productoConCosto(500, 30);
 
         CompraCotizacionDTO cotizacion = compraService.previsualizar(
-                List.of(new DetalleCompraRequestDTO(p.getId(), 10.0, 800.0)));
+                List.of(new DetalleCompraRequestDTO(p.getId(), BigDecimal.valueOf(10.0), BigDecimal.valueOf(800.0))));
 
         assertThat(cotizacion.getLineas()).hasSize(1);
         LineaCompraCotizadaDTO linea = cotizacion.getLineas().get(0);
-        assertThat(linea.getPrecioVentaActual()).isEqualTo(650.0);
-        assertThat(linea.getPrecioVentaNuevo()).isEqualTo(1040.0);
+        assertThat(linea.getPrecioVentaActual()).isEqualByComparingTo(BigDecimal.valueOf(650.0));
+        assertThat(linea.getPrecioVentaNuevo()).isEqualByComparingTo(BigDecimal.valueOf(1040.0));
         assertThat(linea.isCambioSignificativo())
                 .as("650 -> 1040 es +60%, mas del 50% que la auditoria pide resaltar")
                 .isTrue();
 
         // No registro nada: ni costo ni precio de venta cambiaron en la base.
         Producto sinTocar = productoRepository.findById(p.getId()).orElseThrow();
-        assertThat(sinTocar.getPrecioCosto()).isEqualTo(500.0);
-        assertThat(sinTocar.getPrecioVenta()).isEqualTo(650.0);
+        assertThat(sinTocar.getPrecioCosto()).isEqualByComparingTo(BigDecimal.valueOf(500.0));
+        assertThat(sinTocar.getPrecioVenta()).isEqualByComparingTo(BigDecimal.valueOf(650.0));
     }
 
     @Test
@@ -71,10 +73,10 @@ class PrevisualizarCompraTest {
         Producto p = productoConCosto(500, 30);
 
         CompraCotizacionDTO cotizacion = compraService.previsualizar(
-                List.of(new DetalleCompraRequestDTO(p.getId(), 1.0, 520.0)));
+                List.of(new DetalleCompraRequestDTO(p.getId(), BigDecimal.valueOf(1.0), BigDecimal.valueOf(520.0))));
 
         LineaCompraCotizadaDTO linea = cotizacion.getLineas().get(0);
-        assertThat(linea.getPrecioVentaNuevo()).isEqualTo(676.0);
+        assertThat(linea.getPrecioVentaNuevo()).isEqualByComparingTo(BigDecimal.valueOf(676.0));
         assertThat(linea.isCambioSignificativo()).isFalse();
     }
 }

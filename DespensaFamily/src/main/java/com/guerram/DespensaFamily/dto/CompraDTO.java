@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -12,7 +14,7 @@ import java.time.LocalDateTime;
 public class CompraDTO {
     private Long id;
     private LocalDateTime fechaHora;
-    private double total;
+    private BigDecimal total;
     private boolean pagada;
     private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
     private String proveedor;

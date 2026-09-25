@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 // Fila única (id siempre 1L) con los ajustes globales del negocio. No hace
 // falta una tabla de key-value genérica para tres campos — el día que
 // crezca a muchos más ajustes, ahí sí se justifica repensarlo.
@@ -23,9 +25,12 @@ public class Configuracion {
     @Id
     private Long id;
 
-    private Double umbralStockBajo;
+    @jakarta.persistence.Column(precision = 15, scale = 3)
+    private BigDecimal umbralStockBajo;
     private String nombreNegocio;
-    private Double gananciaPorDefecto;
+
+    @jakarta.persistence.Column(precision = 15, scale = 2)
+    private BigDecimal gananciaPorDefecto;
 
     @Version
     private Long version;

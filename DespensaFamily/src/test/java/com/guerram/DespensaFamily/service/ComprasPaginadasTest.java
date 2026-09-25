@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.CompraDTO;
@@ -34,14 +36,14 @@ class ComprasPaginadasTest {
     private void crearCompra(String sufijo) {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto compra paginada " + sufijo + " " + System.nanoTime())
-                .precioCosto(50).precioVenta(75).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(50)).precioVenta(BigDecimal.valueOf(75)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         CompraRequestDTO request = new CompraRequestDTO();
         request.setProveedor("Proveedor paginado");
-        request.setDetalles(List.of(new DetalleCompraRequestDTO(producto.getId(), 1.0, 50.0)));
+        request.setDetalles(List.of(new DetalleCompraRequestDTO(producto.getId(), BigDecimal.valueOf(1.0), BigDecimal.valueOf(50.0))));
         request.setMetodoPago(MetodoPago.EFECTIVO);
 
         compraService.registrarCompra(request);

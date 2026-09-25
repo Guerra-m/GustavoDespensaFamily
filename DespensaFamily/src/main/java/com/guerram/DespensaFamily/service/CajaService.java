@@ -11,6 +11,7 @@ import com.guerram.DespensaFamily.model.MovimientoCaja;
 import com.guerram.DespensaFamily.model.TipoMovimiento;
 import com.guerram.DespensaFamily.repository.MovimientoCajaRepository;
 import com.guerram.DespensaFamily.util.Dinero;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
@@ -56,7 +57,7 @@ public class CajaService {
     public MovimientoCaja registrarMovimiento(
             TipoMovimiento tipo,
             CategoriaMovimiento categoria,
-            double monto,
+            BigDecimal monto,
             MetodoPago metodoPago,
             String descripcion,
             Long ventaId,
@@ -69,14 +70,14 @@ public class CajaService {
     public MovimientoCaja registrarMovimiento(
             TipoMovimiento tipo,
             CategoriaMovimiento categoria,
-            double monto,
+            BigDecimal monto,
             MetodoPago metodoPago,
             String descripcion,
             Long ventaId,
             Long compraId,
             Long empleadoId) {
 
-        if (monto <= 0) {
+        if (monto == null || monto.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("El monto tiene que ser mayor a cero");
         }
 
@@ -109,7 +110,7 @@ public class CajaService {
      * EmpleadoService.pagar para no reconstruir el mapeo a mano. */
     @Transactional
     public MovimientoCajaDTO registrarMovimientoComoDTO(
-            TipoMovimiento tipo, CategoriaMovimiento categoria, double monto, MetodoPago metodoPago,
+            TipoMovimiento tipo, CategoriaMovimiento categoria, BigDecimal monto, MetodoPago metodoPago,
             String descripcion, Long ventaId, Long compraId, Long empleadoId) {
         return toDTO(registrarMovimiento(
                 tipo, categoria, monto, metodoPago, descripcion, ventaId, compraId, empleadoId));
@@ -201,13 +202,13 @@ public class CajaService {
         // como un 403 vacio (F-07, todavia sin corregir), asi que el mensaje
         // no llegaria. Desde el service llega como 400 con texto. Cuando F-07
         // este arreglado, conviene ademas anotar el DTO.
-        if (request.getEfectivoContado() < 0) {
+        if (request.getEfectivoContado() == null || request.getEfectivoContado().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("El efectivo contado no puede ser negativo");
         }
 
-        double esperado = movimientoCajaRepository.saldoActual(MetodoPago.EFECTIVO);
-        double contado = Dinero.redondear(request.getEfectivoContado());
-        double diferencia = Dinero.redondear(contado - esperado);
+        BigDecimal esperado = movimientoCajaRepository.saldoActual(MetodoPago.EFECTIVO);
+        BigDecimal contado = Dinero.redondear(request.getEfectivoContado());
+        BigDecimal diferencia = Dinero.redondear(contado.subtract(esperado));
 
         String descripcion = (request.getDescripcion() != null && !request.getDescripcion().isBlank())
                 ? request.getDescripcion()
@@ -225,12 +226,12 @@ public class CajaService {
         // guarda igual, con monto 0 (no mueve el saldo: el signo que le pongo
         // no importa a la suma) y una categoria y descripcion que dejan claro
         // que fue un conteo sin diferencia, no un ajuste real.
-        MovimientoCaja ajuste = diferencia == 0.0
+        MovimientoCaja ajuste = diferencia.compareTo(BigDecimal.ZERO) == 0
                 ? registrarConstanciaDeArqueoExacto(descripcion)
                 : registrarMovimiento(
-                        diferencia > 0 ? TipoMovimiento.INGRESO : TipoMovimiento.EGRESO,
+                        diferencia.compareTo(BigDecimal.ZERO) > 0 ? TipoMovimiento.INGRESO : TipoMovimiento.EGRESO,
                         CategoriaMovimiento.AJUSTE,
-                        Math.abs(diferencia),
+                        diferencia.abs(),
                         MetodoPago.EFECTIVO,
                         descripcion,
                         null,
@@ -257,7 +258,7 @@ public class CajaService {
                 .fechaHora(LocalDateTime.now())
                 .tipo(TipoMovimiento.INGRESO)
                 .categoria(CategoriaMovimiento.AJUSTE)
-                .monto(0.0)
+                .monto(BigDecimal.ZERO.setScale(Dinero.ESCALA))
                 .metodoPago(MetodoPago.EFECTIVO)
                 .descripcion(descripcion)
                 .usuario(usuarioActual())
@@ -282,31 +283,32 @@ public class CajaService {
         LocalDateTime inicioDeHoy = LocalDate.now().atStartOfDay();
         LocalDateTime finDeHoy = LocalDate.now().atTime(23, 59, 59, 999_999_999);
 
-        double efectivo = movimientoCajaRepository.saldoActual(MetodoPago.EFECTIVO);
-        double tarjeta = movimientoCajaRepository.saldoActual(MetodoPago.TARJETA);
-        double transferencia = movimientoCajaRepository.saldoActual(MetodoPago.TRANSFERENCIA);
-        double otro = movimientoCajaRepository.saldoActual(MetodoPago.OTRO);
-        double electronico = tarjeta + transferencia + otro;
+        BigDecimal efectivo = movimientoCajaRepository.saldoActual(MetodoPago.EFECTIVO);
+        BigDecimal tarjeta = movimientoCajaRepository.saldoActual(MetodoPago.TARJETA);
+        BigDecimal transferencia = movimientoCajaRepository.saldoActual(MetodoPago.TRANSFERENCIA);
+        BigDecimal otro = movimientoCajaRepository.saldoActual(MetodoPago.OTRO);
+        BigDecimal electronico = tarjeta.add(transferencia).add(otro);
 
-        double ingresosHoy = movimientoCajaRepository.totalIngresosEntreFechas(inicioDeHoy, finDeHoy);
+        BigDecimal ingresosHoy = movimientoCajaRepository.totalIngresosEntreFechas(inicioDeHoy, finDeHoy);
         // DF-UX-006: "egresos de hoy" ya no mezcla anulaciones (revertir una
         // venta genera un EGRESO de categoria VENTA) con gastos reales.
-        double egresosHoy = movimientoCajaRepository.totalEgresosRealesEntreFechas(inicioDeHoy, finDeHoy);
-        double anulacionesHoy = movimientoCajaRepository.totalAnulacionesEntreFechas(inicioDeHoy, finDeHoy);
+        BigDecimal egresosHoy = movimientoCajaRepository.totalEgresosRealesEntreFechas(inicioDeHoy, finDeHoy);
+        BigDecimal anulacionesHoy = movimientoCajaRepository.totalAnulacionesEntreFechas(inicioDeHoy, finDeHoy);
         // totalNetoPorCategoriaEntreFechas suma EGRESO positivo e INGRESO
         // negativo; una venta es normalmente INGRESO, asi que el resultado da
         // el neto en negativo. Invertido queda "cuanto se vendio de verdad
         // hoy", ya descontando la venta que se haya anulado en el dia.
-        double ventasNetasHoy = -movimientoCajaRepository
-                .totalNetoPorCategoriaEntreFechas(CategoriaMovimiento.VENTA, inicioDeHoy, finDeHoy);
+        BigDecimal ventasNetasHoy = movimientoCajaRepository
+                .totalNetoPorCategoriaEntreFechas(CategoriaMovimiento.VENTA, inicioDeHoy, finDeHoy)
+                .negate();
 
         return EstadoCajaDTO.builder()
-                .saldoTotal(efectivo + electronico)
+                .saldoTotal(efectivo.add(electronico))
                 .efectivoEnCaja(efectivo)
                 .saldoElectronico(electronico)
                 .ingresosDeHoy(ingresosHoy)
                 .egresosDeHoy(egresosHoy)
-                .resultadoDeHoy(ingresosHoy - egresosHoy)
+                .resultadoDeHoy(ingresosHoy.subtract(egresosHoy))
                 .ventasNetasDeHoy(ventasNetasHoy)
                 .anulacionesDeHoy(anulacionesHoy)
                 .build();

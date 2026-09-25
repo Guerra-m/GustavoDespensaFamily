@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.reportes;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,15 +20,15 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class RentabilidadDTO {
-    private double ventasTotales;
-    private double costoMercaderiaVendida;
-    private double gananciaBruta;
+    private BigDecimal ventasTotales;
+    private BigDecimal costoMercaderiaVendida;
+    private BigDecimal gananciaBruta;
     /** ganancia / ventas × 100. 0 si no hubo ventas (evita dividir por cero). */
-    private double margenPorcentaje;
+    private BigDecimal margenPorcentaje;
     /** Total comprado en el período — reposición de stock, NO es un costo del período. */
-    private double comprasTotales;
+    private BigDecimal comprasTotales;
     /** Solo categoría GASTO: RETIRO y APORTE son movimientos de capital, no gastos operativos. */
-    private double gastosTotales;
+    private BigDecimal gastosTotales;
     private boolean gastosCargados;
-    private double resultadoNeto;
+    private BigDecimal resultadoNeto;
 }

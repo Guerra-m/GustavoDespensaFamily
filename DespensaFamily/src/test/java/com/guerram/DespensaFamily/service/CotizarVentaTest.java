@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.CotizacionDTO;
@@ -59,27 +61,27 @@ class CotizarVentaTest {
     void cotizarConDescuentoPorProductoCoincideConLaVentaReal() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - descuento producto " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(90)
+                .porcentaje(BigDecimal.valueOf(90))
                 .activo(true)
                 .build());
 
         CotizacionDTO cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 2.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(2.0))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 2.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(2.0))));
 
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
         assertThat(cotizacion.getLineas()).hasSize(1);
-        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualTo(90.0);
+        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualByComparingTo(BigDecimal.valueOf(90.0));
         assertThat(cotizacion.getLineas().get(0).getPromoDescripcion()).isNull();
     }
 
@@ -92,8 +94,8 @@ class CotizarVentaTest {
 
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - descuento categoria " + System.nanoTime())
-                .precioCosto(200).precioVenta(500).porcentajeGanancia(150)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(200)).precioVenta(BigDecimal.valueOf(500)).porcentajeGanancia(BigDecimal.valueOf(150))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .categoria(categoria)
                 .activo(true)
                 .build());
@@ -101,18 +103,18 @@ class CotizarVentaTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(30)
+                .porcentaje(BigDecimal.valueOf(30))
                 .activo(true)
                 .build());
 
         CotizacionDTO cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
-        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualTo(30.0);
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
+        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualByComparingTo(BigDecimal.valueOf(30.0));
     }
 
     @Test
@@ -120,8 +122,8 @@ class CotizarVentaTest {
     void cotizarConPromo3x2CoincideConLaVentaReal() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - promo 3x2 " + System.nanoTime())
-                .precioCosto(600).precioVenta(1000).porcentajeGanancia(66.67)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(600)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(66.67))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
@@ -133,13 +135,13 @@ class CotizarVentaTest {
                 .build());
 
         CotizacionDTO cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
-        assertThat(cotizacion.getTotal()).isEqualTo(2000.0);
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(2000.0));
         assertThat(cotizacion.getLineas().get(0).getPromoDescripcion()).isEqualTo("3x2");
         assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isNull();
     }
@@ -149,15 +151,15 @@ class CotizarVentaTest {
     void siHayDescuentoYPromoJuntosGanaElDescuentoEnLosDosLados() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - descuento y promo " + System.nanoTime())
-                .precioCosto(400).precioVenta(1000).porcentajeGanancia(150)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(400)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(150))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(50)
+                .porcentaje(BigDecimal.valueOf(50))
                 .activo(true)
                 .build());
 
@@ -169,15 +171,15 @@ class CotizarVentaTest {
                 .build());
 
         CotizacionDTO cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         // Gana el descuento (50%): 3 * 1000 * 0.5 = 1500, no el 3x2 (2000).
-        assertThat(cotizacion.getTotal()).isEqualTo(1500.0);
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
-        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualTo(50.0);
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(1500.0));
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
+        assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje()).isEqualByComparingTo(BigDecimal.valueOf(50.0));
         assertThat(cotizacion.getLineas().get(0).getPromoDescripcion()).isNull();
     }
 
@@ -186,23 +188,23 @@ class CotizarVentaTest {
     void cotizarUnProductoPesadoRedondeaLaCantidadIgualQueLaVentaReal() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - pesable " + System.nanoTime())
-                .precioCosto(1000).precioVenta(2600).porcentajeGanancia(160)
-                .stock(50).tipoCantidad("PESO").unidadMedida("kg")
-                .fraccionMinima(0.001)
+                .precioCosto(BigDecimal.valueOf(1000)).precioVenta(BigDecimal.valueOf(2600)).porcentajeGanancia(BigDecimal.valueOf(160))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("PESO").unidadMedida("kg")
+                .fraccionMinima(BigDecimal.valueOf(0.001))
                 .activo(true)
                 .build());
 
         // 0.3333 kg tiene que quedar en 0.333 (redondeo a la milesima, ver
         // util.Cantidades) tanto en la cotizacion como en la venta real.
         CotizacionDTO cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 0.3333)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(0.3333))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 0.3333)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(0.3333))));
 
-        assertThat(cotizacion.getLineas().get(0).getCantidad()).isEqualTo(0.333);
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
-        assertThat(cotizacion.getTotal()).isEqualTo(865.80);
+        assertThat(cotizacion.getLineas().get(0).getCantidad()).isEqualByComparingTo(BigDecimal.valueOf(0.333));
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(865.80));
     }
 
     @Test
@@ -210,17 +212,17 @@ class CotizarVentaTest {
     void cotizarNoTocaStockNiCaja() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Cotizar - no debe tocar nada " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         long movimientosAntes = movimientoCajaRepository.count();
 
-        ventaService.cotizar(List.of(new DetalleVentaRequestDTO(producto.getId(), 5.0)));
+        ventaService.cotizar(List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(5.0))));
 
         Producto releido = productoRepository.findById(producto.getId()).orElseThrow();
-        assertThat(releido.getStock()).isEqualTo(50.0);
+        assertThat(releido.getStock()).isEqualByComparingTo(BigDecimal.valueOf(50.0));
         assertThat(movimientoCajaRepository.count()).isEqualTo(movimientosAntes);
     }
 }

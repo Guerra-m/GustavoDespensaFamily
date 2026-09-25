@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.caja.MovimientoCajaDTO;
@@ -40,13 +42,13 @@ class MontoDeCajaSeRedondeaAlCentavoTest {
         RegistrarMovimientoRequestDTO dto = new RegistrarMovimientoRequestDTO();
         dto.setTipo(TipoMovimiento.INGRESO);
         dto.setCategoria(CategoriaMovimiento.APORTE);
-        dto.setMonto(1234.5678);
+        dto.setMonto(BigDecimal.valueOf(1234.5678));
         dto.setMetodoPago(MetodoPago.EFECTIVO);
         dto.setDescripcion("Prueba de redondeo");
 
         MovimientoCajaDTO registrado = cajaService.registrarMovimientoManual(dto);
 
-        assertThat(registrado.getMonto()).isEqualTo(1234.57);
+        assertThat(registrado.getMonto()).isEqualByComparingTo(BigDecimal.valueOf(1234.57));
     }
 
     @Test
@@ -57,12 +59,12 @@ class MontoDeCajaSeRedondeaAlCentavoTest {
         RegistrarMovimientoRequestDTO dto = new RegistrarMovimientoRequestDTO();
         dto.setTipo(TipoMovimiento.EGRESO);
         dto.setCategoria(CategoriaMovimiento.GASTO);
-        dto.setMonto(500.25);
+        dto.setMonto(BigDecimal.valueOf(500.25));
         dto.setMetodoPago(MetodoPago.EFECTIVO);
         dto.setDescripcion("Prueba de redondeo exacto");
 
         MovimientoCajaDTO registrado = cajaService.registrarMovimientoManual(dto);
 
-        assertThat(registrado.getMonto()).isEqualTo(500.25);
+        assertThat(registrado.getMonto()).isEqualByComparingTo(BigDecimal.valueOf(500.25));
     }
 }

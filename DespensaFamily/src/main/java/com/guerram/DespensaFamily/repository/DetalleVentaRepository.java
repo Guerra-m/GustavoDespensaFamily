@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.repository;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
@@ -16,13 +18,13 @@ import java.util.List;
 public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long> {
 
     @Query("""
-    SELECT COALESCE(SUM(dv.cantidad * dv.precioCosto), 0.0)
+    SELECT COALESCE(SUM(dv.cantidad * dv.precioCosto), 0)
     FROM DetalleVenta dv
     JOIN dv.venta v
     WHERE v.fechaHora BETWEEN :desde AND :hasta
     AND v.estado = 'ACTIVA'
     """)
-    Double totalCostoEntreFechas(
+    BigDecimal totalCostoEntreFechas(
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta
     );
