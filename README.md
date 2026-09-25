@@ -83,6 +83,17 @@ export DESPENSA_HOME=/c/temp/despensafamily-tests
 La suite completa no puede bajar de la cantidad de tests verdes que ya tenía antes del cambio que
 se esté haciendo — si algo baja, es una regresión, no un test "viejo que ya no aplica".
 
+### E2E (Playwright): el flujo de venta
+
+```bash
+npm run e2e
+```
+
+Cubre 5 flujos completos del punto de venta (descuento %, pesable, doble clic al confirmar,
+anulación, permisos de un empleado sin `PERM_CAJA`) contra un backend real con una base H2 nueva en
+una carpeta temporal — no toca el catálogo ni la base de esta PC. Ver `e2e/README.md` para el
+detalle de cómo arranca todo y cómo agregar un flujo nuevo.
+
 ## Reglas y documentos del proyecto
 
 - `docs/reglas-de-precio.md` — cómo se calcula el precio de una venta (descuentos, combos,
