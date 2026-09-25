@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
@@ -69,7 +70,7 @@ public class ReportesService {
             case "dia" -> desde = hoy;
             case "semana" -> desde = hoy.minusDays(7);
             case "mes" -> desde = hoy.minusDays(30);
-            default -> throw new RuntimeException("Periodo inválido");
+            default -> throw new ReglaDeNegocioException("Periodo inválido");
         }
 
         BigDecimal totalVentas = ventaRepository

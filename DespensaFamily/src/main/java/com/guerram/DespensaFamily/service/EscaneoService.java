@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -42,7 +44,7 @@ public class EscaneoService {
 
     public SseEmitter suscribirse(String sesionId) {
         if (!sesiones.containsKey(sesionId)) {
-            throw new RuntimeException("Sesión de escaneo no encontrada o vencida");
+            throw new NoEncontradoException("Sesión de escaneo no encontrada o vencida");
         }
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
         sesiones.put(sesionId, new Sesion(emitter, sesiones.get(sesionId).creada()));
@@ -57,16 +59,16 @@ public class EscaneoService {
     public void publicarCodigo(String sesionId, String codigo) {
         Sesion sesion = sesiones.get(sesionId);
         if (sesion == null) {
-            throw new RuntimeException("Sesión de escaneo no encontrada o vencida");
+            throw new NoEncontradoException("Sesión de escaneo no encontrada o vencida");
         }
         if (sesion.emitter() == null) {
-            throw new RuntimeException("Todavía no se abrió la pantalla de Ventas para esta sesión");
+            throw new ReglaDeNegocioException("Todavía no se abrió la pantalla de Ventas para esta sesión");
         }
         try {
             sesion.emitter().send(SseEmitter.event().name("codigo").data(codigo));
         } catch (Exception e) {
             sesiones.remove(sesionId);
-            throw new RuntimeException("La sesión de escaneo se cerró");
+            throw new ReglaDeNegocioException("La sesión de escaneo se cerró");
         }
     }
 

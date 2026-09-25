@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.*;
 import com.guerram.DespensaFamily.mapper.Mapper;
 import com.guerram.DespensaFamily.model.CategoriaMovimiento;
@@ -67,24 +69,24 @@ public class CompraService {
         for (DetalleCompraRequestDTO dto : enOrden) {
 
             Producto producto = productoRepository.buscarParaActualizarStock(dto.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
             // REDONDEO
             BigDecimal cantidad = Cantidades.redondear(dto.getCantidad());
 
             //  VALIDACIONES
             if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new RuntimeException("Cantidad inválida");
+                throw new ReglaDeNegocioException("Cantidad inválida");
             }
 
             if ("UNIDAD".equals(producto.getTipoCantidad())) {
                 if (cantidad.stripTrailingZeros().scale() > 0) {
-                    throw new RuntimeException("Este producto no permite decimales");
+                    throw new ReglaDeNegocioException("Este producto no permite decimales");
                 }
             }
 
             if (dto.getPrecioCosto() == null || dto.getPrecioCosto().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new RuntimeException("Precio de costo inválido");
+                throw new ReglaDeNegocioException("Precio de costo inválido");
             }
 
             // STOCK
@@ -145,13 +147,13 @@ public class CompraService {
     @Transactional
     public CompraDTO marcarPagada(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Compra no encontrada"));
 
         if (compra.getEstado() == EstadoCompra.ANULADA) {
-            throw new RuntimeException("No se puede pagar una compra anulada");
+            throw new ReglaDeNegocioException("No se puede pagar una compra anulada");
         }
         if (compra.isPagada()) {
-            throw new RuntimeException("La compra ya está pagada");
+            throw new ReglaDeNegocioException("La compra ya está pagada");
         }
 
         compra.setPagada(true);
@@ -198,14 +200,14 @@ public class CompraService {
 
     public CompraDTO buscarPorId(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Compra no encontrada"));
 
         return Mapper.toDTO(compra);
     }
 
     public CompraDetalleResponseDTO buscarDetallePorId(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Compra no encontrada"));
 
         return Mapper.toCompraDetalleResponse(compra);
     }
@@ -228,10 +230,10 @@ public class CompraService {
     @Transactional
     public AnularCompraResponseDTO anularCompra(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Compra no encontrada"));
 
         if (compra.getEstado() == EstadoCompra.ANULADA) {
-            throw new RuntimeException("La compra ya está anulada");
+            throw new ReglaDeNegocioException("La compra ya está anulada");
         }
 
         List<DetalleCompra> enOrden = compra.getDetalles().stream()
@@ -242,13 +244,13 @@ public class CompraService {
 
         for (DetalleCompra detalle : enOrden) {
             Producto producto = productoRepository.buscarParaActualizarStock(detalle.getProducto().getId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
             BigDecimal stockResultante = Cantidades.redondear(producto.getStock().subtract(detalle.getCantidad()));
             if (stockResultante.compareTo(BigDecimal.ZERO) < 0) {
                 // Ya se vendio parte de lo que entro con esta compra: dejar el
                 // stock en negativo seria peor que no anular.
-                throw new RuntimeException(
+                throw new ReglaDeNegocioException(
                         "No se puede anular: ya se vendió parte de lo que entró con esta compra ("
                                 + producto.getNombre() + ")");
             }
@@ -322,7 +324,7 @@ public class CompraService {
 
         for (DetalleCompraRequestDTO dto : detallesDTO) {
             Producto producto = productoRepository.findById(dto.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
             BigDecimal precioVentaActual = producto.getPrecioVenta();
             BigDecimal precioVentaNuevo = Dinero.precioConGanancia(dto.getPrecioCosto(), producto.getPorcentajeGanancia());

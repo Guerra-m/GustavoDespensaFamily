@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
 import com.guerram.DespensaFamily.dto.caja.ArqueoRequestDTO;
 import com.guerram.DespensaFamily.dto.caja.ArqueoResultadoDTO;
 import com.guerram.DespensaFamily.dto.caja.EstadoCajaDTO;
@@ -145,7 +146,7 @@ public class CajaService {
     @Transactional
     public MovimientoCajaDTO revertirMovimiento(Long id) {
         MovimientoCaja original = movimientoCajaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Movimiento no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Movimiento no encontrado"));
 
         if (yaFueRevertido(id)) {
             throw new IllegalStateException("Este movimiento ya fue revertido");

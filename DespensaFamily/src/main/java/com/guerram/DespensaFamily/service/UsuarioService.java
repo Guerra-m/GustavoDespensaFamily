@@ -3,7 +3,9 @@ package com.guerram.DespensaFamily.service;
 import com.guerram.DespensaFamily.config.CredencialesInvalidasException;
 import com.guerram.DespensaFamily.config.DemasiadosIntentosException;
 import com.guerram.DespensaFamily.config.LimitadorDeIntentos;
+import com.guerram.DespensaFamily.config.NoEncontradoException;
 import com.guerram.DespensaFamily.config.PoliticaDePassword;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.model.Roles;
 import com.guerram.DespensaFamily.dto.CambiarPasswordDTO;
 import com.guerram.DespensaFamily.dto.CrearUsuarioRequestDTO;
@@ -41,7 +43,7 @@ public class UsuarioService  {
     public UsuarioDTO obtenerPerfil() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Usuario no encontrado"));
         return Mapper.toDTO(usuario);
     }
 
@@ -81,11 +83,11 @@ public class UsuarioService  {
         });
 
         Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
             limitadorDeIntentos.registrarFallo(clave);
-            throw new RuntimeException("Contraseña actual incorrecta");
+            throw new ReglaDeNegocioException("Contraseña actual incorrecta");
         }
 
         limitadorDeIntentos.registrarExito(clave);
@@ -176,7 +178,7 @@ public class UsuarioService  {
     @Transactional
     public UsuarioDTO crearUsuario(CrearUsuarioRequestDTO dto) {
         if (usuarioRepository.findByUsername(dto.getUsername()).isPresent()) {
-            throw new RuntimeException("El nombre de usuario ya existe");
+            throw new ReglaDeNegocioException("El nombre de usuario ya existe");
         }
         PoliticaDePassword.validar(dto.getPassword());
         String rol = Roles.validar(dto.getRol());
@@ -203,7 +205,7 @@ public class UsuarioService  {
     @Transactional
     public UsuarioDTO actualizarPermisos(Long id, PermisosUsuarioDTO dto) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Usuario no encontrado"));
 
         usuario.setPuedeGestionarProductos(dto.isPuedeGestionarProductos());
         usuario.setPuedeVerCaja(dto.isPuedeVerCaja());
@@ -213,18 +215,18 @@ public class UsuarioService  {
 
     public void eliminarUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Usuario no encontrado"));
 
         String propio = SecurityContextHolder.getContext().getAuthentication().getName();
         if (usuario.getUsername().equals(propio)) {
-            throw new RuntimeException("No podés eliminar tu propio usuario");
+            throw new ReglaDeNegocioException("No podés eliminar tu propio usuario");
         }
 
         // Sin esto, borrar al ultimo administrador dejaba el sistema sin nadie
         // que pudiera entrar a Usuarios, Reportes ni Ajustes: la unica salida
         // era borrar la base y perder los datos del negocio.
         if (Roles.ADMIN.equals(usuario.getRol()) && contarAdministradores() <= 1) {
-            throw new RuntimeException("No podés eliminar al último administrador del sistema");
+            throw new ReglaDeNegocioException("No podés eliminar al último administrador del sistema");
         }
 
         usuarioRepository.delete(usuario);

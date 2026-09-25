@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.config.PermisosDeLectura;
 import com.guerram.DespensaFamily.dto.ConfiguracionDTO;
 import com.guerram.DespensaFamily.dto.ia.ClaveIaDTO;
@@ -43,7 +44,7 @@ public class ConfiguracionController {
     public Map<String, Object> aplicarGananciaGlobal(@RequestBody Map<String, BigDecimal> body) {
         BigDecimal porcentaje = body.get("porcentaje");
         if (porcentaje == null) {
-            throw new RuntimeException("Falta el porcentaje de ganancia");
+            throw new ReglaDeNegocioException("Falta el porcentaje de ganancia");
         }
         int actualizados = OptimisticRetry.ejecutar(() -> configuracionService.aplicarGananciaATodos(porcentaje));
         return Map.of("productosActualizados", actualizados);

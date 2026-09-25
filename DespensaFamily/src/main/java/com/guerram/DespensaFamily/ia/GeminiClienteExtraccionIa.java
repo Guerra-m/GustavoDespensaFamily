@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.ia;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
+import com.guerram.DespensaFamily.config.ServicioExternoNoDisponibleException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.guerram.DespensaFamily.dto.ia.ProductoExtraidoDTO;
@@ -81,7 +83,7 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
     @Override
     public List<ProductoExtraidoDTO> extraer(String texto, byte[] imagen, String imagenMimeType) {
         if (!estaConfigurado()) {
-            throw new RuntimeException("El asistente de IA no esta configurado en este servidor");
+            throw new ServicioExternoNoDisponibleException("El asistente de IA no esta configurado en este servidor");
         }
 
         List<Map<String, Object>> parts = new ArrayList<>();
@@ -115,15 +117,15 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (HttpClientErrorException.TooManyRequests ex) {
-            throw new RuntimeException("Se alcanzo el limite gratuito de Gemini por ahora. Probá de nuevo mas tarde o cargá el producto a mano.");
+            throw new ServicioExternoNoDisponibleException("Se alcanzo el limite gratuito de Gemini por ahora. Probá de nuevo mas tarde o cargá el producto a mano.");
         } catch (org.springframework.web.client.ResourceAccessException ex) {
             // Timeout o red caida: se distingue del resto para que el mensaje
             // no mande a revisar internet cuando en realidad Gemini tardo.
             log.warn("La llamada a Gemini no respondio a tiempo", ex);
-            throw new RuntimeException("El asistente de IA tardó demasiado en responder. Probá de nuevo o cargá el producto a mano.");
+            throw new ServicioExternoNoDisponibleException("El asistente de IA tardó demasiado en responder. Probá de nuevo o cargá el producto a mano.");
         } catch (RestClientException ex) {
             log.warn("No se pudo llamar a la API de Gemini", ex);
-            throw new RuntimeException("No se pudo conectar con el asistente de IA. Revisá la conexion a internet.");
+            throw new ServicioExternoNoDisponibleException("No se pudo conectar con el asistente de IA. Revisá la conexion a internet.");
         }
 
         return parsearProductos(respuesta);
@@ -139,7 +141,7 @@ public class GeminiClienteExtraccionIa implements ClienteExtraccionIa {
             return List.of(productos);
         } catch (Exception ex) {
             log.warn("Respuesta de Gemini con formato inesperado: {}", respuesta, ex);
-            throw new RuntimeException("El asistente de IA devolvio una respuesta que no se pudo interpretar. Probá de nuevo.");
+            throw new ReglaDeNegocioException("El asistente de IA devolvio una respuesta que no se pudo interpretar. Probá de nuevo.");
         }
     }
 

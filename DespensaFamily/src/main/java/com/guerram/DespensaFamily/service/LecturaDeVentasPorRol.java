@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
 import com.guerram.DespensaFamily.config.PermisosDeLectura;
 import com.guerram.DespensaFamily.dto.PaginaDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
@@ -79,7 +80,7 @@ public class LecturaDeVentasPorRol {
     private Venta buscarDeHoy(Long id, Authentication quien) {
         return ventasDelEmpleado.findByIdAndUsuarioAndFechaHoraBetween(
                         id, quien.getName(), inicioDeHoy(), finDeHoy())
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Venta no encontrada"));
     }
 
     // El dia del reloj de la maquina, igual que la fecha con que VentaService

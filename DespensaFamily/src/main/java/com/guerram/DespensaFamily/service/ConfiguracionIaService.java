@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.config.AppPaths;
 import com.guerram.DespensaFamily.config.ClaveIaPorVariableDeEntornoException;
 import com.guerram.DespensaFamily.config.EditorArchivoPropiedades;
@@ -95,21 +96,21 @@ public class ConfiguracionIaService {
     // otra propiedad del archivo, jwt.secret incluido.
     private String validar(String apiKey) {
         if (apiKey == null) {
-            throw new RuntimeException("Ingresá una clave");
+            throw new ReglaDeNegocioException("Ingresá una clave");
         }
         String recortada = apiKey.trim();
         if (recortada.isEmpty()) {
-            throw new RuntimeException("Ingresá una clave");
+            throw new ReglaDeNegocioException("Ingresá una clave");
         }
         if (recortada.length() < LARGO_MINIMO || recortada.length() > LARGO_MAXIMO) {
-            throw new RuntimeException(
+            throw new ReglaDeNegocioException(
                     "La clave tiene que tener entre " + LARGO_MINIMO + " y " + LARGO_MAXIMO + " caracteres");
         }
         if (recortada.chars().anyMatch(Character::isWhitespace)) {
-            throw new RuntimeException("La clave no puede tener espacios ni saltos de línea");
+            throw new ReglaDeNegocioException("La clave no puede tener espacios ni saltos de línea");
         }
         if (recortada.indexOf('=') >= 0 || recortada.indexOf('#') >= 0) {
-            throw new RuntimeException("La clave no puede contener '=' ni '#'");
+            throw new ReglaDeNegocioException("La clave no puede contener '=' ni '#'");
         }
         return recortada;
     }

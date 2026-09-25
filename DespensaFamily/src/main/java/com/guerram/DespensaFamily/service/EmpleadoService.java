@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
 import com.guerram.DespensaFamily.dto.caja.MovimientoCajaDTO;
 import com.guerram.DespensaFamily.dto.empleados.CrearEmpleadoRequestDTO;
 import com.guerram.DespensaFamily.dto.empleados.DiaTrabajadoDTO;
@@ -70,7 +71,7 @@ public class EmpleadoService {
     @Transactional
     public void desactivar(Long id) {
         Empleado empleado = empleadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Empleado no encontrado"));
         empleado.setActivo(false);
         empleadoRepository.save(empleado);
     }
@@ -96,7 +97,7 @@ public class EmpleadoService {
             return;
         }
         Empleado empleado = empleadoRepository.findById(empleadoId)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Empleado no encontrado"));
         diaTrabajadoRepository.save(DiaTrabajado.builder().empleado(empleado).fecha(fecha).build());
     }
 
@@ -113,7 +114,7 @@ public class EmpleadoService {
     @Transactional
     public MovimientoCajaDTO pagar(Long empleadoId, PagarEmpleadoRequestDTO request) {
         Empleado empleado = empleadoRepository.findById(empleadoId)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Empleado no encontrado"));
 
         String descripcion = (request.getDescripcion() != null && !request.getDescripcion().isBlank())
                 ? request.getDescripcion()

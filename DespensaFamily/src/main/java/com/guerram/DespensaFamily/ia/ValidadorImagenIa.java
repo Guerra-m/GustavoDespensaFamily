@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.ia;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
+
 // Valida una imagen ANTES de gastar una llamada saliente a Gemini con ella.
 // Sigue UPL-01 (limite de tamano) y UPL-02 (tipo real por magic bytes, nunca
 // por el nombre ni el Content-Type que declaro el cliente) de la biblioteca
@@ -21,15 +23,15 @@ public final class ValidadorImagenIa {
 
     public static ImagenValidada validar(byte[] contenido) {
         if (contenido == null || contenido.length == 0) {
-            throw new RuntimeException("La imagen esta vacia");
+            throw new ReglaDeNegocioException("La imagen esta vacia");
         }
         if (contenido.length > TAMANO_MAXIMO_BYTES) {
-            throw new RuntimeException("La imagen supera el tamano maximo permitido (8 MB)");
+            throw new ReglaDeNegocioException("La imagen supera el tamano maximo permitido (8 MB)");
         }
 
         String mimeType = detectarMimeTypeReal(contenido);
         if (mimeType == null) {
-            throw new RuntimeException("El archivo no es una imagen JPEG, PNG, WEBP o HEIC valida");
+            throw new ReglaDeNegocioException("El archivo no es una imagen JPEG, PNG, WEBP o HEIC valida");
         }
         return new ImagenValidada(contenido, mimeType);
     }

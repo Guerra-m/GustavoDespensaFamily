@@ -29,14 +29,14 @@ public final class PoliticaDePassword {
 
     public static void validar(String password) {
         if (password == null || password.isBlank()) {
-            throw new RuntimeException("La contraseña no puede estar vacía");
+            throw new ReglaDeNegocioException("La contraseña no puede estar vacía");
         }
         if (password.length() < LARGO_MINIMO) {
-            throw new RuntimeException(
+            throw new ReglaDeNegocioException(
                     "La contraseña tiene que tener al menos " + LARGO_MINIMO + " caracteres");
         }
         if (PROHIBIDAS.contains(password.toLowerCase())) {
-            throw new RuntimeException("Esa contraseña es demasiado conocida, elegí otra");
+            throw new ReglaDeNegocioException("Esa contraseña es demasiado conocida, elegí otra");
         }
     }
 }
