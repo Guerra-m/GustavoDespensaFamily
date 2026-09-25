@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.model;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import java.util.Set;
 
 /**
@@ -27,7 +28,7 @@ public final class Roles {
         }
         String normalizado = rol.trim().toUpperCase();
         if (!VALIDOS.contains(normalizado)) {
-            throw new RuntimeException("Rol inválido: tiene que ser ADMIN o EMPLEADO");
+            throw new ReglaDeNegocioException("Rol inválido: tiene que ser ADMIN o EMPLEADO");
         }
         return normalizado;
     }

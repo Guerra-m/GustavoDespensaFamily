@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.CotizacionDTO;
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
 import com.guerram.DespensaFamily.dto.LineaCotizadaDTO;
@@ -116,12 +118,12 @@ public class VentaService {
         for (DetalleVentaRequestDTO dto : enOrden) {
 
             Producto producto = productoRepository.buscarParaActualizarStock(dto.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
             LineaCalculada calc = calcularLinea(producto, dto.getCantidad());
 
             if (calc.stockInsuficiente()) {
-                throw new RuntimeException("Stock insuficiente");
+                throw new ReglaDeNegocioException("Stock insuficiente");
             }
 
             producto.setStock(producto.getStock().subtract(calc.cantidad()));
@@ -197,7 +199,7 @@ public class VentaService {
         BigDecimal cantidad = Cantidades.redondear(cantidadSolicitada);
 
         if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Cantidad inválida");
+            throw new ReglaDeNegocioException("Cantidad inválida");
         }
 
         // DF-DATA-001: antes solo se rechazaba el decimal cuando
@@ -209,7 +211,7 @@ public class VentaService {
         // demas se rechaza.
         boolean tieneDecimales = cantidad.stripTrailingZeros().scale() > 0;
         if (!"PESO".equals(producto.getTipoCantidad()) && tieneDecimales) {
-            throw new RuntimeException("Este producto no permite decimales");
+            throw new ReglaDeNegocioException("Este producto no permite decimales");
         }
 
         boolean stockInsuficiente = producto.getStock().compareTo(cantidad) < 0;
@@ -257,7 +259,7 @@ public class VentaService {
 
         for (DetalleVentaRequestDTO dto : detallesDTO) {
             Producto producto = productoRepository.findById(dto.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
             LineaCalculada calc = calcularLinea(producto, dto.getCantidad());
 
@@ -321,7 +323,7 @@ public class VentaService {
 
     public VentaDTO buscarPorId(Long id) {
         Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Venta no encontrada"));
 
         return Mapper.toDTO(venta);
     }
@@ -329,7 +331,7 @@ public class VentaService {
     @Transactional(readOnly = true)
     public VentaDetalleResponseDTO buscarDetallePorId(Long id) {
         Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Venta no encontrada"));
 
         return Mapper.toVentaDetalleResponse(venta);
     }
@@ -338,15 +340,30 @@ public class VentaService {
     public void anularVenta(Long id) {
 
         Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Venta no encontrada"));
 
         if (venta.getEstado() == EstadoVenta.ANULADA) {
-            throw new RuntimeException("La venta ya está anulada");
+            throw new ReglaDeNegocioException("La venta ya está anulada");
         }
 
+        // DF-DEBT-003: antes esto tocaba detalle.getProducto() directo, la
+        // entidad que ya trajo el findById de arriba (SIN lock). Los demas
+        // caminos que suman/restan stock (registrarVenta, CompraService)
+        // pasan todos por buscarParaActualizarStock — el SELECT ... FOR
+        // UPDATE que evita el lost update de una venta/compra concurrente
+        // sobre el mismo producto. anularVenta se habia quedado afuera de
+        // esa proteccion: dos anulaciones (o una anulacion y una venta) del
+        // mismo producto al mismo tiempo podian perder uno de los dos
+        // ajustes de stock. Mismo orden por id que usa CompraService.
+        // anularCompra, por la misma razon (dos anulaciones que tocan los
+        // mismos productos en orden distinto se bloquean cruzadas).
+        List<DetalleVenta> detallesEnOrden = venta.getDetalles().stream()
+                .sorted(java.util.Comparator.comparing(d -> d.getProducto().getId()))
+                .toList();
 
-        for (DetalleVenta detalle : venta.getDetalles()) {
-            Producto producto = detalle.getProducto();
+        for (DetalleVenta detalle : detallesEnOrden) {
+            Producto producto = productoRepository.buscarParaActualizarStock(detalle.getProducto().getId())
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
             producto.setStock(
                     producto.getStock().add(detalle.getCantidad())
             );

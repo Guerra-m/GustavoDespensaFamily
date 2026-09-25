@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.service.EscaneoService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
@@ -67,7 +68,7 @@ public class EscaneoController {
     public void publicarCodigo(@PathVariable String id, @RequestBody Map<String, String> body) {
         String codigo = body.get("codigo");
         if (codigo == null || codigo.isBlank()) {
-            throw new RuntimeException("Falta el código escaneado");
+            throw new ReglaDeNegocioException("Falta el código escaneado");
         }
         escaneoService.publicarCodigo(id, codigo.trim());
     }

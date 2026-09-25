@@ -91,6 +91,28 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    // DF-DEBT-003. Las tres de abajo son las excepciones tipadas: el status
+    // lo decide el TIPO, no un texto. Quedan antes de handleRuntime (que
+    // sigue existiendo, ver mas abajo, como red de contencion para lo que
+    // todavia no esta migrado).
+    @ExceptionHandler(NoEncontradoException.class)
+    public ResponseEntity<Map<String, String>> handleNoEncontrado(NoEncontradoException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReglaDeNegocioException.class)
+    public ResponseEntity<Map<String, String>> handleReglaDeNegocio(ReglaDeNegocioException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ServicioExternoNoDisponibleException.class)
+    public ResponseEntity<Map<String, String>> handleServicioExternoNoDisponible(ServicioExternoNoDisponibleException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleValidacion(ConstraintViolationException ex) {
         String detalle = ex.getConstraintViolations().stream()
@@ -186,6 +208,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    // DF-DEBT-003: red de contencion, no el camino principal. Los services ya
+    // tiran NoEncontradoException/ReglaDeNegocioException/
+    // ServicioExternoNoDisponibleException (los handlers de arriba), que se
+    // resuelven por tipo. Esto sigue existiendo para cualquier
+    // RuntimeException que se escape sin tipar (una libreria de terceros, un
+    // caso nuevo que todavia no se migro) — mismo comportamiento de siempre,
+    // por texto, para no dejar ese caso sin manejar.
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         HttpStatus status = resolverStatus(ex.getMessage());
@@ -202,6 +231,7 @@ public class GlobalExceptionHandler {
 
     // Heurística best-effort sobre el mensaje (en español, como ya usan todos
     // los service de este proyecto) para no devolver siempre 400 a secas.
+    // Solo se ejecuta para lo que NO llega tipado (ver comentario arriba).
     private HttpStatus resolverStatus(String mensaje) {
         if (mensaje == null) return HttpStatus.BAD_REQUEST;
         String m = mensaje.toLowerCase();

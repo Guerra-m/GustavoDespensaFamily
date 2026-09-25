@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.DescuentoDTO;
 import com.guerram.DespensaFamily.model.AlcanceDescuento;
 import com.guerram.DespensaFamily.model.Categoria;
@@ -46,14 +48,14 @@ public class DescuentoService {
 
     public DescuentoDTO actualizar(Long id, DescuentoDTO dto) {
         Descuento descuento = descuentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Descuento no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Descuento no encontrado"));
         aplicarDatos(descuento, dto, id);
         return toDTO(descuentoRepository.save(descuento));
     }
 
     public void eliminar(Long id) {
         if (!descuentoRepository.existsById(id)) {
-            throw new RuntimeException("Descuento no encontrado");
+            throw new NoEncontradoException("Descuento no encontrado");
         }
         descuentoRepository.deleteById(id);
     }
@@ -79,10 +81,10 @@ public class DescuentoService {
 
         if (dto.getAlcance() == AlcanceDescuento.PRODUCTO) {
             if (dto.getProductoId() == null) {
-                throw new RuntimeException("Falta el producto para un descuento por producto");
+                throw new ReglaDeNegocioException("Falta el producto para un descuento por producto");
             }
             Producto producto = productoRepository.findById(dto.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
             if (dto.isActivo()) {
                 // DF-BUG-004: un segundo descuento activo sobre el mismo
                 // producto rompe findByProductoIdAndActivoTrue (deja de
@@ -92,7 +94,7 @@ public class DescuentoService {
                 descuentoRepository.findByProductoIdAndActivoTrue(producto.getId())
                         .filter(existente -> !existente.getId().equals(idActual))
                         .ifPresent(existente -> {
-                            throw new RuntimeException(producto.getNombre() + " ya tiene un descuento activo del "
+                            throw new ReglaDeNegocioException(producto.getNombre() + " ya tiene un descuento activo del "
                                     + formatearPorcentaje(existente.getPorcentaje())
                                     + "%. Desactivalo o editalo.");
                         });
@@ -101,15 +103,15 @@ public class DescuentoService {
             descuento.setCategoria(null);
         } else {
             if (dto.getCategoriaId() == null) {
-                throw new RuntimeException("Falta la categoría para un descuento por categoría");
+                throw new ReglaDeNegocioException("Falta la categoría para un descuento por categoría");
             }
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                    .orElseThrow(() -> new NoEncontradoException("Categoría no encontrada"));
             if (dto.isActivo()) {
                 descuentoRepository.findByCategoriaIdAndActivoTrue(categoria.getId())
                         .filter(existente -> !existente.getId().equals(idActual))
                         .ifPresent(existente -> {
-                            throw new RuntimeException(categoria.getNombre() + " ya tiene un descuento activo del "
+                            throw new ReglaDeNegocioException(categoria.getNombre() + " ya tiene un descuento activo del "
                                     + formatearPorcentaje(existente.getPorcentaje())
                                     + "%. Desactivalo o editalo.");
                         });

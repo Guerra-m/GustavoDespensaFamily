@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.ia;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.ia.ExtraccionProductosResponseDTO;
 import com.guerram.DespensaFamily.dto.ia.ProductoExtraidoDTO;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +29,10 @@ public class AsistenteCargaProductosService {
         boolean hayImagen = imagen != null && imagen.length > 0;
 
         if (!hayTexto && !hayImagen) {
-            throw new RuntimeException("Mandá una lista de productos, una foto, o ambos");
+            throw new ReglaDeNegocioException("Mandá una lista de productos, una foto, o ambos");
         }
         if (hayTexto && textoLimpio.length() > TEXTO_MAXIMO_CARACTERES) {
-            throw new RuntimeException("El texto es demasiado largo (máximo " + TEXTO_MAXIMO_CARACTERES + " caracteres)");
+            throw new ReglaDeNegocioException("El texto es demasiado largo (máximo " + TEXTO_MAXIMO_CARACTERES + " caracteres)");
         }
 
         String mimeType = null;

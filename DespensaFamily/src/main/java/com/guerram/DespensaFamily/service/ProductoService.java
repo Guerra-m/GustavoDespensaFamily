@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.ProductoDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
 import com.guerram.DespensaFamily.model.Categoria;
@@ -48,7 +50,7 @@ public class ProductoService {
         String tipo = producto.getTipoCantidad();
         if (tipo == null) tipo = UNIDAD;
         if (!UNIDAD.equals(tipo) && !PESO.equals(tipo)) {
-            throw new RuntimeException("tipoCantidad debe ser UNIDAD o PESO");
+            throw new ReglaDeNegocioException("tipoCantidad debe ser UNIDAD o PESO");
         }
         producto.setTipoCantidad(tipo);
 
@@ -56,7 +58,7 @@ public class ProductoService {
         if (UNIDAD.equals(tipo)) {
             if (unidad == null || unidad.isBlank()) unidad = "u";
             if (!"u".equals(unidad)) {
-                throw new RuntimeException(
+                throw new ReglaDeNegocioException(
                         "Un producto por unidad no puede tener unidad de medida '" + unidad + "'; debe ser 'u'");
             }
             // El stock de un producto por unidad se cuenta, no se pesa: 2,5
@@ -65,7 +67,7 @@ public class ProductoService {
             // peso). getStock() ya viene redondeado a 3 decimales
             // (Cantidades), asi que el modulo detecta cualquier fraccion real.
             if (producto.getStock().stripTrailingZeros().scale() > 0) {
-                throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
+                throw new ReglaDeNegocioException("El stock debe ser un número entero para un producto por unidad");
             }
         } else {
             // PESO: cualquier unidad de peso/volumen sirve (kg, g, lt...),
@@ -89,7 +91,7 @@ public class ProductoService {
         productoRepository.findByCodigoBarras(codigoBarras)
                 .filter(existente -> !existente.getId().equals(idActual))
                 .ifPresent(existente -> {
-                    throw new RuntimeException(
+                    throw new ReglaDeNegocioException(
                             "Ya existe el producto '" + existente.getNombre() + "' con ese código de barras");
                 });
     }
@@ -103,7 +105,7 @@ public class ProductoService {
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
+                    .orElseThrow(() -> new NoEncontradoException("Categoria no encontrada"));
             producto.setCategoria(categoria);
         }
 
@@ -135,7 +137,7 @@ public class ProductoService {
         final Path ruta = Paths.get(carpetaImagenes);
 
         if (imagen.getSize() > TAMANO_MAXIMO_BYTES) {
-            throw new RuntimeException("La imagen supera el tamaño máximo permitido (8 MB)");
+            throw new ReglaDeNegocioException("La imagen supera el tamaño máximo permitido (8 MB)");
         }
 
         // El tipo se decide por el contenido, no por el Content-Type que
@@ -151,7 +153,7 @@ public class ProductoService {
         // explicar el problema.
         String extension = tipoReal != null ? EXTENSIONES_PERMITIDAS.get(tipoReal) : null;
         if (extension == null) {
-            throw new RuntimeException("El archivo no es una imagen soportada (jpg, png, webp o gif)");
+            throw new ReglaDeNegocioException("El archivo no es una imagen soportada (jpg, png, webp o gif)");
         }
 
         // Path traversal (UPL-03): el nombre que manda el cliente NUNCA se
@@ -181,10 +183,10 @@ public class ProductoService {
 
     public ProductoDTO buscarPorId(Long id) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         if (!producto.isActivo()) {
-            throw new RuntimeException("Producto inactivo");
+            throw new ReglaDeNegocioException("Producto inactivo");
         }
 
         return Mapper.toDTO(producto);
@@ -197,7 +199,7 @@ public class ProductoService {
     @Transactional
     public ProductoDTO actualizarProducto(Long id, ProductoDTO dto, MultipartFile imagen) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         // Validar el código de barras ANTES de tocar la entidad gestionada:
         // findByCodigoBarras es un SELECT, y Hibernate hace autoflush de
@@ -222,7 +224,7 @@ public class ProductoService {
 
         if (dto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
+                    .orElseThrow(() -> new NoEncontradoException("Categoria no encontrada"));
             producto.setCategoria(categoria);
         } else {
             producto.setCategoria(null);
@@ -236,7 +238,7 @@ public class ProductoService {
             }
             // si imagen == null → NO se toca la imagen actual
         } catch (IOException e) {
-            throw new RuntimeException("Error al guardar la imagen", e);
+            throw new ReglaDeNegocioException("Error al guardar la imagen");
         }
 
         return Mapper.toDTO(productoRepository.save(producto));
@@ -255,22 +257,22 @@ public class ProductoService {
             BigDecimal stock
     ) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         if (precioVenta == null && precioCosto == null && stock == null) {
-            throw new RuntimeException("Debe enviar al menos un valor a actualizar");
+            throw new ReglaDeNegocioException("Debe enviar al menos un valor a actualizar");
         }
 
         if (precioVenta != null && precioVenta.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El precio de venta no puede ser negativo");
+            throw new ReglaDeNegocioException("El precio de venta no puede ser negativo");
         }
 
         if (precioCosto != null && precioCosto.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El precio de costo no puede ser negativo");
+            throw new ReglaDeNegocioException("El precio de costo no puede ser negativo");
         }
 
         if (stock != null && stock.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El stock no puede ser negativo");
+            throw new ReglaDeNegocioException("El stock no puede ser negativo");
         }
 
         // DF-DATA-001: el PATCH es el otro camino (ademas de alta/edicion) por
@@ -278,7 +280,7 @@ public class ProductoService {
         // (ej. dejar 2,5 chupetines) sin pasar nunca por VentaService.
         if (stock != null && "UNIDAD".equals(producto.getTipoCantidad())
                 && Cantidades.redondear(stock).stripTrailingZeros().scale() > 0) {
-            throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
+            throw new ReglaDeNegocioException("El stock debe ser un número entero para un producto por unidad");
         }
 
         if (precioVenta != null) producto.setPrecioVenta(precioVenta);
@@ -293,7 +295,7 @@ public class ProductoService {
     @Transactional
     public void eliminarProducto(Long id) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         producto.setActivo(false); // borrado lógico
         productoRepository.save(producto);

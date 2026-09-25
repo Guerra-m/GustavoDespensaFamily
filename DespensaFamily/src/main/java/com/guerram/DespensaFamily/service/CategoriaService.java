@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
 import com.guerram.DespensaFamily.dto.CategoriaDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
 import com.guerram.DespensaFamily.model.Categoria;
@@ -31,7 +32,7 @@ public class CategoriaService {
     }
     public CategoriaDTO actualizarCategoria(Long id, CategoriaDTO dto) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Categoria no encontrada"));
 
         categoria.setNombre(dto.getNombre());
         categoria.setDescripcion(dto.getDescripcion());
@@ -41,7 +42,7 @@ public class CategoriaService {
 
     public void eliminarCategoria(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Categoria no encontrada"));
 
         productoRepository.findAll().forEach(p -> {
             if (p.getCategoria() != null && p.getCategoria().getId().equals(id)) {

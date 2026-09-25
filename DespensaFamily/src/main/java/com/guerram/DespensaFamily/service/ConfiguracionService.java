@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.ConfiguracionDTO;
 import com.guerram.DespensaFamily.model.Configuracion;
 import com.guerram.DespensaFamily.model.Producto;
@@ -48,14 +49,14 @@ public class ConfiguracionService {
 
         if (dto.getUmbralStockBajo() != null) {
             if (dto.getUmbralStockBajo().compareTo(BigDecimal.ZERO) < 0) {
-                throw new RuntimeException("El umbral de stock bajo no puede ser negativo");
+                throw new ReglaDeNegocioException("El umbral de stock bajo no puede ser negativo");
             }
             c.setUmbralStockBajo(dto.getUmbralStockBajo());
         }
 
         if (dto.getNombreNegocio() != null) {
             if (dto.getNombreNegocio().isBlank()) {
-                throw new RuntimeException("El nombre del negocio no puede estar vacío");
+                throw new ReglaDeNegocioException("El nombre del negocio no puede estar vacío");
             }
             c.setNombreNegocio(dto.getNombreNegocio().trim());
         }
@@ -72,7 +73,7 @@ public class ConfiguracionService {
     @Transactional
     public int aplicarGananciaATodos(BigDecimal porcentaje) {
         if (porcentaje == null || porcentaje.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El porcentaje de ganancia no puede ser negativo");
+            throw new ReglaDeNegocioException("El porcentaje de ganancia no puede ser negativo");
         }
 
         List<Producto> productos = productoRepository.findByActivoTrue();
