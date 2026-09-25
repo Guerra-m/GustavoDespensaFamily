@@ -18,6 +18,7 @@ import {
 import { getProductos, updateProducto } from "../../services/productos.service";
 import type { Producto } from "../../models/Producto";
 import { confirmar } from "../../services/confirm.service";
+import { mostrarToast } from "../../utils/toast";
 
 // DOM
 const grid = document.getElementById("categorias-grid") as HTMLDivElement;
@@ -25,14 +26,6 @@ const formCrear = document.getElementById("form-crear-categoria") as HTMLFormEle
 const formEditar = document.getElementById("form-editar-categoria") as HTMLFormElement;
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
 const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 // Estado
 let categorias: Categoria[] = [];

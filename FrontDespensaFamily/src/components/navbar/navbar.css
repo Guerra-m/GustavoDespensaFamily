@@ -269,7 +269,12 @@
   }
 }
 
-@media (min-width: 769px) {
+/* min-width: 1024px, para calzar exacto con el max-width: 1023px de arriba
+   (antes era 769px: entre 769 y 1023 el menú ya se abre como overlay
+   deslizante -- por el media query anterior -- pero este forzaba la cortina
+   de fondo a invisible, así que tocar afuera del menú en ese rango no lo
+   cerraba y el contenido de atrás quedaba clickeable). */
+@media (min-width: 1024px) {
   .navbar-overlay {
     display: none !important;
   }

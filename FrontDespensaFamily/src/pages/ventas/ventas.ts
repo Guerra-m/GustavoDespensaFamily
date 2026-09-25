@@ -12,12 +12,16 @@ import type { Categoria } from "../../models/Categoria";
 import type { Producto } from "../../models/Producto";
 import type { Promocion } from "../../models/Promocion";
 import type { DetalleVentaRequest } from "../../models/DetalleVentaRequest";
-import type { Venta } from "../../models/Venta";
 import type { MetodoPago } from "../../models/MetodoPago";
 import type { Cotizacion } from "../../models/Cotizacion";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
+import { filtrarProductos } from "../../utils/filtroProductos";
+import { crearNavegacionTeclado } from "./ventas.atajos";
+import { crearImpresorTicket, etiquetaMetodoPago } from "./ventas.ticket";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
+import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
 import QRCode from "qrcode";
@@ -71,9 +75,8 @@ const scanCelularEstado = document.getElementById("scan-celular-estado") as HTML
 
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
-const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
+const selectCategoria = document.getElementById("select-categoria") as HTMLSelectElement;
 
-const toast = document.getElementById("toast") as HTMLDivElement;
 /* =======================
    ESTADO
 ======================= */
@@ -120,19 +123,6 @@ function generarClaveIdempotencia(): string {
   return crypto.randomUUID();
 }
 
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function unidadProducto(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function fraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
-}
-
 function configurarInputCantidad(producto: Producto) {
   const step = fraccionMinima(producto);
   inputCantidad.step = step.toString();
@@ -149,24 +139,6 @@ function configurarInputCantidad(producto: Producto) {
     inputCantidad.placeholder = "Cantidad en unidades";
     inputCantidad.value = step.toString();
   }
-}
-
-function formatearCantidadConUnidad(cantidad: number, producto?: Producto) {
-  if (!producto) return formatearCantidad(cantidad);
-  return `${formatearCantidad(cantidad)} ${unidadProducto(producto)}`;
-}
-
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
-}
-
-function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
-  const base = formatearCantidadConUnidad(cantidad, producto);
-  const desglose = desglosePaquete(cantidad, producto);
-  if (!desglose) return base;
-  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
 }
 
 /* =======================
@@ -351,38 +323,25 @@ function flashCard(card: HTMLDivElement) {
 }
 
 function renderFiltrosCategorias() {
-  filtrosCategorias.innerHTML = "";
-
-  const btnTodos = document.createElement("button");
-  btnTodos.className = "filtro-cat-btn" + (categoriaActivaId === null ? " activo" : "");
-  btnTodos.textContent = "Todos";
-  btnTodos.addEventListener("click", () => {
-    categoriaActivaId = null;
-    actualizarActivoCat();
-    renderProductosGrid(inputBuscarProducto.value);
-  });
-  filtrosCategorias.appendChild(btnTodos);
+  // El valor "" representa "Todos" (la opción ya está en el HTML); las
+  // categorías se agregan después, ordenadas como llegaron de categorias().
+  selectCategoria.querySelectorAll("option[data-cat-id]").forEach(o => o.remove());
 
   categorias.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "filtro-cat-btn" + (categoriaActivaId === cat.id ? " activo" : "");
-    btn.dataset.catId = String(cat.id);
-    btn.textContent = cat.nombre;
-    btn.addEventListener("click", () => {
-      categoriaActivaId = cat.id ?? null;
-      actualizarActivoCat();
-      renderProductosGrid(inputBuscarProducto.value);
-    });
-    filtrosCategorias.appendChild(btn);
+    const option = document.createElement("option");
+    option.value = String(cat.id);
+    option.dataset.catId = String(cat.id);
+    option.textContent = cat.nombre;
+    selectCategoria.appendChild(option);
   });
+
+  selectCategoria.value = categoriaActivaId === null ? "" : String(categoriaActivaId);
 }
 
-function actualizarActivoCat() {
-  filtrosCategorias.querySelectorAll<HTMLButtonElement>(".filtro-cat-btn").forEach(btn => {
-    const catId = btn.dataset.catId ? Number(btn.dataset.catId) : null;
-    btn.classList.toggle("activo", catId === categoriaActivaId);
-  });
-}
+selectCategoria.addEventListener("change", () => {
+  categoriaActivaId = selectCategoria.value === "" ? null : Number(selectCategoria.value);
+  renderProductosGrid(inputBuscarProducto.value);
+});
 
 // DF-PERF-001: con el catálogo completo (2.024 productos en la auditoría)
 // la grilla llegaba a 39.589 nodos DOM y 146ms por tecla. El escáner y el
@@ -396,20 +355,9 @@ function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
   // El catálogo cambió (filtro o categoría): la marca de navegación por
   // flechas de antes ya no corresponde a nada visible.
-  indiceNavegacionGrid = -1;
+  navegacionTeclado.resetNavegacion();
 
-  const textoFiltro = filtro.toLowerCase().trim();
-
-  let productosFiltrados = textoFiltro
-    ? productos.filter(p =>
-        p.nombre.toLowerCase().includes(textoFiltro) ||
-        p.codigoBarras?.toLowerCase().includes(textoFiltro)
-      )
-    : [...productos];
-
-  if (categoriaActivaId !== null) {
-    productosFiltrados = productosFiltrados.filter(p => p.categoriaId === categoriaActivaId);
-  }
+  const productosFiltrados = filtrarProductos(productos, { texto: filtro, categoriaId: categoriaActivaId });
 
   if (productosFiltrados.length === 0) {
     productosGrid.innerHTML = `<div class="sin-resultados">No se encontraron productos</div>`;
@@ -818,19 +766,6 @@ async function abrirDetalleVenta(ventaId: number) {
   modalDetalle.classList.remove("hidden");
 }
 
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2000);
-}
-// Antes era un <select id="select-cliente"> que ya no existe en el HTML: la
-// función siempre devolvía "Consumidor Final" a secas, sin importar nada.
-// Ahora usa el nombre que se cargó al confirmar la venta (Fase 9, opcional).
-function obtenerCliente(venta: Venta): string {
-  return venta.cliente?.trim() || "Consumidor Final";
-}
-
 /* =======================
    SCANNER
 ======================= */
@@ -992,10 +927,11 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
   // "Producto no encontrado" — con el producto ahí a la vista en la grilla.
   // Eso es lo que Martín describió como "a veces el Enter carga y a veces no":
   // funcionaba con el lector y con el desplegable, no al tipear un nombre.
-  if (!inputBuscarProducto.dataset.id && indiceNavegacionGrid >= 0) {
+  const tarjetaNavegada = !inputBuscarProducto.dataset.id ? navegacionTeclado.tarjetaNavegadaActual() : undefined;
+  if (tarjetaNavegada) {
     // Una tarjeta marcada con las flechas gana sobre todo lo demás: es una
     // elección explícita de la persona.
-    tarjetasVisibles()[indiceNavegacionGrid]?.click();
+    tarjetaNavegada.click();
     return;
   }
 
@@ -1018,7 +954,7 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
       // No era un código. Si lo que se tipeó deja UN solo producto a la vista,
       // ese es. Si deja varios, no se elige por la persona: se le pide que
       // marque cuál, que es mucho mejor que cargar el equivocado.
-      const visibles = tarjetasVisibles();
+      const visibles = navegacionTeclado.tarjetasVisibles();
       if (visibles.length === 1) {
         visibles[0].click();
         return;
@@ -1103,219 +1039,7 @@ getConfiguracion().then(config => {
 });
 setTimeout(() => inputBuscarProducto.focus(), 300);
 
-function etiquetaMetodoPago(metodo: MetodoPago): string {
-  const etiquetas: Record<MetodoPago, string> = {
-    EFECTIVO: "Efectivo",
-    TARJETA: "Tarjeta",
-    TRANSFERENCIA: "Transferencia",
-    OTRO: "Otro",
-  };
-  return etiquetas[metodo];
-}
-
-async function imprimirTicket(venta: Venta, _cotizacion?: Cotizacion | null) {
-  if (!productos.length) await cargarProductos();
-
-  const response = await getDetalleVenta(venta.id!);
-  const nroTicket = formatearNroTicket(venta.id!);
-  const detalles = response.detalles;
-
-  let filas = "";
-
-  detalles.forEach(d => {
-    const producto = productos.find(p => p.id === d.productoId);
-    const nombre = producto ? producto.nombre : "Producto eliminado";
-
-    // DF-UX-005: antes el ticket mostraba "1 u × $2860 = $286" sin ninguna
-    // aclaración de por qué el precio unitario no coincide con el subtotal.
-    // Se lee del DETALLE guardado en la base (d.descuentoPorcentaje /
-    // d.promoDescripcion, ver V15), no de la cotización efímera del carrito:
-    // así también sale bien al reimprimir un ticket viejo desde el
-    // historial, donde no hay ninguna cotización en memoria.
-    const indicador = d.descuentoPorcentaje
-      ? ` <span style="font-size:8px">(-${formatearCantidad(d.descuentoPorcentaje)}%)</span>`
-      : d.promoDescripcion
-        ? ` <span style="font-size:8px">(${esc(d.promoDescripcion)})</span>`
-        : "";
-
-    filas += `
-      <tr>
-        <td>${esc(nombre)}${indicador}</td>
-        <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
-        <td style="text-align:right">${formatearMoneda(d.precioUnitario)} / ${producto ? unidadProducto(producto) : "u"}</td>
-        <td style="text-align:right">${formatearMoneda(d.subtotal)}</td>
-      </tr>
-    `;
-  });
-
- const ticketHtml = `
-<html>
-  <head>
-    <title>Ticket Venta #${venta.id}</title>
-
-    <style>
-      @page {
-        size: 80mm auto;
-        margin: 0;
-      }
-
-      body {
-        width: 65mm;
-        margin: 0;
-        padding: 2mm;
-        font-family: monospace;
-        font-size: 10px;
-        letter-spacing: -0.2px;
-      }
-
-      h2, p {
-        margin: 2px 0;
-      }
-
-      h2 {
-        text-align: center;
-      }
-
-      .center {
-        text-align: center;
-      }
-
-      .row {
-        display: flex;
-        justify-content: space-between;
-        margin: 2px 0;
-      }
-
-      .line {
-        border-top: 1px dashed #000;
-        margin: 4px 0;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-        font-size: 10px;
-      }
-
-      th, td {
-        padding: 1px 0;
-      }
-
-      th {
-        border-bottom: 1px dashed #000;
-      }
-
-      /* Producto (más chico) */
-th:nth-child(1),
-td:nth-child(1) {
-  width: 45%;
-  word-break: break-word;
-}
-
-/* Cant (más pegado al producto) */
-th:nth-child(2),
-td:nth-child(2) {
-  width: 10%;
-  text-align: left;
-}
-
-/* Precio */
-th:nth-child(3),
-td:nth-child(3) {
-  width: 20%;
-  text-align: right;
-  padding-left: 4px;
-}
-
-/* Subtotal (más separado) */
-th:nth-child(4),
-td:nth-child(4) {
-  width: 25%;
-  text-align: right;
-  padding-left: 6px;
-}
-
-      /* Números más legibles */
-      td:nth-child(2),
-      td:nth-child(3),
-      td:nth-child(4) {
-        font-size: 10px;
-      }
-
-      .total {
-        font-size: 12px;
-        font-weight: bold;
-        text-align: right;
-        margin-top: 4px;
-      }
-    </style>
-  </head>
-
-  <body>
-
-    <h2>Despensa Family</h2>
-    <p class="center">Ticket de Venta</p>
-
-    <div class="line"></div>
-
-    <div class="row">
-      <span>Fecha: ${formatearFechaHora(venta.fechaHora)}</span>
-      <span>Nº: ${nroTicket}</span>
-    </div>
-
-    <div class="line"></div>
-
-    <p>Cliente: ${esc(obtenerCliente(venta))}</p>
-
-    <div class="line"></div>
-
-    <table>
-      <thead>
-        <tr>
-          <th style="text-align:left">Prod</th>
-          <th>Cant</th>
-          <th>Precio</th>
-          <th>Subt</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filas}
-      </tbody>
-    </table>
-
-    <div class="line"></div>
-
-    <p class="total">TOTAL: ${formatearMoneda(venta.total)}</p>
-    ${venta.metodoPago ? `<p class="center">${etiquetaMetodoPago(venta.metodoPago)}</p>` : ""}
-
-    <div class="line"></div>
-
-    <p class="center">Gracias por su compra</p>
-
-    <div class="line"></div>
-
-    <p class="center" style="font-size:9px;">
-      Ticket no válido como factura
-    </p>
-
-    <script>
-      window.print();
-      window.onafterprint = () => window.close();
-    </script>
-
-  </body>
-</html>
-`;
-
-  const ventana = window.open("", "_blank", "width=350,height=600");
-  ventana!.document.write(ticketHtml);
-  ventana!.document.close();
-}
-
-function formatearNroTicket(id: number): string {
-  return id.toString().padStart(8, "0");
-}
+const { imprimirTicket } = crearImpresorTicket({ obtenerProductos: () => productos, cargarProductos });
 function obtenerFechaActual() {
   const hoy = new Date();
 
@@ -1398,82 +1122,8 @@ btnCerrarScanCelular.addEventListener("click", () => {
   }
 });
 
-/* =======================
-   ATAJOS DE TECLADO
-   B = buscar, C = cantidad, ↑/↓ = moverse en el catálogo, Enter = confirmar
-   selección, Ctrl+Enter = confirmar venta (ya existe arriba). El cartel de
-   abajo (#leyenda-atajos) muestra lo mismo para quien no se los sepa.
-======================= */
-let indiceNavegacionGrid = -1;
-
-function tarjetasVisibles(): HTMLDivElement[] {
-  return Array.from(productosGrid.querySelectorAll<HTMLDivElement>(".producto-card"));
-}
-
-function marcarTarjetaNavegada(indice: number) {
-  const tarjetas = tarjetasVisibles();
-  tarjetas.forEach(c => c.classList.remove("navegado-teclado"));
-  const card = tarjetas[indice];
-  if (!card) return;
-  card.classList.add("navegado-teclado");
-  card.scrollIntoView({ block: "nearest" });
-}
-
-/**
- * Si el foco está en un campo donde la persona está escribiendo texto.
- *
- * Las flechas ↑↓ sí tienen que funcionar dentro del buscador —se tipea parte
- * del nombre y se baja por los resultados sin sacar la mano del teclado—, pero
- * las letras no: escribir "coca" en el buscador disparaba el atajo de la "c" y
- * saltaba a Cantidad, así que la palabra quedaba a medias en un campo y el
- * resto en otro. Lo reportó Martín probando la caja.
- *
- * Por eso ahora son dos preguntas distintas: {@link estaEscribiendoTexto} corta
- * los atajos de letra en cualquier campo de texto, incluido el buscador, y
- * {@link estaEnUnCampoQueUsaLasFlechas} corta las flechas solo donde ya
- * significan otra cosa.
- */
-function estaEscribiendoTexto(): boolean {
-  const activo = document.activeElement;
-  return activo instanceof HTMLInputElement
-    || activo instanceof HTMLTextAreaElement
-    || activo instanceof HTMLSelectElement;
-}
-
-function estaEnUnCampoQueUsaLasFlechas(): boolean {
-  const activo = document.activeElement;
-  if (activo === inputBuscarProducto) return false; // el buscador sí participa de la navegación
-  return activo instanceof HTMLInputElement
-    || activo instanceof HTMLTextAreaElement
-    || activo instanceof HTMLSelectElement;
-}
-
-document.addEventListener("keydown", (e) => {
-  const tecla = e.key.toLowerCase();
-
-  // Atajos de letra: nunca si se está escribiendo en un campo de texto,
-  // el buscador incluido. Sirven para SALTAR a un campo; una vez adentro, la
-  // letra es una letra.
-  if (!estaEscribiendoTexto()) {
-    if (tecla === "b") { e.preventDefault(); inputBuscarProducto.focus(); inputBuscarProducto.select(); return; }
-    if (tecla === "c") { e.preventDefault(); inputCantidad.focus(); return; }
-  }
-
-  // Flechas arriba/abajo: recorren el catálogo visible. Solo si el foco no
-  // está en un campo donde esas teclas ya hacen otra cosa (ej: bajar en un
-  // <select>).
-  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !estaEnUnCampoQueUsaLasFlechas()) {
-    const tarjetas = tarjetasVisibles();
-    if (!tarjetas.length) return;
-    e.preventDefault();
-    if (e.key === "ArrowDown") {
-      indiceNavegacionGrid = Math.min(indiceNavegacionGrid + 1, tarjetas.length - 1);
-    } else {
-      indiceNavegacionGrid = Math.max(indiceNavegacionGrid - 1, 0);
-    }
-    marcarTarjetaNavegada(indiceNavegacionGrid);
-  }
-});
+// Atajos de teclado del POS (B/C/flechas): pages/ventas/ventas.atajos.ts
+const navegacionTeclado = crearNavegacionTeclado({ productosGrid, inputBuscarProducto, inputCantidad });
 
 // Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
 habilitarCierreConEscape();

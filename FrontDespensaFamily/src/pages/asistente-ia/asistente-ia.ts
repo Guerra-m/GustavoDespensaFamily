@@ -4,17 +4,9 @@ checkAuth();
 import type { Categoria } from "../../models/Categoria";
 import { getCategorias } from "../../services/categorias.service";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
+import { mostrarToast } from "../../utils/toast";
 
 let categorias: Categoria[] = [];
-
-const toast = document.getElementById("toast") as HTMLDivElement;
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 3500);
-}
 
 inicializarAsistenteIaWidget(
   {

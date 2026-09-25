@@ -18,16 +18,21 @@ import {
 } from "../../services/productos.service";
 
 import { getCategorias } from "../../services/categorias.service";
+import {
+  unidadProducto as obtenerUnidad,
+  fraccionMinima as obtenerFraccionMinima,
+  desglosePaquete
+} from "../../utils/producto";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../../utils/format";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
 import { getConfiguracion } from "../../services/configuracion.service";
+import { mostrarToast } from "../../utils/toast";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const productosGridWrapper = document.getElementById("productos-grid-wrapper") as HTMLDivElement | null;
 const indiceCategorias = document.getElementById("productos-indice") as HTMLDivElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const formCrear = document.getElementById("form-crear") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar") as HTMLFormElement;
@@ -96,29 +101,8 @@ let productoActual: Producto | null = null;
 let seleccionados = new Set<number>();
 let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
 
-// ---------- UTIL ----------
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2500);
-}
-
 function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);
-}
-
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function obtenerUnidad(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function obtenerFraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
 }
 
 function sincronizarTipoYUnidad(form: HTMLFormElement) {
@@ -153,13 +137,6 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
 
   tipo.addEventListener("change", aplicarValores);
   aplicarValores();
-}
-
-// ---------- DESGLOSE PAQUETE/SUELTAS ----------
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!upp || upp < 2 || esProductoPesable(producto!)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
 }
 
 function formatearStockConPaquete(producto: Producto): string {

@@ -9,13 +9,9 @@
 
 
 /* CONTENEDOR PRINCIPAL */
+/* El layout base (margen para el navbar, padding, fondo) vive una sola vez
+   en style.css -- acá sólo el ancho máximo, propio de esta pantalla. */
 .content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
   max-width: 1400px;
   margin-right: auto;
 }
@@ -380,12 +376,6 @@ tbody:empty::after {
 /* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
    navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
-@media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-}
-
 @media (max-width: 768px) {
   .content {
     padding: 20px;

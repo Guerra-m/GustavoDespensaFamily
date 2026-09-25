@@ -145,14 +145,9 @@ button {
     margin-top: 10px;
 }
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 .compras-container {
   max-width: 1200px;
@@ -240,30 +235,9 @@ section {
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* ── TOAST ── */
-.toast {
-  position: fixed;
-  top: auto; /* style.css fija top: 80px; con los dos, el aviso se estira de arriba a abajo */
-  bottom: 28px;
-  right: 28px;
-  background: var(--color-exito);
-  color: #fff;
-  padding: 14px 22px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  z-index: 2500;
-  animation: slideInToast 0.3s ease;
-}
-
-.toast.error { background: var(--color-peligro); }
-.toast.hidden { display: none; }
-
-@keyframes slideInToast {
-  from { transform: translateX(120px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
+/* TOAST: definido una sola vez en style.css (.toast) — Fase 3, DF-DEBT-004.
+   Esta hoja tenía una copia con top:auto/bottom:28px que competía con el
+   top:80px de style.css. */
 
 /* TABLAS */
 table {
@@ -676,12 +650,6 @@ button:not(.menu-toggle):active {
 /* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
    navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
-@media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-}
-
 @media (max-width: 768px) {
   .content {
     padding: 20px;

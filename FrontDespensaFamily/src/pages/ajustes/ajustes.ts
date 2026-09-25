@@ -11,6 +11,7 @@ import {
 } from "../../services/configuracion.service";
 import type { EstadoIa } from "../../models/EstadoIa";
 import { confirmar } from "../../services/confirm.service";
+import { mostrarToast } from "../../utils/toast";
 
 // Ajustes es admin-only del lado del backend (SecurityConfig) — acá además
 // se redirige de una si un empleado llega por URL directa, en vez de
@@ -19,8 +20,6 @@ import { confirmar } from "../../services/confirm.service";
 if (!isAdmin()) {
   window.location.href = "../../pages/home/home.html";
 }
-
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const inputGananciaGlobal = document.getElementById("input-ganancia-global") as HTMLInputElement;
 const btnAplicarGanancia = document.getElementById("btn-aplicar-ganancia") as HTMLButtonElement;
@@ -37,13 +36,6 @@ const inputClaveIa = document.getElementById("input-clave-ia") as HTMLInputEleme
 const btnGuardarClaveIa = document.getElementById("btn-guardar-clave-ia") as HTMLButtonElement;
 const btnQuitarClaveIa = document.getElementById("btn-quitar-clave-ia") as HTMLButtonElement;
 const errorClaveIa = document.getElementById("error-clave-ia") as HTMLParagraphElement;
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 3500);
-}
 
 async function cargarConfiguracion() {
   try {

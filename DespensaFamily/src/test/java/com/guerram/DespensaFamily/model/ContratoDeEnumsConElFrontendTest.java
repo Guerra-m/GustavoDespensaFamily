@@ -55,7 +55,12 @@ class ContratoDeEnumsConElFrontendTest {
                 new Contrato(MetodoPago.class, "MetodoPago.ts"),
                 // AlcanceDescuento vive dentro de Descuento.ts, no en su propio
                 // archivo: el contrato es por valores, no por nombre de archivo.
-                new Contrato(AlcanceDescuento.class, "Descuento.ts"));
+                new Contrato(AlcanceDescuento.class, "Descuento.ts"),
+                // EstadoVenta y EstadoCompra tampoco tienen enum propio del lado
+                // del frontend: viven como union de strings ("ACTIVA" | "ANULADA")
+                // dentro del modelo de la entidad que anulan.
+                new Contrato(EstadoVenta.class, "Venta.ts"),
+                new Contrato(EstadoCompra.class, "Compra.ts"));
     }
 
     @ParameterizedTest(name = "{0}")

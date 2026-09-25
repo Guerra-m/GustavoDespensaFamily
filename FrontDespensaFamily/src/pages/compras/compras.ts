@@ -1,5 +1,7 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
-import { esc, formatearFechaHora, formatearMoneda, formatearCantidadConUnidad } from "../../utils/format";
+import { esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
+import { mostrarToast } from "../../utils/toast";
 import { checkAuth, isAdmin, puedeGestionarProductos } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 checkAuth();
@@ -40,39 +42,8 @@ let compras: Compra[] = [];
 let productos: Producto[] = [];
 let detallesCompra: DetalleCompraRequest[] = [];
 
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function unidadProducto(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function fraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
-}
-
-function formatearCantidad(cantidad: number, producto?: Producto) {
-  if (!producto) return formatearCantidadConUnidad(cantidad, "");
-  return formatearCantidadConUnidad(cantidad, unidadProducto(producto));
-}
-
 function esProductoPorPaquete(producto: Producto): boolean {
   return !esProductoPesable(producto) && !!producto.unidadesPorPaquete && producto.unidadesPorPaquete >= 2;
-}
-
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
-}
-
-function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
-  const base = formatearCantidad(cantidad, producto);
-  const desglose = desglosePaquete(cantidad, producto);
-  if (!desglose) return base;
-  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
 }
 
 function configurarInputCantidadCompra(producto: Producto) {
@@ -104,7 +75,6 @@ const inputPrecioCosto = document.getElementById("precioCosto") as HTMLInputElem
 
 const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const tablaDetalles = document.getElementById("tabla-detalles") as HTMLTableElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const checkboxPagada = document.getElementById("checkbox-pagada") as HTMLInputElement;
 const selectMetodoPagoCompra = document.getElementById("select-metodo-pago-compra") as HTMLSelectElement;
@@ -119,13 +89,6 @@ const btnCancelarPrecios = document.getElementById("btn-cancelar-precios") as HT
 const btnConfirmarPrecios = document.getElementById("btn-confirmar-precios") as HTMLButtonElement;
 
 // ---------------- FUNCIONES ----------------
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 // Cargar compras
 async function cargarCompras() {

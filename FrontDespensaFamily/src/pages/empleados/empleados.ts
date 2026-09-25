@@ -15,15 +15,7 @@ import {
   desmarcarDia,
   pagarEmpleado
 } from "../../services/empleados.service";
-
-const toast = document.getElementById("toast") as HTMLDivElement;
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
+import { mostrarToast } from "../../utils/toast";
 
 let empleados: Empleado[] = [];
 /** Claves "empleadoId-YYYY-MM-DD" de los días marcados en la semana visible. */
