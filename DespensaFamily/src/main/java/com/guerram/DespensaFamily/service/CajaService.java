@@ -200,31 +200,32 @@ public class CajaService {
         double contado = Dinero.redondear(request.getEfectivoContado());
         double diferencia = Dinero.redondear(contado - esperado);
 
-        // Diferencia real y no exactamente cero: da igual, no hay nada que
-        // ajustar. Comparar contra 0.0 a secas con doubles es fragil, pero
-        // los dos lados ya pasaron por Dinero.redondear (centavo), asi que la
-        // resta de dos valores redondeados a 2 decimales es exacta.
-        if (diferencia == 0.0) {
-            return ArqueoResultadoDTO.builder()
-                    .efectivoEsperado(esperado)
-                    .efectivoContado(contado)
-                    .diferencia(0.0)
-                    .movimiento(null)
-                    .build();
-        }
-
         String descripcion = (request.getDescripcion() != null && !request.getDescripcion().isBlank())
                 ? request.getDescripcion()
                 : String.format("Arqueo: contado %.2f, esperado %.2f", contado, esperado);
 
-        MovimientoCaja ajuste = registrarMovimiento(
-                diferencia > 0 ? TipoMovimiento.INGRESO : TipoMovimiento.EGRESO,
-                CategoriaMovimiento.AJUSTE,
-                Math.abs(diferencia),
-                MetodoPago.EFECTIVO,
-                descripcion,
-                null,
-                null);
+        // Diferencia real y no exactamente cero: da igual, no hay nada que
+        // ajustar en el saldo. Comparar contra 0.0 a secas con doubles es
+        // fragil, pero los dos lados ya pasaron por Dinero.redondear
+        // (centavo), asi que la resta de dos valores redondeados a 2
+        // decimales es exacta.
+        //
+        // DF-UX-006 de la auditoria del 23/09: antes, un arqueo exacto no
+        // dejaba NINGUN rastro -- si alguien conto el cajon y daba perfecto,
+        // no habia forma de saberlo despues mirando el historial. Ahora se
+        // guarda igual, con monto 0 (no mueve el saldo: el signo que le pongo
+        // no importa a la suma) y una categoria y descripcion que dejan claro
+        // que fue un conteo sin diferencia, no un ajuste real.
+        MovimientoCaja ajuste = diferencia == 0.0
+                ? registrarConstanciaDeArqueoExacto(descripcion)
+                : registrarMovimiento(
+                        diferencia > 0 ? TipoMovimiento.INGRESO : TipoMovimiento.EGRESO,
+                        CategoriaMovimiento.AJUSTE,
+                        Math.abs(diferencia),
+                        MetodoPago.EFECTIVO,
+                        descripcion,
+                        null,
+                        null);
 
         return ArqueoResultadoDTO.builder()
                 .efectivoEsperado(esperado)
@@ -232,6 +233,28 @@ public class CajaService {
                 .diferencia(diferencia)
                 .movimiento(toDTO(ajuste))
                 .build();
+    }
+
+    /**
+     * Un arqueo sin diferencia: monto 0 a proposito (no puede mover el saldo
+     * ni para arriba ni para abajo), por eso pasa por afuera de
+     * {@link #registrarMovimiento}, que rechaza monto <= 0 -- esa regla es
+     * correcta para cualquier carga manual real, pero esta constancia no es
+     * un movimiento de plata, es la prueba de que alguien conto el cajon.
+     */
+    @Transactional
+    protected MovimientoCaja registrarConstanciaDeArqueoExacto(String descripcion) {
+        MovimientoCaja constancia = MovimientoCaja.builder()
+                .fechaHora(LocalDateTime.now())
+                .tipo(TipoMovimiento.INGRESO)
+                .categoria(CategoriaMovimiento.AJUSTE)
+                .monto(0.0)
+                .metodoPago(MetodoPago.EFECTIVO)
+                .descripcion(descripcion)
+                .usuario(usuarioActual())
+                .build();
+
+        return movimientoCajaRepository.save(constancia);
     }
 
     // @Transactional(readOnly = true): son 6 consultas separadas (4 saldos +
@@ -257,7 +280,16 @@ public class CajaService {
         double electronico = tarjeta + transferencia + otro;
 
         double ingresosHoy = movimientoCajaRepository.totalIngresosEntreFechas(inicioDeHoy, finDeHoy);
-        double egresosHoy = movimientoCajaRepository.totalEgresosEntreFechas(inicioDeHoy, finDeHoy);
+        // DF-UX-006: "egresos de hoy" ya no mezcla anulaciones (revertir una
+        // venta genera un EGRESO de categoria VENTA) con gastos reales.
+        double egresosHoy = movimientoCajaRepository.totalEgresosRealesEntreFechas(inicioDeHoy, finDeHoy);
+        double anulacionesHoy = movimientoCajaRepository.totalAnulacionesEntreFechas(inicioDeHoy, finDeHoy);
+        // totalNetoPorCategoriaEntreFechas suma EGRESO positivo e INGRESO
+        // negativo; una venta es normalmente INGRESO, asi que el resultado da
+        // el neto en negativo. Invertido queda "cuanto se vendio de verdad
+        // hoy", ya descontando la venta que se haya anulado en el dia.
+        double ventasNetasHoy = -movimientoCajaRepository
+                .totalNetoPorCategoriaEntreFechas(CategoriaMovimiento.VENTA, inicioDeHoy, finDeHoy);
 
         return EstadoCajaDTO.builder()
                 .saldoTotal(efectivo + electronico)
@@ -266,6 +298,8 @@ public class CajaService {
                 .ingresosDeHoy(ingresosHoy)
                 .egresosDeHoy(egresosHoy)
                 .resultadoDeHoy(ingresosHoy - egresosHoy)
+                .ventasNetasDeHoy(ventasNetasHoy)
+                .anulacionesDeHoy(anulacionesHoy)
                 .build();
     }
 
