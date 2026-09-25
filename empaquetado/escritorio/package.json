@@ -25,6 +25,7 @@
     "files": [
       "main.js",
       "actualizaciones.js",
+      "caida.js",
       "cargando.html"
     ],
     "extraResources": [

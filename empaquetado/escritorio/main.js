@@ -17,6 +17,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const actualizaciones = require("./actualizaciones");
+const caida = require("./caida");
 
 const PUERTO_POR_DEFECTO = 8080;
 const PAGINA_LOGIN = "/src/pages/login/login.html";
@@ -323,7 +324,7 @@ let arrancando = false;
  *
  * Devuelve true si quedo un servidor respondiendo.
  */
-async function arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo }) {
+async function arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo, avisarSiNoArranca = true }) {
   const desde = Date.now();
   arrancando = true;
   let resultado;
@@ -343,7 +344,9 @@ async function arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo }) {
   } catch (error) {
     // lanzar() tira si no esta el ejecutable del servidor.
     arrancando = false;
-    dialog.showErrorBox("DespensaFamily no pudo iniciar", String(error.message || error));
+    if (avisarSiNoArranca) {
+      dialog.showErrorBox("DespensaFamily no pudo iniciar", String(error.message || error));
+    }
     return false;
   }
   arrancando = false;
@@ -351,7 +354,7 @@ async function arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo }) {
   registrarActualizacion("Arranque: " + JSON.stringify(resultado));
 
   if (resultado.resultado === "no-arranco") {
-    avisarQueNoArranco(puerto, desde);
+    if (avisarSiNoArranca) avisarQueNoArranco(puerto, desde);
     return false;
   }
 
@@ -387,6 +390,66 @@ async function reiniciarActualizando(puerto) {
   if (ventana) await ventana.loadURL(urlDeLaApp(puerto));
 }
 
+// ---------------------------------------------------------------- caidas (DF-ELEC-002)
+
+/**
+ * Cuantas veces se reintento desde la ultima caida sin aviso de por medio. Se
+ * resuelve con caida.debeReintentar: un solo reintento automatico, y recien
+ * si ese tambien falla se avisa. Vive fuera de manejarCaida porque un
+ * reintento manual (el boton "Reintentar" del aviso) tiene que volver a tener
+ * su propio intento automatico.
+ */
+let intentosDeReintento = 0;
+
+/**
+ * El servidor se murio sin que nadie lo haya pedido. La ventana se queda
+ * mostrando la pantalla de carga (no se cierra: es lo que evita perder el
+ * carrito, que desde la Fase 2 vive en sessionStorage y sobrevive a un
+ * loadURL pero no a una ventana nueva) y se intenta un solo reinicio
+ * automatico. Si tambien falla, se avisa con la ruta del log y se deja
+ * elegir entre reintentar a mano o salir.
+ */
+async function manejarCaida(puerto) {
+  const desde = Date.now();
+  actualizaciones.registrarEnHistorial(carpetaDeDatos(), "El servidor se cerro inesperadamente");
+
+  if (caida.debeReintentar(intentosDeReintento)) {
+    intentosDeReintento++;
+    if (ventana) await ventana.loadFile(path.join(__dirname, "cargando.html"));
+    // avisarSiNoArranca:false porque si esto falla el aviso que corresponde es
+    // el propio (con boton "Reintentar"), no el generico del arranque inicial.
+    if (await arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo: false, avisarSiNoArranca: false })) {
+      intentosDeReintento = 0;
+      if (ventana) await ventana.loadURL(urlDeLaApp(puerto));
+      return;
+    }
+  }
+
+  avisarCaidaConBotones(puerto, desde);
+}
+
+/** Aviso con boton: reintentar a mano vuelve a probar; salir cierra el programa. */
+function avisarCaidaConBotones(puerto, desde) {
+  const registro = path.join(carpetaDeDatos(), "logs", "despensafamily.log");
+  const aviso = caida.avisoDeCaida({ motivo: motivoDelServidor(desde), puerto, registro });
+
+  const eleccion = dialog.showMessageBoxSync(ventana, {
+    type: "error",
+    title: aviso.titulo,
+    message: aviso.mensaje,
+    buttons: aviso.botones,
+    defaultId: 0,
+    cancelId: 1,
+  });
+
+  // Es una decision nueva del usuario: el proximo reintento vuelve a tener su
+  // propio intento automatico, no arrastra los que ya se gastaron antes.
+  intentosDeReintento = 0;
+
+  if (eleccion === 0) manejarCaida(puerto);
+  else app.quit();
+}
+
 // ---------------------------------------------------------------- arranque
 
 /**
@@ -396,23 +459,32 @@ async function reiniciarActualizando(puerto) {
  *   - cerrando        -> lo pidio el usuario al cerrar la ventana: no hacer nada
  *   - arrancando      -> lo esta vigilando el arranque, que decide que sigue
  *   - hay una senial  -> se aprobo una actualizacion: cambiar el jar y volver
- *   - cualquier otro  -> el servidor se cayo o lo cerraron desde la bandeja
+ *   - cualquier otro  -> el servidor se cayo: manejarCaida decide que sigue
  */
 function lanzarServidor(puerto) {
   const hijo = arrancarServidor(puerto);
   servidor = hijo;
   hijo.on("exit", () => {
-    if (cerrando || arrancando) return;
-    // Un proceso viejo que termina despues de que se lanzo otro no es noticia.
-    if (hijo !== servidor) return;
-    if (actualizaciones.hayActualizacionAprobada(carpetaDeDatos())) {
+    const clase = caida.clasificarSalida({
+      cerrando,
+      arrancando,
+      esElServidorActual: hijo === servidor,
+      hayActualizacionAprobada: actualizaciones.hayActualizacionAprobada(carpetaDeDatos()),
+    });
+    if (clase === "ignorar") return;
+    if (clase === "actualizar") {
       reiniciarActualizando(puerto);
       return;
     }
-    app.quit();
+    manejarCaida(puerto);
   });
-  hijo.on("error", () => {
-    if (!cerrando && !arrancando) app.quit();
+  hijo.on("error", (error) => {
+    if (cerrando || arrancando) return;
+    actualizaciones.registrarEnHistorial(
+      carpetaDeDatos(),
+      "El servidor no pudo arrancar: " + (error.message || error)
+    );
+    manejarCaida(puerto);
   });
   return hijo;
 }
