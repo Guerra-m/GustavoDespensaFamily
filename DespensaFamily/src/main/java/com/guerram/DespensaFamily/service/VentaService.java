@@ -193,7 +193,14 @@ public class VentaService {
             throw new RuntimeException("Cantidad inválida");
         }
 
-        if ("UNIDAD".equals(producto.getTipoCantidad()) && cantidad % 1 != 0) {
+        // DF-DATA-001: antes solo se rechazaba el decimal cuando
+        // tipoCantidad == "UNIDAD" a secas — un producto con tipoCantidad
+        // nulo (7 de 14 productos reales, ya no deberia pasar mas gracias a
+        // V13, pero esto queda como segunda barrera) se colaba y se vendia
+        // en fracciones (0,5 chupetin). La regla real del negocio es al
+        // reves: solo lo que se vende por PESO admite decimales: todo lo
+        // demas se rechaza.
+        if (!"PESO".equals(producto.getTipoCantidad()) && cantidad % 1 != 0) {
             throw new RuntimeException("Este producto no permite decimales");
         }
 
