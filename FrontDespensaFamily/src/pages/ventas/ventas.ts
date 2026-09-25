@@ -1,5 +1,5 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
-import { checkAuth, getUsername } from "../../services/auth.service";
+import { checkAuth, getUsername, isAdmin, puedeVerCaja } from "../../services/auth.service";
 checkAuth();
 
 import { getProductos } from "../../services/productos.service";
@@ -226,6 +226,11 @@ async function cargarVentas() {
   const ventas = await getVentas();
   tablaVentas.innerHTML = "";
 
+  // Sin permiso de caja el servidor devuelve solo las ventas propias del día
+  // (DF-SEC-003): el título lo dice para que no parezca que faltan ventas.
+  const titulo = document.getElementById("titulo-ventas-registradas");
+  if (titulo) titulo.textContent = puedeVerCaja() ? "Ventas Registradas" : "Tus ventas de hoy";
+
   [...ventas].reverse().forEach(v => {
     if (!v.id) return;
 
@@ -246,7 +251,7 @@ async function cargarVentas() {
         ${anulada
           ? `<span class="etiqueta-anulada" title="Anulada por ${esc(v.anuladaPor) || "—"}">Anulada</span>`
           : `<button class="btn-imprimir">Imprimir</button>
-             <button class="btn-anular">Anular</button>`}
+             ${isAdmin() ? `<button class="btn-anular">Anular</button>` : ""}`}
       </td>
     `;
 

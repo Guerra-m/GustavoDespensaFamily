@@ -15,6 +15,9 @@ import com.guerram.DespensaFamily.repository.ProductoRepository;
 import com.guerram.DespensaFamily.util.Cantidades;
 import com.guerram.DespensaFamily.util.Dinero;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -170,6 +173,26 @@ public class CompraService {
                 .stream()
                 .map(Mapper::toDTO)
                 .toList();
+    }
+
+    // DF-PERF-001: endpoint NUEVO, no reemplaza listarCompras() (GET /compras
+    // sigue sin params para quien ya depende de la lista completa). El
+    // acceso ya lo filtra SecurityConfig (GET /compras/** exige ROLE_ADMIN o
+    // PERM_STOCK) antes de llegar aca -- no hace falta un filtro de
+    // "usuario" como en ventas, porque quien no puede ver compras ya recibe
+    // 403 en la puerta.
+    @Transactional(readOnly = true)
+    public PaginaDTO<CompraDTO> listarComprasPaginado(LocalDateTime desde, LocalDateTime hasta, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Compra> resultado = compraRepository.buscarPaginado(desde, hasta, pageable);
+
+        return PaginaDTO.<CompraDTO>builder()
+                .contenido(resultado.getContent().stream().map(Mapper::toDTO).toList())
+                .totalElementos(resultado.getTotalElements())
+                .totalPaginas(resultado.getTotalPages())
+                .pagina(page)
+                .tamanio(size)
+                .build();
     }
 
     public CompraDTO buscarPorId(Long id) {

@@ -1,8 +1,15 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
 import { esc, formatearFechaHora } from "../../utils/format";
-import { checkAuth } from "../../services/auth.service";
+import { checkAuth, puedeGestionarProductos } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 checkAuth();
+
+// Las compras tienen costos y proveedores: del dueño o de quien gestiona
+// productos (DF-SEC-003). El backend ya contesta 403 sin PERM_STOCK; esto
+// evita una pantalla cargada a medias con un error al pie, como en Caja.
+if (!puedeGestionarProductos()) {
+  location.replace("../ventas/ventas.html");
+}
 
 import type { Compra } from "../../models/Compra";
 import type { CompraRequest, DetalleCompraRequest } from "../../models/CompraRequest";

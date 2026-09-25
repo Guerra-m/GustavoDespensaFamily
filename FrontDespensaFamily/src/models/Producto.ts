@@ -4,8 +4,9 @@ export interface Producto {
     id?: number;
     nombre: string;
     precioVenta: number;
-    precioCosto: number;
-    porcentajeGanancia: number;
+    // Sin PERM_STOCK el servidor no los manda (DF-SEC-003).
+    precioCosto?: number;
+    porcentajeGanancia?: number;
     stock: number;
     tipoCantidad?: "UNIDAD" | "PESO";
     unidadMedida?: "u" | "kg";

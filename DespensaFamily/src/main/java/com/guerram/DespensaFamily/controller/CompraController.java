@@ -7,12 +7,15 @@ import com.guerram.DespensaFamily.dto.CompraDTO;
 import com.guerram.DespensaFamily.dto.CompraDetalleResponseDTO;
 import com.guerram.DespensaFamily.dto.CompraRequestDTO;
 import com.guerram.DespensaFamily.dto.DetalleCompraDTO;
+import com.guerram.DespensaFamily.dto.PaginaDTO;
 import com.guerram.DespensaFamily.service.CompraService;
 import com.guerram.DespensaFamily.util.OptimisticRetry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -40,6 +43,18 @@ public class CompraController {
     @GetMapping
     public List<CompraDTO> listarCompras() {
         return compraService.listarCompras();
+    }
+
+    // DF-PERF-001: endpoint NUEVO, no reemplaza GET /compras. Mismo control
+    // de acceso que el resto de /compras/** (SecurityConfig: ROLE_ADMIN o
+    // PERM_STOCK) -- no hace falta nada especial aca para DF-SEC-003.
+    @GetMapping("/pagina")
+    public PaginaDTO<CompraDTO> listarComprasPaginado(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return compraService.listarComprasPaginado(desde, hasta, page, size);
     }
     @GetMapping("/{id}")
     public CompraDTO buscarCompraPorId(@PathVariable Long id) {

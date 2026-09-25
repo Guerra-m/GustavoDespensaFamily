@@ -77,6 +77,49 @@ function esElLogin(entrada: RequestInfo | URL): boolean {
   return url.includes("/usuario/login");
 }
 
+/** Lo avisa actualizarPermisosDesde cuando el servidor dice algo distinto. */
+export const EVENTO_PERMISOS_CAMBIADOS = "permisos-cambiados";
+
+/**
+ * Rol y permisos al día, sin pedido extra.
+ *
+ * Antes quedaban fijos en lo que devolvió el login: si el dueño le sacaba la
+ * caja a alguien con la sesión abierta, el servidor le cortaba el acceso (lee
+ * los permisos de la base en cada pedido) pero el menú le seguía ofreciendo
+ * Caja. Ahora cada respuesta con sesión trae `X-Permisos` (ver JwtAuthFilter)
+ * y acá se copia a localStorage. Como cada pantalla ya hace sus propios fetch
+ * al cargar —el navbar, por lo menos, pide la configuración—, el menú se
+ * corrige en el primer pedido sin agregar ninguno.
+ *
+ * Si algo cambió, avisa con un evento para que el menú se vuelva a dibujar;
+ * si no cambió nada, no pasa nada (no hay parpadeo).
+ */
+function actualizarPermisosDesde(response: Response): void {
+  const cabecera = response.headers.get("X-Permisos");
+  if (!cabecera) return;
+  let permisos: { rol?: unknown; puedeGestionarProductos?: unknown; puedeVerCaja?: unknown };
+  try {
+    permisos = JSON.parse(cabecera);
+  } catch {
+    return;
+  }
+  if (typeof permisos.rol !== "string") return;
+
+  const nuevos: Record<string, string> = {
+    rol: permisos.rol,
+    puedeGestionarProductos: String(permisos.puedeGestionarProductos === true),
+    puedeVerCaja: String(permisos.puedeVerCaja === true),
+  };
+  let cambio = false;
+  for (const [clave, valor] of Object.entries(nuevos)) {
+    if (localStorage.getItem(clave) !== valor) {
+      localStorage.setItem(clave, valor);
+      cambio = true;
+    }
+  }
+  if (cambio) window.dispatchEvent(new Event(EVENTO_PERMISOS_CAMBIADOS));
+}
+
 function prepararFetch(): void {
   if (fetchPreparado) return;
   fetchPreparado = true;
@@ -84,6 +127,7 @@ function prepararFetch(): void {
   const fetchOriginal = window.fetch.bind(window);
   window.fetch = async (entrada: RequestInfo | URL, opciones: RequestInit = {}) => {
     const response = await fetchOriginal(entrada, { ...opciones, credentials: "include" });
+    actualizarPermisosDesde(response);
     if (response.status === 401 && !esElLogin(entrada)) {
       limpiarDatosLocales();
       window.location.href = "../../pages/login/login.html";
