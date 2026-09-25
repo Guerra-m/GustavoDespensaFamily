@@ -1,6 +1,6 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
-import { esc, formatearFechaHora, formatearMoneda, formatearCantidadConUnidad } from "../../utils/format";
-import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
+import { esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
 import { mostrarToast } from "../../utils/toast";
 import { checkAuth, isAdmin, puedeGestionarProductos } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
@@ -42,20 +42,8 @@ let compras: Compra[] = [];
 let productos: Producto[] = [];
 let detallesCompra: DetalleCompraRequest[] = [];
 
-function formatearCantidad(cantidad: number, producto?: Producto) {
-  if (!producto) return formatearCantidadConUnidad(cantidad, "");
-  return formatearCantidadConUnidad(cantidad, unidadProducto(producto));
-}
-
 function esProductoPorPaquete(producto: Producto): boolean {
   return !esProductoPesable(producto) && !!producto.unidadesPorPaquete && producto.unidadesPorPaquete >= 2;
-}
-
-function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
-  const base = formatearCantidad(cantidad, producto);
-  const desglose = desglosePaquete(cantidad, producto);
-  if (!desglose) return base;
-  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
 }
 
 function configurarInputCantidadCompra(producto: Producto) {

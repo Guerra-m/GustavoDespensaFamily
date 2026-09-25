@@ -19,7 +19,8 @@ import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
 import { filtrarProductos } from "../../utils/filtroProductos";
-import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
+import { crearNavegacionTeclado } from "./ventas.atajos";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
 import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
@@ -138,18 +139,6 @@ function configurarInputCantidad(producto: Producto) {
     inputCantidad.placeholder = "Cantidad en unidades";
     inputCantidad.value = step.toString();
   }
-}
-
-function formatearCantidadConUnidad(cantidad: number, producto?: Producto) {
-  if (!producto) return formatearCantidad(cantidad);
-  return `${formatearCantidad(cantidad)} ${unidadProducto(producto)}`;
-}
-
-function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
-  const base = formatearCantidadConUnidad(cantidad, producto);
-  const desglose = desglosePaquete(cantidad, producto);
-  if (!desglose) return base;
-  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
 }
 
 /* =======================
@@ -366,7 +355,7 @@ function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
   // El catálogo cambió (filtro o categoría): la marca de navegación por
   // flechas de antes ya no corresponde a nada visible.
-  indiceNavegacionGrid = -1;
+  navegacionTeclado.resetNavegacion();
 
   const productosFiltrados = filtrarProductos(productos, { texto: filtro, categoriaId: categoriaActivaId });
 
@@ -945,10 +934,11 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
   // "Producto no encontrado" — con el producto ahí a la vista en la grilla.
   // Eso es lo que Martín describió como "a veces el Enter carga y a veces no":
   // funcionaba con el lector y con el desplegable, no al tipear un nombre.
-  if (!inputBuscarProducto.dataset.id && indiceNavegacionGrid >= 0) {
+  const tarjetaNavegada = !inputBuscarProducto.dataset.id ? navegacionTeclado.tarjetaNavegadaActual() : undefined;
+  if (tarjetaNavegada) {
     // Una tarjeta marcada con las flechas gana sobre todo lo demás: es una
     // elección explícita de la persona.
-    tarjetasVisibles()[indiceNavegacionGrid]?.click();
+    tarjetaNavegada.click();
     return;
   }
 
@@ -971,7 +961,7 @@ inputBuscarProducto.addEventListener("keydown", async (e) => {
       // No era un código. Si lo que se tipeó deja UN solo producto a la vista,
       // ese es. Si deja varios, no se elige por la persona: se le pide que
       // marque cuál, que es mucho mejor que cargar el equivocado.
-      const visibles = tarjetasVisibles();
+      const visibles = navegacionTeclado.tarjetasVisibles();
       if (visibles.length === 1) {
         visibles[0].click();
         return;
@@ -1357,82 +1347,8 @@ btnCerrarScanCelular.addEventListener("click", () => {
   }
 });
 
-/* =======================
-   ATAJOS DE TECLADO
-   B = buscar, C = cantidad, ↑/↓ = moverse en el catálogo, Enter = confirmar
-   selección, Ctrl+Enter = confirmar venta (ya existe arriba). El cartel de
-   abajo (#leyenda-atajos) muestra lo mismo para quien no se los sepa.
-======================= */
-let indiceNavegacionGrid = -1;
-
-function tarjetasVisibles(): HTMLDivElement[] {
-  return Array.from(productosGrid.querySelectorAll<HTMLDivElement>(".producto-card"));
-}
-
-function marcarTarjetaNavegada(indice: number) {
-  const tarjetas = tarjetasVisibles();
-  tarjetas.forEach(c => c.classList.remove("navegado-teclado"));
-  const card = tarjetas[indice];
-  if (!card) return;
-  card.classList.add("navegado-teclado");
-  card.scrollIntoView({ block: "nearest" });
-}
-
-/**
- * Si el foco está en un campo donde la persona está escribiendo texto.
- *
- * Las flechas ↑↓ sí tienen que funcionar dentro del buscador —se tipea parte
- * del nombre y se baja por los resultados sin sacar la mano del teclado—, pero
- * las letras no: escribir "coca" en el buscador disparaba el atajo de la "c" y
- * saltaba a Cantidad, así que la palabra quedaba a medias en un campo y el
- * resto en otro. Lo reportó Martín probando la caja.
- *
- * Por eso ahora son dos preguntas distintas: {@link estaEscribiendoTexto} corta
- * los atajos de letra en cualquier campo de texto, incluido el buscador, y
- * {@link estaEnUnCampoQueUsaLasFlechas} corta las flechas solo donde ya
- * significan otra cosa.
- */
-function estaEscribiendoTexto(): boolean {
-  const activo = document.activeElement;
-  return activo instanceof HTMLInputElement
-    || activo instanceof HTMLTextAreaElement
-    || activo instanceof HTMLSelectElement;
-}
-
-function estaEnUnCampoQueUsaLasFlechas(): boolean {
-  const activo = document.activeElement;
-  if (activo === inputBuscarProducto) return false; // el buscador sí participa de la navegación
-  return activo instanceof HTMLInputElement
-    || activo instanceof HTMLTextAreaElement
-    || activo instanceof HTMLSelectElement;
-}
-
-document.addEventListener("keydown", (e) => {
-  const tecla = e.key.toLowerCase();
-
-  // Atajos de letra: nunca si se está escribiendo en un campo de texto,
-  // el buscador incluido. Sirven para SALTAR a un campo; una vez adentro, la
-  // letra es una letra.
-  if (!estaEscribiendoTexto()) {
-    if (tecla === "b") { e.preventDefault(); inputBuscarProducto.focus(); inputBuscarProducto.select(); return; }
-    if (tecla === "c") { e.preventDefault(); inputCantidad.focus(); return; }
-  }
-
-  // Flechas arriba/abajo: recorren el catálogo visible. Solo si el foco no
-  // está en un campo donde esas teclas ya hacen otra cosa (ej: bajar en un
-  // <select>).
-  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !estaEnUnCampoQueUsaLasFlechas()) {
-    const tarjetas = tarjetasVisibles();
-    if (!tarjetas.length) return;
-    e.preventDefault();
-    if (e.key === "ArrowDown") {
-      indiceNavegacionGrid = Math.min(indiceNavegacionGrid + 1, tarjetas.length - 1);
-    } else {
-      indiceNavegacionGrid = Math.max(indiceNavegacionGrid - 1, 0);
-    }
-    marcarTarjetaNavegada(indiceNavegacionGrid);
-  }
-});
+// Atajos de teclado del POS (B/C/flechas): pages/ventas/ventas.atajos.ts
+const navegacionTeclado = crearNavegacionTeclado({ productosGrid, inputBuscarProducto, inputCantidad });
 
 // Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
 habilitarCierreConEscape();
