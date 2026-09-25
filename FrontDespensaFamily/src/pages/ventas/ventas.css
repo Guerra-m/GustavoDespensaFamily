@@ -214,41 +214,38 @@ button.btn-imprimir:hover {
   background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
 }
 
-/* FILTROS DE CATEGORÍA */
-#filtros-categorias {
+/* FILTRO DE CATEGORÍA
+   Antes era una fila de chips (un botón por categoría). Con 28 categorías
+   reales eso pasó a ocupar 5 filas y tapaba la grilla de productos debajo;
+   un <select> deja el mismo filtro en una sola línea sin importar cuántas
+   categorías haya. */
+.filtro-categoria-container {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 14px;
 }
 
-.filtro-cat-btn {
-  padding: 6px 14px !important;
-  border-radius: 20px !important;
-  border: 2px solid #e9ecef !important;
-  background: #f8f9fa !important;
-  color: #495057 !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
+.filtro-categoria-container label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+}
+
+#select-categoria {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  background: #f8f9fa;
+  color: #495057;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: none !important;
-  transition: all 0.18s ease !important;
-  white-space: nowrap;
-  margin-bottom: 0 !important;
 }
 
-.filtro-cat-btn:hover {
-  border-color: var(--color-primario) !important;
-  color: var(--color-primario-dark) !important;
-  background: #e3f2fd !important;
-  transform: none !important;
-}
-
-.filtro-cat-btn.activo {
-  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%) !important;
-  border-color: transparent !important;
-  color: #fff !important;
-  box-shadow: 0 2px 8px rgba(2,136,209,0.3) !important;
+#select-categoria:focus {
+  outline: none;
+  border-color: var(--color-primario);
 }
 
 /* GRID DE PRODUCTOS */
@@ -1017,20 +1014,6 @@ hr {
 }
 
 @media (max-width: 768px) {
-  /* Antes ocupaban hasta 3 filas completas antes de mostrar la primera
-     card (13 categorías envolviendo con flex-wrap). Con scroll horizontal
-     queda en una sola fila. */
-  #filtros-categorias {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .filtro-cat-btn {
-    flex-shrink: 0;
-  }
-
   .content {
     padding: 20px;
     padding-top: 80px;

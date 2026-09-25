@@ -18,6 +18,7 @@ import type { Cotizacion } from "../../models/Cotizacion";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
+import { filtrarProductos } from "../../utils/filtroProductos";
 import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
 import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
@@ -73,7 +74,7 @@ const scanCelularEstado = document.getElementById("scan-celular-estado") as HTML
 
 const productosSection = document.getElementById("productos-section") as HTMLDivElement;
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
-const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
+const selectCategoria = document.getElementById("select-categoria") as HTMLSelectElement;
 
 /* =======================
    ESTADO
@@ -333,38 +334,25 @@ function flashCard(card: HTMLDivElement) {
 }
 
 function renderFiltrosCategorias() {
-  filtrosCategorias.innerHTML = "";
-
-  const btnTodos = document.createElement("button");
-  btnTodos.className = "filtro-cat-btn" + (categoriaActivaId === null ? " activo" : "");
-  btnTodos.textContent = "Todos";
-  btnTodos.addEventListener("click", () => {
-    categoriaActivaId = null;
-    actualizarActivoCat();
-    renderProductosGrid(inputBuscarProducto.value);
-  });
-  filtrosCategorias.appendChild(btnTodos);
+  // El valor "" representa "Todos" (la opción ya está en el HTML); las
+  // categorías se agregan después, ordenadas como llegaron de categorias().
+  selectCategoria.querySelectorAll("option[data-cat-id]").forEach(o => o.remove());
 
   categorias.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "filtro-cat-btn" + (categoriaActivaId === cat.id ? " activo" : "");
-    btn.dataset.catId = String(cat.id);
-    btn.textContent = cat.nombre;
-    btn.addEventListener("click", () => {
-      categoriaActivaId = cat.id ?? null;
-      actualizarActivoCat();
-      renderProductosGrid(inputBuscarProducto.value);
-    });
-    filtrosCategorias.appendChild(btn);
+    const option = document.createElement("option");
+    option.value = String(cat.id);
+    option.dataset.catId = String(cat.id);
+    option.textContent = cat.nombre;
+    selectCategoria.appendChild(option);
   });
+
+  selectCategoria.value = categoriaActivaId === null ? "" : String(categoriaActivaId);
 }
 
-function actualizarActivoCat() {
-  filtrosCategorias.querySelectorAll<HTMLButtonElement>(".filtro-cat-btn").forEach(btn => {
-    const catId = btn.dataset.catId ? Number(btn.dataset.catId) : null;
-    btn.classList.toggle("activo", catId === categoriaActivaId);
-  });
-}
+selectCategoria.addEventListener("change", () => {
+  categoriaActivaId = selectCategoria.value === "" ? null : Number(selectCategoria.value);
+  renderProductosGrid(inputBuscarProducto.value);
+});
 
 // DF-PERF-001: con el catálogo completo (2.024 productos en la auditoría)
 // la grilla llegaba a 39.589 nodos DOM y 146ms por tecla. El escáner y el
@@ -380,18 +368,7 @@ function renderProductosGrid(filtro: string = "") {
   // flechas de antes ya no corresponde a nada visible.
   indiceNavegacionGrid = -1;
 
-  const textoFiltro = filtro.toLowerCase().trim();
-
-  let productosFiltrados = textoFiltro
-    ? productos.filter(p =>
-        p.nombre.toLowerCase().includes(textoFiltro) ||
-        p.codigoBarras?.toLowerCase().includes(textoFiltro)
-      )
-    : [...productos];
-
-  if (categoriaActivaId !== null) {
-    productosFiltrados = productosFiltrados.filter(p => p.categoriaId === categoriaActivaId);
-  }
+  const productosFiltrados = filtrarProductos(productos, { texto: filtro, categoriaId: categoriaActivaId });
 
   if (productosFiltrados.length === 0) {
     productosGrid.innerHTML = `<div class="sin-resultados">No se encontraron productos</div>`;
