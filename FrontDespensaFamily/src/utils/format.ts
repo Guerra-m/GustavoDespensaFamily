@@ -14,7 +14,18 @@ const DECIMALES = 3;
 
 export function redondearCantidad(cantidad: number): number {
   if (!Number.isFinite(cantidad)) return cantidad;
-  return Number(cantidad.toFixed(DECIMALES));
+  // DF-BUG-002: `cantidad.toFixed(DECIMALES)` no redondea siempre bien --
+  // (1.2345).toFixed(3) da "1.234" en vez de "1.235" por cómo cae ese valor
+  // en punto flotante binario. El backend cobra con BigDecimal y HALF_UP
+  // (VentaService/Cantidades.redondear); si acá se muestra un número
+  // distinto al que se cobró, el vendedor ve una cantidad que no coincide
+  // con el ticket. El truco `Number(x + "e" + DECIMALES)` desplaza el punto
+  // decimal como STRING (sin el error de multiplicar en float) antes de
+  // redondear, y Math.round ya redondea .5 hacia arriba (HALF_UP) para
+  // números positivos, que es el único caso real acá (no hay cantidades
+  // negativas en un carrito).
+  const desplazado = Number(`${cantidad}e${DECIMALES}`);
+  return Math.round(desplazado) / Math.pow(10, DECIMALES);
 }
 
 /**
