@@ -242,6 +242,7 @@ form button[type="submit"] {
 /* TOAST */
 .toast {
   position: fixed;
+  top: auto; /* style.css fija top: 80px; con los dos, el aviso se estira de arriba a abajo */
   bottom: 28px;
   right: 28px;
   background: var(--color-exito);

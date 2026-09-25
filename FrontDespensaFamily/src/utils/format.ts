@@ -18,12 +18,32 @@ export function redondearCantidad(cantidad: number): number {
 }
 
 /**
- * Sin ceros al final: 3.462 → "3.462", 2 → "2" y no "2.000". El cartel de un
- * producto por unidad tiene que decir "2 u", no "2.000 u".
+ * Sin ceros al final: 3.462 → "3,462", 2 → "2" y no "2,000". Coma decimal
+ * es-AR: un punto ahí se lee como separador de miles ("Pan Casero 4.517" se
+ * entiende como cuatro mil quinientos diecisiete, no cuatro coma
+ * quinientos diecisiete kilos).
  */
 export function formatearCantidad(cantidad: number): string {
   if (!Number.isFinite(cantidad)) return "0";
-  return String(redondearCantidad(cantidad));
+  return redondearCantidad(cantidad).toLocaleString("es-AR", { maximumFractionDigits: DECIMALES });
+}
+
+/**
+ * Cantidad con su unidad al lado ("4,517 kg", "12 u"): DF-UX-003. Sin unidad,
+ * un stock pesable se confunde con una cantidad entera de unidades.
+ */
+export function formatearCantidadConUnidad(cantidad: number, unidad: string): string {
+  return `${formatearCantidad(cantidad)} ${unidad}`;
+}
+
+/**
+ * Moneda es-AR: "$276.336,80" y no "$2600.00" (DF-UX-003). Mismo criterio que
+ * ya usa pages/caja/caja.ts — se centraliza acá para el resto de las
+ * pantallas en vez de repetir `toFixed(2)` suelto por todos lados.
+ */
+export function formatearMoneda(monto: number): string {
+  if (!Number.isFinite(monto)) return "$0,00";
+  return `$${monto.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
@@ -83,18 +103,6 @@ export function formatearFechaHora(iso?: string | null): string {
   });
 }
 
-/**
- * Plata en formato es-AR: separador de miles con punto, decimales con coma
- * ($276.336,80). DF-UX-003/DF-UX-008: `toFixed(2)` (usado en ventas y en el
- * ticket) da "$2600.00" — ni separa miles ni usa la coma decimal argentina,
- * mientras que caja ya mostraba el monto bien formateado. Mismo criterio que
- * caja.ts ya usaba en un helper local; acá queda compartido.
- */
-export function formatearMoneda(monto: number): string {
-  if (!Number.isFinite(monto)) return "$0,00";
-  return `$${monto.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 /** Solo el día, para columnas donde la hora no aporta. */
 export function formatearFecha(iso?: string | null): string {
   if (!iso) return "";
@@ -115,22 +123,8 @@ export function formatearFecha(iso?: string | null): string {
  * gramo) — la envuelve con el separador correcto para pantalla.
  */
 export function formatearCantidadEs(cantidad: number): string {
-  if (!Number.isFinite(cantidad)) return "0";
-  return redondearCantidad(cantidad).toLocaleString("es-AR", { maximumFractionDigits: DECIMALES });
-}
-
-/**
- * DF-UX-003/DF-UX-008: plata en formato es-AR con separador de miles y dos
- * decimales fijos ("$ 4.517,80"), en vez de `$${toFixed(2)}` (decimal con
- * punto) o `$${toLocaleString()}` sin locale explícito (depende de la
- * configuración del navegador, no necesariamente es-AR).
- */
-export function formatearMoneda(monto: number): string {
-  if (!Number.isFinite(monto)) return "$0,00";
-  return monto.toLocaleString("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  // Dos ramas de la Fase 2 resolvieron lo mismo por separado: formatearCantidad
+  // ya formatea en es-AR, así que esto queda como alias para no tocar a quien
+  // lo llama.
+  return formatearCantidad(cantidad);
 }

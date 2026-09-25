@@ -32,4 +32,11 @@ inicializarAsistenteIaWidget(
 );
 
 // ---------------- INIT ----------------
-getCategorias().then(c => (categorias = c));
+// DF-UX-008: sin catch, con el backend caído esto quedaba en el aire sin
+// avisar — el widget de IA queda usable pero sin categorías para matchear.
+getCategorias()
+  .then(c => (categorias = c))
+  .catch(err => {
+    console.error(err);
+    mostrarToast((err as Error).message || "No se pudieron cargar las categorías", true);
+  });

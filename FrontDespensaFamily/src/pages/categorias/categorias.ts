@@ -25,6 +25,14 @@ const formCrear = document.getElementById("form-crear-categoria") as HTMLFormEle
 const formEditar = document.getElementById("form-editar-categoria") as HTMLFormElement;
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
 const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement;
+const toast = document.getElementById("toast") as HTMLDivElement;
+
+function mostrarToast(mensaje: string, error = false) {
+  toast.textContent = mensaje;
+  toast.classList.remove("hidden", "error");
+  if (error) toast.classList.add("error");
+  setTimeout(() => toast.classList.add("hidden"), 3000);
+}
 
 // Estado
 let categorias: Categoria[] = [];
@@ -70,9 +78,17 @@ if (!PUEDE_GESTIONAR) {
 
 // Cargar
 async function cargarCategorias() {
-  [categorias, productos] = await Promise.all([getCategorias(), getProductos()]);
-  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  renderCategorias();
+  // DF-UX-008: antes esto corría sin catch a nivel de módulo (línea de
+  // INIT); con el backend caído la grilla quedaba vacía sin ningún aviso.
+  try {
+    [categorias, productos] = await Promise.all([getCategorias(), getProductos()]);
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    renderCategorias();
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="categorias-sin-resultados">${esc((err as Error).message || "No se pudieron cargar las categorías")}</div>`;
+    mostrarToast((err as Error).message || "Error al cargar categorías", true);
+  }
 }
 
 // Crear
@@ -85,10 +101,15 @@ formCrear.addEventListener("submit", async e => {
   descripcion: fd.get("descripcion") as string || undefined
 };
 
-
-  await createCategoria(nueva);
-  formCrear.reset();
-  cargarCategorias();
+  try {
+    await createCategoria(nueva);
+    formCrear.reset();
+    mostrarToast("Categoría creada correctamente");
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al crear categoría", true);
+  }
 });
 
 // Abrir editar
@@ -117,26 +138,38 @@ formEditar.addEventListener("submit", async e => {
     descripcion: fd.get("descripcion") as string || undefined
   };
 
-  await updateCategoria(categoriaActual.id!, actualizada);
+  try {
+    await updateCategoria(categoriaActual.id!, actualizada);
 
-  if (porcentaje !== null && porcentaje !== "") {
-    await actualizarGananciaProductos(
-      categoriaActual.id!,
-      Number(porcentaje)
-    );
+    if (porcentaje !== null && porcentaje !== "") {
+      await actualizarGananciaProductos(
+        categoriaActual.id!,
+        Number(porcentaje)
+      );
+    }
+
+    mostrarToast("Categoría actualizada correctamente");
+    modal.classList.add("hidden");
+    categoriaActual = null;
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al actualizar categoría", true);
   }
-
-  modal.classList.add("hidden");
-  categoriaActual = null;
-  cargarCategorias();
 });
 
 
 // Eliminar
 async function eliminarCategoria(id: number) {
   if (!(await confirmar("¿Eliminar categoría?"))) return;
-  await deleteCategoria(id);
-  cargarCategorias();
+  try {
+    await deleteCategoria(id);
+    mostrarToast("Categoría eliminada");
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al eliminar categoría", true);
+  }
 }
 async function actualizarGananciaProductos(
   categoriaId: number,
@@ -160,7 +193,7 @@ async function actualizarGananciaProductos(
 const productoActualizado = {
   ...producto,
   porcentajeGanancia,
-  precioVenta: +precioVentaNuevo.toFixed(2)
+  precioVenta: Number(precioVentaNuevo.toFixed(2))
 };
 
 

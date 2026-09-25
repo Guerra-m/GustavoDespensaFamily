@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "./auth.service";
+import { fetchApi } from "./api";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/escaneo`;
 
@@ -12,11 +12,7 @@ export interface SesionDeEscaneo {
 }
 
 export async function crearSesionDeEscaneo(): Promise<SesionDeEscaneo> {
-  const res = await fetch(`${BASE_URL}/sesiones`, {
-    method: "POST",
-    headers: getAuthHeaders()
-  });
-  if (!res.ok) throw new Error("No se pudo abrir el escaneo desde el celular");
+  const res = await fetchApi(`${BASE_URL}/sesiones`, { method: "POST" }, "No se pudo abrir el escaneo desde el celular");
   return res.json();
 }
 

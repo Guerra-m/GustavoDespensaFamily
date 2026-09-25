@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "./auth.service";
+import { fetchApi, ErrorApi } from "./api";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -19,13 +19,8 @@ export interface EstadoDeActualizacion {
  * que es la forma de decir "acá no hay nadie que pueda actualizar nada".
  */
 export async function getEstadoDeActualizacion(): Promise<EstadoDeActualizacion> {
-  const response = await fetch(`${BASE_URL}/actualizaciones`, {
-    headers: getAuthHeaders()
-  });
-  if (!response.ok) {
-    throw new Error("No se pudo consultar el estado de actualizaciones");
-  }
-  return response.json();
+  const res = await fetchApi(`${BASE_URL}/actualizaciones`, {}, "No se pudo consultar el estado de actualizaciones");
+  return res.json();
 }
 
 /**
@@ -36,18 +31,16 @@ export async function getEstadoDeActualizacion(): Promise<EstadoDeActualizacion>
  * reinicio, así que la pantalla tiene que esperar a que el servidor vuelva.
  */
 export async function aplicarActualizacion(): Promise<void> {
-  const response = await fetch(`${BASE_URL}/actualizaciones/aplicar`, {
-    method: "POST",
-    headers: getAuthHeaders()
-  });
-  if (!response.ok) {
-    // 409 es el caso real: la descarga todavía no terminó, o ya se aplicó
-    // desde otra pantalla. No es un error del sistema.
-    throw new Error(
-      response.status === 409
-        ? "La actualización todavía no está lista para aplicarse"
-        : "No se pudo aplicar la actualización"
-    );
+  try {
+    await fetchApi(`${BASE_URL}/actualizaciones/aplicar`, { method: "POST" }, "No se pudo aplicar la actualización");
+  } catch (err) {
+    // El backend responde 409 sin cuerpo en este caso puntual (la descarga
+    // todavía no terminó, o ya se aplicó desde otra pantalla): no es un
+    // error del sistema, así que no cae en el mensaje genérico de arriba.
+    if (err instanceof ErrorApi && err.status === 409) {
+      throw new ErrorApi("La actualización todavía no está lista para aplicarse", 409);
+    }
+    throw err;
   }
 }
 
