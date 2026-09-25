@@ -124,9 +124,14 @@ public class DataInitializer implements CommandLineRunner {
 
     /**
      * La contrasena se genera una sola vez y nadie la vio: si no queda escrita
-     * en algun lado, la instalacion es inutilizable. Va a un archivo de la
-     * carpeta de datos y ademas al log, que es lo primero que se pide cuando
-     * algo falla en el local.
+     * en algun lado, la instalacion es inutilizable. Va SOLO a un archivo de
+     * la carpeta de datos, nunca al log.
+     *
+     * <p>DF-SEC-004: antes el mensaje completo —contrasena incluida— salia
+     * por {@code log.warn}, que es lo primero que se pide cuando algo falla
+     * en el local (soporte remoto, un .log adjuntado por error). Sigue
+     * LOG-02 (no volcar secretos, ni siquiera efimeros, a un log): el log
+     * ahora dice unicamente DONDE esta la contrasena, nunca cual es.
      */
     private void anunciar(String password) {
         String mensaje = """
@@ -142,22 +147,31 @@ public class DataInitializer implements CommandLineRunner {
                 ===============================================================
                 """.formatted(password);
 
-        log.warn(mensaje);
         guardarEnArchivo(mensaje);
     }
 
     private void guardarEnArchivo(String mensaje) {
         if (carpetaDeDatos == null || carpetaDeDatos.isBlank()) {
-            return; // corriendo en tests o sin carpeta de datos: alcanza con el log
+            // Corriendo en tests o sin carpeta de datos: no hay donde
+            // guardarla y no se loguea (ver javadoc de anunciar). Sin
+            // carpeta de datos configurada esto solo pasa en un test que ya
+            // sabe que no hay contrasena que leer.
+            log.warn("Se generó una contraseña inicial de administrador, pero no hay carpeta de datos "
+                    + "configurada para guardarla (despensa.home vacío): revisar la configuración.");
+            return;
         }
         try {
             Path destino = Path.of(carpetaDeDatos).resolve(ARCHIVO_CREDENCIAL);
             Files.writeString(destino, mensaje, StandardCharsets.UTF_8);
-            log.warn("La contrasena inicial tambien quedo anotada en {}", destino);
+            log.warn("Se creó el administrador inicial. La contraseña quedó anotada en {} — "
+                    + "hay que cambiarla en el primer ingreso.", destino);
         } catch (IOException e) {
-            // Que no se pueda escribir el archivo no puede impedir el arranque:
-            // la contrasena ya salio por el log, que es la copia que importa.
-            log.warn("No se pudo escribir el archivo con la contrasena inicial", e);
+            // Que no se pueda escribir el archivo no puede impedir el
+            // arranque, pero sin el la contrasena no queda en ningun lado
+            // legible: se avisa fuerte, sin loguear la contrasena igual.
+            log.error("No se pudo escribir el archivo con la contraseña inicial del administrador en {}. "
+                    + "Sin ese archivo, nadie puede entrar al sistema: revisar permisos de la carpeta de datos.",
+                    carpetaDeDatos, e);
         }
     }
 }
