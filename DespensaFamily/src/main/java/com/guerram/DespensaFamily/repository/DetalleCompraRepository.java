@@ -32,6 +32,7 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Lo
     JOIN dc.producto p
     WHERE c.fechaHora BETWEEN :desde AND :hasta
     AND c.estado = 'ACTIVA'
+    AND p.activo = true
     """)
     List<MovimientoDTO> movimientosCompras(
             @Param("desde") LocalDateTime desde,

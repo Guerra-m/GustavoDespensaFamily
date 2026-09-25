@@ -51,12 +51,22 @@
       <!-- ================= RESUMEN DE HOY ================= -->
       <section class="caja-resumen-dia">
         <div class="caja-stat">
+          <h3>Ventas netas de hoy</h3>
+          <p id="ventas-netas-hoy" class="caja-stat-ingreso">$0</p>
+        </div>
+        <div class="caja-stat">
           <h3>Ingresos de hoy</h3>
           <p id="ingresos-hoy" class="caja-stat-ingreso">$0</p>
         </div>
         <div class="caja-stat">
-          <h3>Egresos de hoy</h3>
+          <!-- DF-UX-006: ya no mezcla anulaciones -- solo gastos, retiros,
+               compras y ajustes reales. Las anulaciones se muestran aparte. -->
+          <h3>Egresos de hoy <small>(sin anulaciones)</small></h3>
           <p id="egresos-hoy" class="caja-stat-egreso">$0</p>
+        </div>
+        <div class="caja-stat">
+          <h3>Anulaciones de hoy</h3>
+          <p id="anulaciones-hoy" class="caja-stat-egreso">$0</p>
         </div>
         <div class="caja-stat">
           <h3>Resultado</h3>

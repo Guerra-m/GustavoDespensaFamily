@@ -20,6 +20,11 @@ public class EstadoCajaDTO {
     /** Cobrado con tarjeta o transferencia: no esta fisicamente en el local. */
     private double saldoElectronico;
     private double ingresosDeHoy;
+    /** DF-UX-006: ya NO incluye anulaciones -- solo gastos, retiros, compras y ajustes reales del dia. */
     private double egresosDeHoy;
     private double resultadoDeHoy;
+    /** Ventas de hoy netas de sus propias anulaciones (venta - reversion de esa venta, si la hubo). */
+    private double ventasNetasDeHoy;
+    /** Cuanto se anulo hoy (cualquier categoria), en valor absoluto -- aparte de "egresos", no mezclado. */
+    private double anulacionesDeHoy;
 }

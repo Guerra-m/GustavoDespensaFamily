@@ -90,14 +90,17 @@ class ArqueoTest {
 
     @Test
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
-    void siDaExactoNoSeCreaNingunMovimiento() {
+    void siDaExactoQuedaUnaConstanciaQueNoMueveElSaldo() {
+        // DF-UX-006 de la auditoria del 23/09: un arqueo exacto ahora SI
+        // queda en el historial (antes no dejaba rastro de que alguien conto
+        // el cajon), pero con monto 0 -- no puede mover el saldo.
         double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(esperado, null));
 
         assertThat(resultado.getDiferencia()).isEqualTo(0.0);
-        assertThat(resultado.getMovimiento()).isNull();
-        // El saldo no se movio en absoluto: no hay ningun ajuste de $0 en el libro.
+        assertThat(resultado.getMovimiento()).isNotNull();
+        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(0.0);
         assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualTo(esperado);
     }
 
@@ -121,7 +124,8 @@ class ArqueoTest {
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(efectivoEsperado, null));
 
         assertThat(resultado.getDiferencia()).isEqualTo(0.0);
-        assertThat(resultado.getMovimiento()).isNull();
+        assertThat(resultado.getMovimiento()).isNotNull();
+        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(0.0);
     }
 
     @Test

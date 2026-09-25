@@ -14,6 +14,7 @@ import com.guerram.DespensaFamily.repository.MovimientoCajaRepository;
 import com.guerram.DespensaFamily.repository.ProductoRepository;
 import com.guerram.DespensaFamily.repository.VentaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,10 +33,19 @@ public class ReportesService {
     private final DetalleVentaRepository detalleVentaRepository;
     private final DetalleCompraRepository detalleCompraRepository;
     private final MovimientoCajaRepository movimientoCajaRepository;
+    private final ConfiguracionService configuracionService;
+
+    /**
+     * DF-BUG-008 de la auditoria del 23/09: con umbral 5 fijo, Reportes
+     * marcaba "bajo stock" con un criterio distinto al resto de la app en
+     * cuanto el dueño cambiaba el umbral en Ajustes — Ventas y Productos ya
+     * usan {@link ConfiguracionService#obtener()}, Reportes no. El default
+     * ahora es el mismo umbral configurado, no un numero de fabrica.
+     */
     public List<ProductoBajoStockDTO> productosConBajoStock(Double limite) {
 
         if (limite == null || limite <= 0) {
-            limite = 5.0;
+            limite = configuracionService.obtener().getUmbralStockBajo();
         }
 
         return productoRepository.findByStockLessThanAndActivoTrue(limite)
@@ -78,16 +88,33 @@ public class ReportesService {
                 .build();
     }
 
+    /** DF-PERF-002: sin top explicito, un default razonable en vez de traer todo el historial. */
+    private static final int TOP_PRODUCTOS_MAS_VENDIDOS_POR_DEFECTO = 20;
+
     public List<ProductoMasVendidoDTO> productosMasVendidos(
             LocalDate desde,
             LocalDate hasta
     ) {
-        return detalleVentaRepository.productosMasVendidos(inicioDe(desde), finDe(hasta))
-                .stream()
-                .filter(p -> productoRepository.findById(p.getProductoId())
-                        .map(prod -> prod.isActivo())
-                        .orElse(false)) // 🔹 solo productos activos
-                .toList();
+        return productosMasVendidosTop(desde, hasta, TOP_PRODUCTOS_MAS_VENDIDOS_POR_DEFECTO);
+    }
+
+    /**
+     * DF-PERF-002 de la auditoria del 23/09: antes devolvia TODOS los
+     * productos vendidos alguna vez en el rango (166 KB medidos contra la
+     * base real) y filtraba productos inactivos con un findById POR FILA
+     * (N+1). Ahora el filtro de activos esta en el SQL
+     * (DetalleVentaRepository.productosMasVendidos) y el resultado se acota
+     * con un top explicito via Pageable, sin traer de mas para despues
+     * descartarlo en Java.
+     */
+    public List<ProductoMasVendidoDTO> productosMasVendidosTop(
+            LocalDate desde,
+            LocalDate hasta,
+            int top
+    ) {
+        int limite = top > 0 ? top : TOP_PRODUCTOS_MAS_VENDIDOS_POR_DEFECTO;
+        return detalleVentaRepository.productosMasVendidos(
+                inicioDe(desde), finDe(hasta), PageRequest.of(0, limite));
     }
 
     public List<VentasPorCategoriaDTO> ventasPorCategoria(
@@ -121,12 +148,11 @@ public class ReportesService {
             movimientos.addAll(detalleVentaRepository.movimientosVentas(inicioDe(desde), finDe(hasta)));
         }
 
-        //  Filtrar productos eliminados
-        movimientos.removeIf(m ->
-                productoRepository.findById(m.getProductoId())
-                        .map(prod -> !prod.isActivo()) // true si producto NO está activo
-                        .orElse(true) // true si producto no existe
-        );
+        // DF-PERF-002: el filtro de "producto activo" ya viene resuelto en
+        // el SQL de movimientosVentas/movimientosCompras (AND p.activo =
+        // true) -- antes esto hacia un productoRepository.findById POR CADA
+        // FILA del resultado (N+1 medido en 1,09 s para 2 meses de datos
+        // reales).
 
         // Ordenar por fecha
         movimientos.sort(Comparator.comparing(MovimientoDTO::getFecha));

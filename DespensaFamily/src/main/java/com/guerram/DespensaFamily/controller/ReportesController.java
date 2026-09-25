@@ -38,12 +38,16 @@ public class ReportesController {
         return reportesService.resumenVentas(periodo);
     }
 
+    /** DF-PERF-002: 'top' es opcional -- sin el, el service aplica un default razonable. */
     @GetMapping("/productos-mas-vendidos")
     public List<ProductoMasVendidoDTO> productosMasVendidos(
             @RequestParam LocalDate desde,
-            @RequestParam LocalDate hasta
+            @RequestParam LocalDate hasta,
+            @RequestParam(required = false) Integer top
     ) {
-        return reportesService.productosMasVendidos(desde, hasta);
+        return top != null
+                ? reportesService.productosMasVendidosTop(desde, hasta, top)
+                : reportesService.productosMasVendidos(desde, hasta);
     }
 
     @GetMapping("/ventas-por-categoria")

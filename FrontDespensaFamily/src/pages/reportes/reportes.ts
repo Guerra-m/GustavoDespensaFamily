@@ -12,7 +12,11 @@ import {
   getRentabilidad
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
-import { formatearCantidad, esc } from "../../utils/format";
+import { formatearCantidadEs, formatearMoneda, esc } from "../../utils/format";
+
+// DF-PERF-002: top acotado que este reporte le pide al backend (antes traia
+// TODO el historico -- 166 KB medidos contra la base real).
+const TOP_PRODUCTOS_MAS_VENDIDOS = 20;
 
 // ---------------- DOM ----------------
 const toast = document.getElementById("toast") as HTMLDivElement;
@@ -92,9 +96,11 @@ async function cargarProductosBajoStock() {
     tbody.innerHTML = "";
     productos.forEach(p => {
       const tr = document.createElement("tr");
-      // formatearCantidad acá: el stock viaja como double y arrastra basura de
-      // punto flotante (ej "3.4619999999999997") si se muestra crudo.
-      tr.innerHTML = `<td>${p.id}</td><td>${esc(p.nombre)}</td><td>${formatearCantidad(p.stock)}</td>`;
+      // formatearCantidadEs acá: el stock viaja como double y arrastra basura
+      // de punto flotante (ej "3.4619999999999997") si se muestra crudo, y
+      // ademas un "4.517" con punto se lee como cuatro mil quinientos en
+      // Argentina (DF-UX-003) en vez de 4,517.
+      tr.innerHTML = `<td>${p.id}</td><td>${esc(p.nombre)}</td><td>${formatearCantidadEs(p.stock)}</td>`;
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -108,12 +114,16 @@ async function cargarProductosMasVendidos() {
     const desde = inputMasVendidosDesde.value || undefined;
     const hasta = inputMasVendidosHasta.value || undefined;
 
-    const productos: ProductoMasVendido[] = await getProductosMasVendidos(desde, hasta);
+    // DF-PERF-002: se pasa 'top' explicito en vez de dejar que el backend
+    // devuelva su default sin que el front lo sepa -- la tabla y el
+    // grafico de este reporte solo muestran el top 10 igual (ver
+    // renderMasVendidosChart), asi que no tiene sentido traer mas.
+    const productos: ProductoMasVendido[] = await getProductosMasVendidos(desde, hasta, TOP_PRODUCTOS_MAS_VENDIDOS);
     const tbody = tablaMasVendidos.querySelector("tbody")!;
     tbody.innerHTML = "";
     productos.forEach(p => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p.productoId}</td><td>${esc(p.nombre)}</td><td>${p.cantidadVendida.toFixed(2)}</td>`;
+      tr.innerHTML = `<td>${p.productoId}</td><td>${esc(p.nombre)}</td><td>${formatearCantidadEs(p.cantidadVendida)}</td>`;
       tbody.appendChild(tr);
     });
 
@@ -166,7 +176,7 @@ async function cargarVentasPorCategoria() {
       const tr = document.createElement("tr");
       // DF-SEC-001: categoriaNombre lo escribe quien crea la categoria (puede
       // ser un empleado con PERM_STOCK) y este reporte lo abre el dueño.
-      tr.innerHTML = `<td>${esc(c.categoriaNombre)}</td><td>$${c.totalVentas.toLocaleString()}</td><td>${c.cantidadVendida.toFixed(2)}</td>`;
+      tr.innerHTML = `<td>${esc(c.categoriaNombre)}</td><td>${formatearMoneda(c.totalVentas)}</td><td>${formatearCantidadEs(c.cantidadVendida)}</td>`;
       tbody.appendChild(tr);
     });
 
@@ -218,7 +228,7 @@ async function cargarGanancia() {
     tbody.innerHTML = "";
     datos.forEach(d => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${d.fecha}</td><td>$${d.totalVentas.toLocaleString()}</td><td>$${d.ganancia.toLocaleString()}</td>`;
+      tr.innerHTML = `<td>${d.fecha}</td><td>${formatearMoneda(d.totalVentas)}</td><td>${formatearMoneda(d.ganancia)}</td>`;
       tbody.appendChild(tr);
     });
 
@@ -242,15 +252,14 @@ async function cargarRentabilidad() {
     }
 
     const r: Rentabilidad = await getRentabilidad(desde, hasta);
-    const moneda = (n: number) => `$${n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    document.getElementById("rent-ventas")!.textContent = moneda(r.ventasTotales);
-    document.getElementById("rent-costo")!.textContent = moneda(r.costoMercaderiaVendida);
-    document.getElementById("rent-ganancia-bruta")!.textContent = moneda(r.gananciaBruta);
-    document.getElementById("rent-margen")!.textContent = `${r.margenPorcentaje.toFixed(1)}%`;
-    document.getElementById("rent-compras")!.textContent = moneda(r.comprasTotales);
-    document.getElementById("rent-gastos")!.textContent = moneda(r.gastosTotales);
-    document.getElementById("rent-neto")!.textContent = moneda(r.resultadoNeto);
+    document.getElementById("rent-ventas")!.textContent = formatearMoneda(r.ventasTotales);
+    document.getElementById("rent-costo")!.textContent = formatearMoneda(r.costoMercaderiaVendida);
+    document.getElementById("rent-ganancia-bruta")!.textContent = formatearMoneda(r.gananciaBruta);
+    document.getElementById("rent-margen")!.textContent = r.margenPorcentaje.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+    document.getElementById("rent-compras")!.textContent = formatearMoneda(r.comprasTotales);
+    document.getElementById("rent-gastos")!.textContent = formatearMoneda(r.gastosTotales);
+    document.getElementById("rent-neto")!.textContent = formatearMoneda(r.resultadoNeto);
 
     // Si nadie cargó gastos, el "resultado neto" de arriba no es un dato: es
     // gananciaBruta - 0 disfrazado de neto. Se avisa en vez de mostrarlo
@@ -308,7 +317,7 @@ async function cargarMovimientos() {
     [...movimientos].reverse().forEach(m => {
       const tr = document.createElement("tr");
       // DF-SEC-001: productoNombre lo escribe quien carga el producto.
-      tr.innerHTML = `<td>${m.fecha}</td><td>${esc(m.productoNombre)}</td><td>${m.cantidad.toFixed(2)}</td><td>${m.tipo}</td>`;
+      tr.innerHTML = `<td>${m.fecha}</td><td>${esc(m.productoNombre)}</td><td>${formatearCantidadEs(m.cantidad)}</td><td>${m.tipo}</td>`;
       tbody.appendChild(tr);
     });
 
@@ -366,9 +375,9 @@ async function cargarResumen() {
 
     // Mostramos los resultados dentro de resumenContainer
     resumenContainer.innerHTML = `
-      <p>Total Ventas: $${resumen.totalVentas ?? 0}</p>
+      <p>Total Ventas: ${formatearMoneda(resumen.totalVentas ?? 0)}</p>
       <p>Cantidad Ventas: ${resumen.cantidadVentas ?? 0}</p>
-      <p>Ganancia: $${resumen.ganancia ?? 0}</p>
+      <p>Ganancia: ${formatearMoneda(resumen.ganancia ?? 0)}</p>
     `;
   } catch (err) {
     console.error(err);

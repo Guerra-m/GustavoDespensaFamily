@@ -104,3 +104,33 @@ export function formatearFecha(iso?: string | null): string {
     day: "2-digit", month: "2-digit", year: "numeric"
   });
 }
+
+/**
+ * DF-UX-003/DF-UX-008 de la auditoria del 23/09: `${n.toFixed(2)}` y
+ * `${cantidad}` crudo usan SIEMPRE el separador decimal con punto
+ * (convención en-US de JS), pero en Argentina el punto es el separador de
+ * MILES y la coma el decimal. "Pan Casero 4.517" se leía como cuatro mil
+ * quinientos diecisiete unidades cuando en realidad eran 4,517 kg. Esta
+ * función no reemplaza a {@link formatearCantidad} (que ya redondea al
+ * gramo) — la envuelve con el separador correcto para pantalla.
+ */
+export function formatearCantidadEs(cantidad: number): string {
+  if (!Number.isFinite(cantidad)) return "0";
+  return redondearCantidad(cantidad).toLocaleString("es-AR", { maximumFractionDigits: DECIMALES });
+}
+
+/**
+ * DF-UX-003/DF-UX-008: plata en formato es-AR con separador de miles y dos
+ * decimales fijos ("$ 4.517,80"), en vez de `$${toFixed(2)}` (decimal con
+ * punto) o `$${toLocaleString()}` sin locale explícito (depende de la
+ * configuración del navegador, no necesariamente es-AR).
+ */
+export function formatearMoneda(monto: number): string {
+  if (!Number.isFinite(monto)) return "$0,00";
+  return monto.toLocaleString("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}

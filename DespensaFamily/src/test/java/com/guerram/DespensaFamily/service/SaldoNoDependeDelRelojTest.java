@@ -123,7 +123,11 @@ class SaldoNoDependeDelRelojTest {
                 .as("y entonces contar bien no puede generar un faltante inventado")
                 .isEqualTo(0.0);
         assertThat(resultado.getMovimiento())
-                .as("sin diferencia real no se escribe ningun ajuste")
-                .isNull();
+                .as("sin diferencia real no se escribe un AJUSTE de plata, pero DF-UX-006"
+                        + " igual deja una constancia de monto 0 en el historial")
+                .isNotNull();
+        assertThat(resultado.getMovimiento().getMonto())
+                .as("la constancia no puede mover el saldo")
+                .isEqualTo(0.0);
     }
 }

@@ -51,6 +51,32 @@ public interface MovimientoCajaRepository extends JpaRepository<MovimientoCaja, 
     """)
     Double totalEgresosEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 
+    /**
+     * DF-UX-006 de la auditoria del 23/09: "egresos de hoy" sumaba tambien
+     * las reversiones (anular una venta genera un EGRESO de categoria VENTA),
+     * asi que anular una sola venta grande podia mostrar un "egresos de hoy"
+     * casi todo compuesto por anulaciones, no por gastos reales. Esta consulta
+     * excluye {@code revierteA IS NOT NULL} -- son solo los EGRESO originales
+     * (GASTO, RETIRO, COMPRA, AJUSTE negativo), nunca una reversion.
+     */
+    @Query("""
+    SELECT COALESCE(SUM(m.monto), 0.0)
+    FROM MovimientoCaja m
+    WHERE m.tipo = 'EGRESO'
+    AND m.revierteA IS NULL
+    AND m.fechaHora BETWEEN :desde AND :hasta
+    """)
+    Double totalEgresosRealesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+
+    /** Cuanto se anulo en el periodo -- reversiones de cualquier categoria, en valor absoluto (siempre positivo). */
+    @Query("""
+    SELECT COALESCE(SUM(m.monto), 0.0)
+    FROM MovimientoCaja m
+    WHERE m.revierteA IS NOT NULL
+    AND m.fechaHora BETWEEN :desde AND :hasta
+    """)
+    Double totalAnulacionesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+
     List<MovimientoCaja> findByFechaHoraBetweenOrderByFechaHoraDesc(LocalDateTime desde, LocalDateTime hasta);
 
     /** Los mas recientes primero, para la pantalla de caja (seccion 6). */
