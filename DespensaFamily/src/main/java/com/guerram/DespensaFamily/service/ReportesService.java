@@ -32,10 +32,19 @@ public class ReportesService {
     private final DetalleVentaRepository detalleVentaRepository;
     private final DetalleCompraRepository detalleCompraRepository;
     private final MovimientoCajaRepository movimientoCajaRepository;
+    private final ConfiguracionService configuracionService;
+
+    /**
+     * DF-BUG-008 de la auditoria del 23/09: con umbral 5 fijo, Reportes
+     * marcaba "bajo stock" con un criterio distinto al resto de la app en
+     * cuanto el dueño cambiaba el umbral en Ajustes — Ventas y Productos ya
+     * usan {@link ConfiguracionService#obtener()}, Reportes no. El default
+     * ahora es el mismo umbral configurado, no un numero de fabrica.
+     */
     public List<ProductoBajoStockDTO> productosConBajoStock(Double limite) {
 
         if (limite == null || limite <= 0) {
-            limite = 5.0;
+            limite = configuracionService.obtener().getUmbralStockBajo();
         }
 
         return productoRepository.findByStockLessThanAndActivoTrue(limite)
