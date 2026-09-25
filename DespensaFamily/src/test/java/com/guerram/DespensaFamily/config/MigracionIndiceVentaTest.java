@@ -27,9 +27,12 @@ class MigracionIndiceVentaTest {
 
     @Test
     void elIndiceCompuestoDeFechaYEstadoExisteSobreVenta() {
+        // H2 2.x expone las columnas de un indice en INDEX_COLUMNS, no en
+        // INDEXES (esa vista solo tiene metadata del indice en si, sin una
+        // fila por columna).
         List<Map<String, Object>> filas = jdbc.queryForList("""
                 SELECT COLUMN_NAME, ORDINAL_POSITION
-                FROM INFORMATION_SCHEMA.INDEXES
+                FROM INFORMATION_SCHEMA.INDEX_COLUMNS
                 WHERE TABLE_NAME = 'VENTA' AND INDEX_NAME = 'IX_VENTA_FECHA_HORA_ESTADO'
                 ORDER BY ORDINAL_POSITION
                 """);

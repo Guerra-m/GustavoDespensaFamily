@@ -80,11 +80,20 @@ public class CajaService {
             throw new IllegalArgumentException("El monto tiene que ser mayor a cero");
         }
 
+        // Efecto colateral encontrado corriendo la suite completa para
+        // DF-PERF-002: con miles de filas en el libro, algunas con importes
+        // que vienen de un porcentaje (ganancia, descuentos) y no caen justo
+        // en el centavo, MovimientoCajaRepository.saldoActual arrastraba
+        // error de precision de double hasta hacerse visible en una
+        // diferencia de saldo (9999.999999999998 en vez de 10000.0).
+        // Redondear ACA, al guardar, evita que ese ruido entre al libro sea
+        // cual sea el origen del movimiento (venta, compra, o carga manual);
+        // arqueo ya hacia lo mismo, esto lo generaliza.
         MovimientoCaja movimiento = MovimientoCaja.builder()
                 .fechaHora(LocalDateTime.now())
                 .tipo(tipo)
                 .categoria(categoria)
-                .monto(monto)
+                .monto(Dinero.redondear(monto))
                 .metodoPago(metodoPago)
                 .descripcion(descripcion)
                 .usuario(usuarioActual())

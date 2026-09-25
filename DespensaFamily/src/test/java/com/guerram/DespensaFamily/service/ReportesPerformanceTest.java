@@ -44,10 +44,14 @@ class ReportesPerformanceTest {
     private ReportesService reportesService;
 
     private Producto producto(String nombre, double precioVenta) {
+        return productoConStock(nombre, precioVenta, 100);
+    }
+
+    private Producto productoConStock(String nombre, double precioVenta, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre(nombre)
                 .precioCosto(precioVenta / 2).precioVenta(precioVenta).porcentajeGanancia(100)
-                .stock(100).tipoCantidad("UNIDAD").unidadMedida("u")
+                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -87,20 +91,36 @@ class ReportesPerformanceTest {
     @Test
     @WithMockUser(username = "cajera-de-prueba", roles = "EMPLEADO")
     void productosMasVendidosRespetaUnTopAcotado() {
-        Producto p1 = producto("DF-PERF-002 top A", 1000);
-        Producto p2 = producto("DF-PERF-002 top B", 1000);
-        Producto p3 = producto("DF-PERF-002 top C", 1000);
-
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p1.getId(), 1.0)), MetodoPago.EFECTIVO);
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p2.getId(), 5.0)), MetodoPago.EFECTIVO);
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p3.getId(), 3.0)), MetodoPago.EFECTIVO);
+        // La base la comparte toda la corrida (mismo motivo documentado en
+        // CajaSaldoTest): otros tests de la suite tambien venden cosas HOY,
+        // asi que no se puede asumir que el top solo contiene lo sembrado
+        // aca. Se vende una cantidad extrema y unica para garantizar que
+        // quede primera sin importar que mas se haya vendido en la corrida.
+        Producto ganador = productoConStock("DF-PERF-002 top acotado, ganador garantizado", 10, 1_000_000);
+        ventaService.registrarVenta(
+                List.of(new DetalleVentaRequestDTO(ganador.getId(), 999_999.0)), MetodoPago.EFECTIVO);
 
         LocalDate hoy = LocalDate.now();
-        List<ProductoMasVendidoDTO> top2 = reportesService.productosMasVendidosTop(hoy, hoy, 2);
 
-        assertThat(top2).hasSize(2);
-        // El primero tiene que ser el mas vendido de los tres sembrados en este test.
-        assertThat(top2.get(0).getProductoId()).isEqualTo(p2.getId());
+        // El top=1 tiene que devolver EXACTAMENTE un producto (el limite
+        // funciona, no es adorno) y ese uno tiene que ser el ganador.
+        List<ProductoMasVendidoDTO> top1 = reportesService.productosMasVendidosTop(hoy, hoy, 1);
+        assertThat(top1).hasSize(1);
+        assertThat(top1.get(0).getProductoId()).isEqualTo(ganador.getId());
+    }
+
+    @Test
+    @WithMockUser(username = "cajera-de-prueba", roles = "EMPLEADO")
+    void unTopMayorQueLaCantidadDeProductosVendidosNoRompe() {
+        // Triangulacion: pedir mas de lo que hay no puede fallar ni inventar
+        // filas -- simplemente devuelve lo que haya.
+        Producto p = producto("DF-PERF-002 top mayor a lo vendido", 500);
+        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 2.0)), MetodoPago.EFECTIVO);
+
+        LocalDate hoy = LocalDate.now();
+        List<ProductoMasVendidoDTO> top = reportesService.productosMasVendidosTop(hoy, hoy, 10_000);
+
+        assertThat(top).anySatisfy(dto -> assertThat(dto.getProductoId()).isEqualTo(p.getId()));
     }
 
     private boolean contieneProducto(List<MovimientoDTO> movimientos, Long productoId) {
