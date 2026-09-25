@@ -18,6 +18,7 @@ import type { Cotizacion } from "../../models/Cotizacion";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
+import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
 import QRCode from "qrcode";
@@ -120,19 +121,6 @@ function generarClaveIdempotencia(): string {
   return crypto.randomUUID();
 }
 
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function unidadProducto(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function fraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
-}
-
 function configurarInputCantidad(producto: Producto) {
   const step = fraccionMinima(producto);
   inputCantidad.step = step.toString();
@@ -154,12 +142,6 @@ function configurarInputCantidad(producto: Producto) {
 function formatearCantidadConUnidad(cantidad: number, producto?: Producto) {
   if (!producto) return formatearCantidad(cantidad);
   return `${formatearCantidad(cantidad)} ${unidadProducto(producto)}`;
-}
-
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
 }
 
 function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {

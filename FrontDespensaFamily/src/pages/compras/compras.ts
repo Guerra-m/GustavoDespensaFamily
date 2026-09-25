@@ -1,5 +1,6 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
 import { esc, formatearFechaHora, formatearMoneda, formatearCantidadConUnidad } from "../../utils/format";
+import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
 import { checkAuth, isAdmin, puedeGestionarProductos } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 checkAuth();
@@ -40,19 +41,6 @@ let compras: Compra[] = [];
 let productos: Producto[] = [];
 let detallesCompra: DetalleCompraRequest[] = [];
 
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function unidadProducto(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function fraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
-}
-
 function formatearCantidad(cantidad: number, producto?: Producto) {
   if (!producto) return formatearCantidadConUnidad(cantidad, "");
   return formatearCantidadConUnidad(cantidad, unidadProducto(producto));
@@ -60,12 +48,6 @@ function formatearCantidad(cantidad: number, producto?: Producto) {
 
 function esProductoPorPaquete(producto: Producto): boolean {
   return !esProductoPesable(producto) && !!producto.unidadesPorPaquete && producto.unidadesPorPaquete >= 2;
-}
-
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!producto || !upp || upp < 2 || esProductoPesable(producto)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
 }
 
 function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {

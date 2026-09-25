@@ -18,6 +18,11 @@ import {
 } from "../../services/productos.service";
 
 import { getCategorias } from "../../services/categorias.service";
+import {
+  unidadProducto as obtenerUnidad,
+  fraccionMinima as obtenerFraccionMinima,
+  desglosePaquete
+} from "../../utils/producto";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../../utils/format";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
@@ -108,19 +113,6 @@ function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);
 }
 
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function obtenerUnidad(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function obtenerFraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
-}
-
 function sincronizarTipoYUnidad(form: HTMLFormElement) {
   const tipo = form.querySelector("select[name='tipoCantidad']") as HTMLSelectElement;
   const unidad = form.querySelector("select[name='unidadMedida']") as HTMLSelectElement;
@@ -153,13 +145,6 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
 
   tipo.addEventListener("change", aplicarValores);
   aplicarValores();
-}
-
-// ---------- DESGLOSE PAQUETE/SUELTAS ----------
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!upp || upp < 2 || esProductoPesable(producto!)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
 }
 
 function formatearStockConPaquete(producto: Producto): string {
