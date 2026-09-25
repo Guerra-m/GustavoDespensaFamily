@@ -107,10 +107,16 @@ function esperar(ms) {
   return new Promise((resolver) => setTimeout(resolver, ms));
 }
 
-async function esperarAlServidor(puerto) {
-  const limite = Date.now() + ESPERA_MAXIMA_MS;
+/**
+ * Espera a que responda. Si el proceso ya termino no tiene sentido seguir
+ * esperando los 90 segundos: un jar que no arranca suele morir enseguida (una
+ * migracion que falla, un puerto ocupado) y cada segundo es la caja parada.
+ */
+async function esperarAlServidor(puerto, hijo, maximoMs = ESPERA_MAXIMA_MS) {
+  const limite = Date.now() + maximoMs;
   while (Date.now() < limite) {
     if (await servidorResponde(puerto)) return true;
+    if (hijo && (hijo.exitCode !== null || hijo.signalCode !== null)) return false;
     await esperar(INTERVALO_DE_SONDEO_MS);
   }
   return false;
@@ -152,6 +158,27 @@ function detenerServidor() {
   setTimeout(() => {
     if (hijo.exitCode === null) hijo.kill();
   }, MARGEN_DE_CIERRE_MS);
+}
+
+/**
+ * Lo mismo, pero esperando a que termine de verdad: antes de volver a la
+ * version anterior el jar y la base tienen que estar libres, y en Windows no se
+ * puede tocar un archivo que un proceso tiene abierto.
+ */
+function detenerYEsperar() {
+  const hijo = servidor;
+  if (!hijo || hijo.exitCode !== null || hijo.signalCode !== null) return Promise.resolve();
+  return new Promise((resolver) => {
+    hijo.once("exit", () => resolver());
+    try {
+      hijo.stdin.end();
+    } catch {
+      // Ya cerrado: la red de seguridad de abajo lo mata igual.
+    }
+    setTimeout(() => {
+      if (hijo.exitCode === null) hijo.kill();
+    }, MARGEN_DE_CIERRE_MS);
+  });
 }
 
 // ---------------------------------------------------------------- ventana
@@ -211,13 +238,31 @@ function abrirAfuera(destino) {
   }
 }
 
-function avisarQueNoArranco(puerto) {
+/**
+ * Si el servidor se nego a arrancar por un motivo que el usuario puede
+ * entender (una base que uso una version mas nueva), lo deja escrito aca. Solo
+ * vale si es de este intento: uno viejo confundiria mas de lo que ayuda.
+ */
+function motivoDelServidor(desde) {
+  const archivo = path.join(carpetaDeDatos(), "logs", "error-de-arranque.txt");
+  try {
+    if (fs.statSync(archivo).mtimeMs < desde) return null;
+    return fs.readFileSync(archivo, "utf8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function avisarQueNoArranco(puerto, desde = Date.now()) {
   const registro = path.join(carpetaDeDatos(), "logs", "despensafamily.log");
+  const motivo = motivoDelServidor(desde);
   dialog.showErrorBox(
     "DespensaFamily no pudo iniciar",
-    "El programa se quedo esperando al servidor en el puerto " +
-      puerto +
-      ".\n\nProba cerrar y volver a abrir. Si sigue igual, el detalle esta en:\n" +
+    (motivo
+      ? motivo + "\n\n"
+      : "El programa se quedo esperando al servidor en el puerto " + puerto + ".\n\n" +
+        "Proba cerrar y volver a abrir. ") +
+      "Si sigue igual, el detalle esta en:\n" +
       registro
   );
 }
@@ -258,6 +303,75 @@ function programarBusquedaDeActualizaciones() {
 }
 
 /**
+ * Una version en prueba tiene el doble de margen: la primera vez corre las
+ * migraciones de la base, y declarar rota una version que solo era lenta la
+ * dejaria marcada como fallida sin motivo.
+ */
+const ESPERA_MAXIMA_EN_PRUEBA_MS = 2 * ESPERA_MAXIMA_MS;
+
+/**
+ * Mientras se esta arrancando (y eventualmente volviendo a la version
+ * anterior), que el servidor termine no significa "cerrar el programa": es lo
+ * que se esta vigilando, y lo resuelve actualizaciones.arrancar.
+ */
+let arrancando = false;
+
+/**
+ * Arranca el servidor pasando por el actualizador: aplica lo aprobado, espera
+ * a que responda, y si una version recien aplicada no responde, vuelve sola a
+ * la anterior —jar, version y base— y arranca esa.
+ *
+ * Devuelve true si quedo un servidor respondiendo.
+ */
+async function arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo }) {
+  const desde = Date.now();
+  arrancando = true;
+  let resultado;
+  try {
+    resultado = await actualizaciones.arrancar(
+      carpetaDeDatos(),
+      carpetaDelServidor(),
+      {
+        yaResponde: async () => puedeHaberUnoCorriendo && (await servidorResponde(puerto)),
+        lanzar: () => lanzarServidor(puerto),
+        esperar: (enPrueba) =>
+          esperarAlServidor(puerto, servidor, enPrueba ? ESPERA_MAXIMA_EN_PRUEBA_MS : ESPERA_MAXIMA_MS),
+        detener: detenerYEsperar,
+      },
+      registrarActualizacion
+    );
+  } catch (error) {
+    // lanzar() tira si no esta el ejecutable del servidor.
+    arrancando = false;
+    dialog.showErrorBox("DespensaFamily no pudo iniciar", String(error.message || error));
+    return false;
+  }
+  arrancando = false;
+
+  registrarActualizacion("Arranque: " + JSON.stringify(resultado));
+
+  if (resultado.resultado === "no-arranco") {
+    avisarQueNoArranco(puerto, desde);
+    return false;
+  }
+
+  if (resultado.resultado === "revertida") {
+    // Sin await: el aviso no tiene que frenar que la caja vuelva a estar usable.
+    dialog.showMessageBox(ventana, {
+      type: "warning",
+      title: "DespensaFamily",
+      message: "La actualizacion a la version " + resultado.fallida + " no pudo arrancar.",
+      detail:
+        "Se volvio sola a la version " + (resultado.restaurada || "anterior") +
+        ", con los datos como estaban justo antes de actualizar. Se puede seguir usando normalmente." +
+        "\n\nEsa version no se va a volver a instalar sola. Lo que paso quedo anotado en:\n" +
+        path.join(carpetaDeDatos(), "actualizaciones", "historial.log"),
+    });
+  }
+  return true;
+}
+
+/**
  * El servidor se apago porque el duenio aprobo una actualizacion. Se reemplaza
  * el jar —recien ahora se puede, con el archivo ya liberado— y se lo vuelve a
  * levantar. La ventana muestra mientras tanto la misma pantalla de carga del
@@ -266,19 +380,7 @@ function programarBusquedaDeActualizaciones() {
 async function reiniciarActualizando(puerto) {
   if (ventana) await ventana.loadFile(path.join(__dirname, "cargando.html"));
 
-  await actualizaciones.aplicarPendiente(
-    carpetaDeDatos(), carpetaDelServidor(), registrarActualizacion);
-
-  try {
-    lanzarServidor(puerto);
-  } catch (error) {
-    dialog.showErrorBox("DespensaFamily no pudo reiniciar", String(error.message || error));
-    app.quit();
-    return;
-  }
-
-  if (!(await esperarAlServidor(puerto))) {
-    avisarQueNoArranco(puerto);
+  if (!(await arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo: false }))) {
     app.quit();
     return;
   }
@@ -288,27 +390,31 @@ async function reiniciarActualizando(puerto) {
 // ---------------------------------------------------------------- arranque
 
 /**
- * Arranca el servidor y decide que hacer cuando termine. Son tres finales
+ * Arranca el servidor y decide que hacer cuando termine. Son cuatro finales
  * distintos y conviene no confundirlos:
  *
  *   - cerrando        -> lo pidio el usuario al cerrar la ventana: no hacer nada
+ *   - arrancando      -> lo esta vigilando el arranque, que decide que sigue
  *   - hay una senial  -> se aprobo una actualizacion: cambiar el jar y volver
  *   - cualquier otro  -> el servidor se cayo o lo cerraron desde la bandeja
  */
 function lanzarServidor(puerto) {
-  servidor = arrancarServidor(puerto);
-  servidor.on("exit", () => {
-    if (cerrando) return;
+  const hijo = arrancarServidor(puerto);
+  servidor = hijo;
+  hijo.on("exit", () => {
+    if (cerrando || arrancando) return;
+    // Un proceso viejo que termina despues de que se lanzo otro no es noticia.
+    if (hijo !== servidor) return;
     if (actualizaciones.hayActualizacionAprobada(carpetaDeDatos())) {
       reiniciarActualizando(puerto);
       return;
     }
     app.quit();
   });
-  servidor.on("error", () => {
-    if (!cerrando) app.quit();
+  hijo.on("error", () => {
+    if (!cerrando && !arrancando) app.quit();
   });
-  return servidor;
+  return hijo;
 }
 
 async function iniciar() {
@@ -317,30 +423,12 @@ async function iniciar() {
   crearVentana(puerto);
   await ventana.loadFile(path.join(__dirname, "cargando.html"));
 
-  // Antes de arrancar nada: si quedo una actualizacion aprobada de la sesion
-  // anterior (se corto la luz entre la aprobacion y el reinicio), se aplica
-  // ahora, con el jar libre.
-  try {
-    await actualizaciones.aplicarPendiente(
-      carpetaDeDatos(), carpetaDelServidor(), registrarActualizacion);
-  } catch (error) {
-    registrarActualizacion("No se pudo aplicar la actualizacion pendiente: " + error.message);
-  }
-
-  // Si ya hay un servidor respondiendo (quedo de un cierre anterior que no
-  // termino de bajar), no se arranca otro: se usa el que esta.
-  if (!(await servidorResponde(puerto))) {
-    try {
-      lanzarServidor(puerto);
-    } catch (error) {
-      dialog.showErrorBox("DespensaFamily no pudo iniciar", String(error.message || error));
-      app.quit();
-      return;
-    }
-  }
-
-  if (!(await esperarAlServidor(puerto))) {
-    avisarQueNoArranco(puerto);
+  // Antes de arrancar nada, actualizaciones.arrancar termina lo que haya
+  // quedado de la sesion anterior: una vuelta atras cortada por un apagon, o
+  // una actualizacion aprobada que no llego a aplicarse. Si ya hay un servidor
+  // respondiendo (quedo de un cierre anterior que no termino de bajar), no se
+  // arranca otro: se usa el que esta.
+  if (!(await arrancarConActualizaciones(puerto, { puedeHaberUnoCorriendo: true }))) {
     app.quit();
     return;
   }
@@ -349,6 +437,7 @@ async function iniciar() {
 
   programarBusquedaDeActualizaciones();
 }
+
 
 /**
  * Una sola copia abierta: dos servidores peleando por el mismo puerto y por el

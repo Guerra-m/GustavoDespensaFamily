@@ -84,6 +84,41 @@ function rutaInstalada(datos) {
   return path.join(carpeta(datos), "instalada.txt");
 }
 
+/**
+ * Existe mientras un jar recien aplicado no demostro que arranca. Anota a que
+ * volver si no lo hace: la version previa y la copia de la base.
+ */
+function rutaEnPrueba(datos) {
+  return path.join(carpeta(datos), "en-prueba.json");
+}
+
+/** Versiones que ya se aplicaron y no arrancaron: no se reintentan solas. */
+function rutaFallidas(datos) {
+  return path.join(carpeta(datos), "fallidas.txt");
+}
+
+/**
+ * Lo que hizo el actualizador, con fecha. Va a la carpeta de datos porque el
+ * stdout del launcher empaquetado no queda en ningun lado, y cuando algo sale
+ * mal en el local esto es lo primero que hay que pedir.
+ */
+function rutaHistorial(datos) {
+  return path.join(carpeta(datos), "historial.log");
+}
+
+/** La base H2: jdbc:h2:file:${despensa.db}/despensa */
+function rutaBase(datos) {
+  return path.join(datos, "db", "despensa.mv.db");
+}
+
+function carpetaRespaldos(datos) {
+  return path.join(datos, "backups");
+}
+
+function rutaJar(carpetaDelServidor) {
+  return path.join(carpetaDelServidor, "app", NOMBRE_DEL_JAR);
+}
+
 // ---------------------------------------------------------------- versiones
 
 /**
@@ -91,25 +126,40 @@ function rutaInstalada(datos) {
  * Es el espejo de Version.java del lado del servidor, y por el mismo motivo:
  * una version ilegible no es posterior a nada, asi que no dispara ningun aviso.
  */
-function esPosterior(candidata, actual) {
-  const partes = (v) => {
-    if (!v) return null;
-    const limpia = String(v).trim().replace(/^[vV]/, "").replace(/[-+].*$/, "");
-    if (!limpia) return null;
-    const trozos = limpia.split(".").map((t) => Number.parseInt(t, 10));
-    return trozos.some((n) => Number.isNaN(n)) ? null : trozos;
-  };
+function partesDeVersion(v) {
+  if (!v) return null;
+  const limpia = String(v).trim().replace(/^[vV]/, "").replace(/[-+].*$/, "");
+  if (!limpia) return null;
+  const trozos = limpia.split(".").map((t) => Number.parseInt(t, 10));
+  return trozos.some((n) => Number.isNaN(n)) ? null : trozos;
+}
 
-  const a = partes(candidata);
-  const b = partes(actual);
-  if (!a || !b) return false;
-
+/** -1, 0 o 1; null si alguna de las dos es ilegible. */
+function compararVersiones(x, y) {
+  const a = partesDeVersion(x);
+  const b = partesDeVersion(y);
+  if (!a || !b) return null;
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    const x = a[i] ?? 0;
-    const y = b[i] ?? 0;
-    if (x !== y) return x > y;
+    const p = a[i] ?? 0;
+    const q = b[i] ?? 0;
+    if (p !== q) return p > q ? 1 : -1;
   }
-  return false;
+  return 0;
+}
+
+function esPosterior(candidata, actual) {
+  return compararVersiones(candidata, actual) === 1;
+}
+
+/**
+ * Si una release se ofrece: tiene que ser posterior a la puesta y no haber
+ * fallado ya en esta PC. Una version que no arranco se descarta hasta que salga
+ * una posterior; reintentarla sola cada seis horas seria dejar el local sin
+ * sistema una y otra vez.
+ */
+function debeOfrecerse(candidata, actual, fallidas) {
+  if (!esPosterior(candidata, actual)) return false;
+  return !fallidas.some((f) => compararVersiones(f, candidata) === 0);
 }
 
 /**
@@ -256,9 +306,11 @@ async function buscar(datos, versionDeElectron, registrar = () => {}) {
   );
 
   const nueva = release.tag_name;
-  if (!esPosterior(nueva, actual)) {
+  if (!debeOfrecerse(nueva, actual, versionesFallidas(datos))) {
     await escribirEstado(datos, { estado: ESTADOS.alDia, version: actual });
-    registrar("Sin actualizaciones: " + actual + " es la ultima");
+    registrar(esPosterior(nueva, actual)
+      ? "La version " + nueva + " ya no arranco en esta PC: no se vuelve a ofrecer"
+      : "Sin actualizaciones: " + actual + " es la ultima");
     return;
   }
 
@@ -318,16 +370,30 @@ async function aplicarPendiente(datos, carpetaDelServidor, registrar = () => {})
   const senial = rutaSenial(datos);
   if (!fs.existsSync(senial)) return null;
 
+  const anotar = anotador(datos, registrar);
   const aprobada = fs.readFileSync(senial, "utf8").trim();
   const nuevo = rutaPendiente(datos);
-  const destino = path.join(carpetaDelServidor, "app", NOMBRE_DEL_JAR);
+  const destino = rutaJar(carpetaDelServidor);
 
   // La senial se borra pase lo que pase: si algo esta mal, el intento no se
   // repite en cada arranque dejando la app en un bucle.
   await fsp.rm(senial, { force: true });
 
+  if (versionesFallidas(datos).some((f) => compararVersiones(f, aprobada) === 0)) {
+    anotar("Se aprobo la version " + aprobada + ", que ya no arranco en esta PC: no se aplica");
+    return null;
+  }
+
+  if (hayVersionEnPrueba(datos)) {
+    // No deberia pasar: la prueba se resuelve en el arranque, antes de que
+    // nadie pueda aprobar nada. Si pasa, encimar otra version borraria el
+    // camino de vuelta a la ultima que anduvo.
+    anotar("Hay una version en prueba sin resolver: no se aplica la " + aprobada);
+    return null;
+  }
+
   if (!fs.existsSync(nuevo)) {
-    registrar("Se aprobo una actualizacion pero el jar no esta: se ignora");
+    anotar("Se aprobo una actualizacion pero el jar no esta: se ignora");
     return null;
   }
 
@@ -341,9 +407,30 @@ async function aplicarPendiente(datos, carpetaDelServidor, registrar = () => {})
   }
   if (esperado && (await sha256DeArchivo(nuevo)) !== esperado) {
     await fsp.rm(nuevo, { force: true });
-    registrar("El jar pendiente no coincide con su hash: se descarto");
+    anotar("El jar pendiente no coincide con su hash: se descarto");
     return null;
   }
+
+  // Copia de la base ANTES de tocar nada. El respaldo diario del servidor corre
+  // despues de Flyway, asi que no sirve para deshacer una migracion: este si.
+  // Sin copia no hay vuelta atras, y sin vuelta atras no se actualiza.
+  let copiaDeLaBase;
+  try {
+    copiaDeLaBase = await respaldarBase(datos, aprobada);
+  } catch (error) {
+    anotar("No se pudo copiar la base antes de actualizar (" + error.message
+      + "): la version " + aprobada + " no se aplica");
+    return null;
+  }
+
+  const desde = marcaDeTiempo();
+  await escribirPrueba(datos, {
+    version: aprobada,
+    anterior: leerInstalada(datos),
+    respaldo: copiaDeLaBase,
+    desde,
+    revirtiendo: false,
+  });
 
   const respaldo = destino + ".anterior";
   try {
@@ -356,13 +443,15 @@ async function aplicarPendiente(datos, carpetaDelServidor, registrar = () => {})
     if (!fs.existsSync(destino) && fs.existsSync(respaldo)) {
       await fsp.rename(respaldo, destino);
     }
-    registrar("No se pudo reemplazar el jar: " + error.message);
+    await fsp.rm(rutaEnPrueba(datos), { force: true });
+    anotar("No se pudo reemplazar el jar: " + error.message);
     return null;
   }
 
   await fsp.writeFile(rutaInstalada(datos), aprobada, "utf8");
   await escribirEstado(datos, { estado: ESTADOS.alDia, version: aprobada });
-  registrar("Actualizado a la version " + aprobada);
+  anotar("Actualizado a la version " + aprobada + " (en prueba hasta que arranque; base copiada en "
+    + (copiaDeLaBase || "ningun lado: no habia base") + ")");
   return aprobada;
 }
 
@@ -370,10 +459,250 @@ function hayActualizacionAprobada(datos) {
   return fs.existsSync(rutaSenial(datos));
 }
 
+// ------------------------------------------------------------ vuelta atras
+//
+// Un jar recien aplicado queda "en prueba" (en-prueba.json) hasta que el
+// servidor responde. Si no responde, se vuelve solo a lo de antes:
+//
+//   aplicado ──responde──> confirmado (se borra en-prueba.json)
+//      │
+//      └──no responde──> revirtiendo ──> jar, base y version de antes
+//                        (en-prueba.json con revirtiendo:true; se borra al final)
+//
+// Cada paso de la vuelta atras se puede repetir: si se corta la luz a la mitad,
+// en-prueba.json sigue diciendo "revirtiendo" y el proximo arranque la termina
+// antes de levantar nada. La version que fallo queda en fallidas.txt y no se
+// vuelve a aplicar sola. Si la anterior tampoco arranca, no hay mas nada que
+// restaurar: en-prueba.json ya no existe, asi que no se entra en un bucle.
+
+function anotador(datos, registrar) {
+  return (mensaje) => {
+    registrar(mensaje);
+    registrarEnHistorial(datos, mensaje);
+  };
+}
+
+function registrarEnHistorial(datos, mensaje) {
+  try {
+    fs.mkdirSync(carpeta(datos), { recursive: true });
+    fs.appendFileSync(rutaHistorial(datos), new Date().toISOString() + " " + mensaje + "\n", "utf8");
+  } catch {
+    // Sin historial se sigue: no poder anotar no es motivo para no arrancar.
+  }
+}
+
+function marcaDeTiempo() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+/**
+ * La version termina en un nombre de archivo, y viene de una senial que
+ * escribe el servidor con lo que dijo GitHub: nada de barras ni "..".
+ */
+function paraNombreDeArchivo(texto) {
+  return String(texto).replace(/[^0-9A-Za-z.-]/g, "_").replace(/\.{2,}/g, "_");
+}
+
+function leerInstalada(datos) {
+  try {
+    return fs.readFileSync(rutaInstalada(datos), "utf8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function leerPrueba(datos) {
+  try {
+    return JSON.parse(fs.readFileSync(rutaEnPrueba(datos), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** Temporal y rename: un corte de luz no deja un en-prueba.json a medias. */
+async function escribirPrueba(datos, contenido) {
+  const temporal = rutaEnPrueba(datos) + ".parcial";
+  await fsp.writeFile(temporal, JSON.stringify(contenido, null, 2), "utf8");
+  await fsp.rename(temporal, rutaEnPrueba(datos));
+}
+
+/**
+ * Copia y comprueba que la copia sea identica al original (BKP-04: una copia
+ * que no se verifico no es una copia). Deja el resultado en destino; quien
+ * llama decide cuando renombrarla a su nombre definitivo.
+ */
+async function copiarVerificado(origen, destino) {
+  await fsp.mkdir(path.dirname(destino), { recursive: true });
+  await fsp.copyFile(origen, destino);
+  if ((await sha256DeArchivo(origen)) !== (await sha256DeArchivo(destino))) {
+    await fsp.rm(destino, { force: true });
+    throw new Error("la copia de " + origen + " no coincide con el original");
+  }
+}
+
+/** Devuelve la ruta de la copia, o null si todavia no habia base. */
+async function respaldarBase(datos, version) {
+  const base = rutaBase(datos);
+  if (!fs.existsSync(base)) return null;
+  const copia = path.join(carpetaRespaldos(datos),
+    "antes-de-" + paraNombreDeArchivo(version) + "-" + marcaDeTiempo() + ".mv.db");
+  await copiarVerificado(base, copia + ".parcial");
+  await fsp.rename(copia + ".parcial", copia);
+  return copia;
+}
+
+function hayVersionEnPrueba(datos) {
+  return leerPrueba(datos) !== null;
+}
+
+function reversionInterrumpida(datos) {
+  const prueba = leerPrueba(datos);
+  return prueba !== null && prueba.revirtiendo === true;
+}
+
+function versionesFallidas(datos) {
+  try {
+    return fs.readFileSync(rutaFallidas(datos), "utf8").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function marcarFallida(datos, version) {
+  if (versionesFallidas(datos).includes(version)) return;
+  await fsp.appendFile(rutaFallidas(datos), version + "\n", "utf8");
+}
+
+/** El servidor respondio con la version en prueba: queda confirmada. */
+async function confirmarArranque(datos, registrar = () => {}) {
+  const prueba = leerPrueba(datos);
+  if (!prueba || prueba.revirtiendo) return null;
+  await fsp.rm(rutaEnPrueba(datos), { force: true });
+  anotador(datos, registrar)("La version " + prueba.version + " arranco bien: queda confirmada");
+  return prueba.version;
+}
+
+/**
+ * La version en prueba no arranco: vuelve el jar anterior, la base copiada y
+ * la version anotada. Corre con el servidor detenido. Devuelve
+ * { fallida, restaurada } o null si no habia nada en prueba.
+ */
+async function volverALaAnterior(datos, carpetaDelServidor, registrar = () => {}) {
+  const prueba = leerPrueba(datos);
+  if (!prueba) return null;
+  const anotar = anotador(datos, registrar);
+  const { version, anterior, respaldo } = prueba;
+
+  anotar("La version " + version + " no arranco: se vuelve a la "
+    + (anterior || "del instalador") + (prueba.revirtiendo ? " (retomando una vuelta atras cortada)" : ""));
+  if (!prueba.revirtiendo) await escribirPrueba(datos, { ...prueba, revirtiendo: true });
+  await marcarFallida(datos, version);
+
+  // 1. El jar. rename pisa el destino y es atomico: o quedo el viejo o no.
+  const jar = rutaJar(carpetaDelServidor);
+  if (fs.existsSync(jar + ".anterior")) await fsp.rename(jar + ".anterior", jar);
+
+  // 2. La base. La copia se prepara al lado ANTES de mover nada: si falla, la
+  // base sigue en su lugar y el proximo arranque lo vuelve a intentar.
+  const base = rutaBase(datos);
+  const apartada = path.join(carpetaRespaldos(datos),
+    "fallida-" + paraNombreDeArchivo(version) + "-" + paraNombreDeArchivo(prueba.desde) + ".mv.db");
+  if (respaldo && !fs.existsSync(respaldo)) {
+    // Alguien borro la copia. Sin ella no hay a que volver; mover la base
+    // dejaria a la version anterior arrancando con una base vacia, que es peor.
+    anotar("No esta la copia " + respaldo + ": la base queda como la dejo la " + version);
+  } else {
+    if (respaldo) await copiarVerificado(respaldo, base + ".parcial");
+    if (fs.existsSync(base) && !fs.existsSync(apartada)) {
+      // La base que dejo la version rota no se tira: es lo que hay que mirar.
+      await fsp.mkdir(carpetaRespaldos(datos), { recursive: true });
+      await fsp.rename(base, apartada);
+    }
+    if (respaldo) await fsp.rename(base + ".parcial", base);
+    else await fsp.rm(base, { force: true });
+  }
+
+  // 3. La version anotada.
+  if (anterior) await fsp.writeFile(rutaInstalada(datos), anterior, "utf8");
+  else await fsp.rm(rutaInstalada(datos), { force: true });
+  await escribirEstado(datos, {
+    estado: ESTADOS.error,
+    version: anterior,
+    notas: "La version " + version + " no arranco y se volvio a la anterior",
+  });
+  await fsp.rm(rutaPendiente(datos), { force: true });
+
+  // 4. Recien ahora se cierra la prueba: es el "commit" de la vuelta atras.
+  await fsp.rm(rutaEnPrueba(datos), { force: true });
+  anotar("Vuelta atras completa: jar, base y version de antes de la " + version);
+  return { fallida: version, restaurada: anterior };
+}
+
+// ---------------------------------------------------------------- arranque
+
+/**
+ * El recorrido entero de un arranque, sin nada de Electron adentro para poder
+ * probarlo. ops:
+ *   yaResponde()        hay un servidor de antes respondiendo en el puerto
+ *   lanzar()            arranca el servidor con el jar que haya en su lugar
+ *   esperar(enPrueba)   true si respondio; false si murio o se agoto la espera
+ *   detener()           lo apaga y espera a que termine (libera jar y base)
+ *
+ * Devuelve { resultado: "ok" | "ya-estaba" | "revertida" | "no-arranco", ... }
+ */
+async function arrancar(datos, carpetaDelServidor, ops, registrar = () => {}) {
+  const anotar = anotador(datos, registrar);
+  let vuelta = null;
+
+  try {
+    if (reversionInterrumpida(datos)) {
+      vuelta = await volverALaAnterior(datos, carpetaDelServidor, registrar);
+    } else {
+      await aplicarPendiente(datos, carpetaDelServidor, registrar);
+    }
+  } catch (error) {
+    anotar("No se pudo preparar el arranque: " + error.message);
+    // Una vuelta atras a medias no se arranca: el jar y la base pueden no ser
+    // de la misma version. Se reintenta en el proximo arranque.
+    if (reversionInterrumpida(datos)) return { resultado: "no-arranco", error: error.message };
+  }
+
+  if (await ops.yaResponde()) return { resultado: "ya-estaba" };
+
+  const enPrueba = hayVersionEnPrueba(datos);
+  ops.lanzar();
+  if (await ops.esperar(enPrueba)) {
+    if (enPrueba) await confirmarArranque(datos, registrar);
+    return vuelta ? { resultado: "revertida", ...vuelta } : { resultado: "ok" };
+  }
+  if (!enPrueba) return { resultado: "no-arranco", ...(vuelta || {}) };
+
+  await ops.detener();
+  try {
+    vuelta = await volverALaAnterior(datos, carpetaDelServidor, registrar);
+  } catch (error) {
+    anotar("No se pudo volver a la version anterior: " + error.message);
+    return { resultado: "no-arranco", error: error.message };
+  }
+
+  ops.lanzar();
+  if (await ops.esperar(false)) return { resultado: "revertida", ...vuelta };
+  anotar("La version " + (vuelta.restaurada || "del instalador")
+    + " tampoco arranco: no se restaura nada mas");
+  return { resultado: "no-arranco", ...vuelta };
+}
+
 module.exports = {
   aplicarPendiente,
+  arrancar,
   buscar,
+  confirmarArranque,
+  debeOfrecerse,
   esPosterior,
   hayActualizacionAprobada,
+  hayVersionEnPrueba,
+  registrarEnHistorial,
+  versionesFallidas,
   versionInstalada,
+  volverALaAnterior,
 };
