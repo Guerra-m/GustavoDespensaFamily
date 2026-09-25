@@ -7,19 +7,7 @@ import { getCompras, getCompraDetalle } from "../../services/compras.service";
 import { getProductos } from "../../services/productos.service";
 import { getProductosMasVendidos, getResumenVentas, getMovimientos, getProductosBajoStock } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
-
-// ---------------- DOM ----------------
-const toast = document.getElementById("toast") as HTMLDivElement | null;
-
-/** DF-UX-003/DF-UX-008: aviso visible ante un error -- antes home.ts solo
- * hacia console.error, y quien mira la pantalla no tiene consola abierta. */
-function mostrarToast(mensaje: string, error = true) {
-  if (!toast) return;
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
+import { mostrarToast } from "../../utils/toast";
 
 const kpiVentas = document.getElementById("kpi-ventas") as HTMLParagraphElement;
 const kpiCompras = document.getElementById("kpi-compras") as HTMLParagraphElement;
@@ -78,7 +66,7 @@ async function cargarKPIs() {
     kpiCompras.textContent = "Error";
     kpiStockBajo.textContent = "Error";
     kpiProductos.textContent = "Error";
-    mostrarToast("No se pudieron cargar los indicadores del inicio");
+    mostrarToast("No se pudieron cargar los indicadores del inicio", true);
   }
 }
 
@@ -107,7 +95,7 @@ async function cargarUltimas() {
     }
   } catch (err) {
     console.error(err);
-    mostrarToast("No se pudieron cargar las últimas ventas y compras");
+    mostrarToast("No se pudieron cargar las últimas ventas y compras", true);
   }
 }
 
@@ -185,7 +173,7 @@ async function renderTopProductosChart() {
     });
   } catch (err) {
     console.error(err);
-    mostrarToast("No se pudo cargar el top de productos más vendidos");
+    mostrarToast("No se pudo cargar el top de productos más vendidos", true);
   }
 }
 
@@ -197,7 +185,7 @@ async function initHome() {
     renderVentasChart();
   } catch (err) {
     console.error(err);
-    mostrarToast("No se pudo dibujar el gráfico de ventas");
+    mostrarToast("No se pudo dibujar el gráfico de ventas", true);
   }
   await renderTopProductosChart();
 }

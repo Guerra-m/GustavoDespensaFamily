@@ -27,12 +27,12 @@ import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../../utils/format";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
 import { getConfiguracion } from "../../services/configuracion.service";
+import { mostrarToast } from "../../utils/toast";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const productosGridWrapper = document.getElementById("productos-grid-wrapper") as HTMLDivElement | null;
 const indiceCategorias = document.getElementById("productos-indice") as HTMLDivElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const formCrear = document.getElementById("form-crear") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar") as HTMLFormElement;
@@ -100,14 +100,6 @@ let categorias: Categoria[] = [];
 let productoActual: Producto | null = null;
 let seleccionados = new Set<number>();
 let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
-
-// ---------- UTIL ----------
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2500);
-}
 
 function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);

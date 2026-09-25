@@ -22,6 +22,7 @@ import {
 import { getProductos } from "../../services/productos.service";
 import { getCategorias } from "../../services/categorias.service";
 import { confirmar } from "../../services/confirm.service";
+import { mostrarToast } from "../../utils/toast";
 
 // ---------------- ESTADO ----------------
 let promociones: Promocion[] = [];
@@ -38,18 +39,9 @@ const formEditar = document.getElementById("form-editar-promo") as HTMLFormEleme
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
 const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement;
 const editarProductoNombre = document.getElementById("editar-producto-nombre") as HTMLSpanElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const inputBuscarProducto = document.getElementById("input-buscar-producto") as HTMLInputElement;
 const dropdownProductos = document.getElementById("dropdown-productos") as HTMLDivElement;
-
-// ---------------- TOAST ----------------
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 // ---------------- BUSCADOR DE PRODUCTOS (solo productos por UNIDAD) ----------------
 function renderDropdownProductos(filtro: string) {

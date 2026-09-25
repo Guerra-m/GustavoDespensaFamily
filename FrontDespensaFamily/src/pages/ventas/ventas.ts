@@ -19,6 +19,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
 import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
 import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
+import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
 import QRCode from "qrcode";
@@ -74,7 +75,6 @@ const productosSection = document.getElementById("productos-section") as HTMLDiv
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const filtrosCategorias = document.getElementById("filtros-categorias") as HTMLDivElement;
 
-const toast = document.getElementById("toast") as HTMLDivElement;
 /* =======================
    ESTADO
 ======================= */
@@ -800,12 +800,6 @@ async function abrirDetalleVenta(ventaId: number) {
   modalDetalle.classList.remove("hidden");
 }
 
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2000);
-}
 // Antes era un <select id="select-cliente"> que ya no existe en el HTML: la
 // función siempre devolvía "Consumidor Final" a secas, sin importar nada.
 // Ahora usa el nombre que se cargó al confirmar la venta (Fase 9, opcional).

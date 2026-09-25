@@ -683,35 +683,8 @@ hr {
 
 .hidden { display: none !important; }
 
-/* TOAST */
-.toast {
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  background: var(--color-exito);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 3000;
-  animation: slideInToast 0.3s ease;
-  font-weight: 600;
-}
-
-.toast.error {
-  background: var(--color-peligro);
-}
-
-@keyframes slideInToast {
-  from {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+/* TOAST: definido una sola vez en style.css (.toast) — Fase 3, DF-DEBT-004
+   (esta copia era idéntica a la de style.css). */
 
 /* SCANNER */
 #modal-scan { 

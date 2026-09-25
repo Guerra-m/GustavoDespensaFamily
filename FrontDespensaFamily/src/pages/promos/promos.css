@@ -239,29 +239,7 @@ form button[type="submit"] {
   color: #6c757d;
 }
 
-/* TOAST */
-.toast {
-  position: fixed;
-  top: auto; /* style.css fija top: 80px; con los dos, el aviso se estira de arriba a abajo */
-  bottom: 28px;
-  right: 28px;
-  background: var(--color-exito);
-  color: #fff;
-  padding: 14px 22px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  z-index: 2500;
-}
-
-.toast.hidden {
-  display: none;
-}
-
-.toast.error {
-  background: var(--color-peligro);
-}
+/* TOAST: definido una sola vez en style.css (.toast) — Fase 3, DF-DEBT-004. */
 
 /* MODAL */
 .modal {

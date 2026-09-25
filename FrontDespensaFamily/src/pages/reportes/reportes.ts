@@ -13,20 +13,11 @@ import {
 } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
 import { formatearCantidadEs, formatearMoneda, esc } from "../../utils/format";
+import { mostrarToast } from "../../utils/toast";
 
 // DF-PERF-002: top acotado que este reporte le pide al backend (antes traia
 // TODO el historico -- 166 KB medidos contra la base real).
 const TOP_PRODUCTOS_MAS_VENDIDOS = 20;
-
-// ---------------- DOM ----------------
-const toast = document.getElementById("toast") as HTMLDivElement;
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2500);
-}
 
 const tablaBajoStock = document.getElementById("tabla-bajo-stock") as HTMLTableElement;
 const tablaMasVendidos = document.getElementById("tabla-mas-vendidos") as HTMLTableElement;

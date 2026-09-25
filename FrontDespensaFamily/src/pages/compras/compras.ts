@@ -1,6 +1,7 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
 import { esc, formatearFechaHora, formatearMoneda, formatearCantidadConUnidad } from "../../utils/format";
 import { esProductoPesable, unidadProducto, fraccionMinima, desglosePaquete } from "../../utils/producto";
+import { mostrarToast } from "../../utils/toast";
 import { checkAuth, isAdmin, puedeGestionarProductos } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 checkAuth();
@@ -86,7 +87,6 @@ const inputPrecioCosto = document.getElementById("precioCosto") as HTMLInputElem
 
 const btnAgregar = document.getElementById("btn-agregar") as HTMLButtonElement;
 const tablaDetalles = document.getElementById("tabla-detalles") as HTMLTableElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const checkboxPagada = document.getElementById("checkbox-pagada") as HTMLInputElement;
 const selectMetodoPagoCompra = document.getElementById("select-metodo-pago-compra") as HTMLSelectElement;
@@ -101,13 +101,6 @@ const btnCancelarPrecios = document.getElementById("btn-cancelar-precios") as HT
 const btnConfirmarPrecios = document.getElementById("btn-confirmar-precios") as HTMLButtonElement;
 
 // ---------------- FUNCIONES ----------------
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 // Cargar compras
 async function cargarCompras() {

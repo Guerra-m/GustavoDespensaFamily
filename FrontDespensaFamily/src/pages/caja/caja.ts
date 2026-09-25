@@ -24,8 +24,7 @@ import type { MovimientoCaja } from "../../models/MovimientoCaja";
 import type { CategoriaMovimiento } from "../../models/CategoriaMovimiento";
 import type { TipoMovimiento } from "../../models/TipoMovimiento";
 import type { MetodoPago } from "../../models/MetodoPago";
-
-const toast = document.getElementById("toast") as HTMLDivElement;
+import { mostrarToast } from "../../utils/toast";
 
 // Adentro de la pantalla hay un segundo nivel: quien llegó hasta acá tiene
 // permiso para MIRAR la caja, pero cargar un movimiento, revertirlo o arquear
@@ -41,13 +40,6 @@ document.querySelectorAll<HTMLElement>(".caja-solo-admin").forEach(el => {
 document.querySelectorAll<HTMLElement>(".caja-solo-caja").forEach(el => {
   if (isAdmin() || puedeVerCaja()) el.classList.remove("hidden");
 });
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 function formatearHora(iso: string): string {
   const fecha = new Date(iso);

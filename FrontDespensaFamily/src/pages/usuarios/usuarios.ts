@@ -5,6 +5,7 @@ checkAdmin();
 
 import { getUsuarios, createUsuario, deleteUsuario, actualizarPermisos, type UsuarioDTO } from "../../services/usuarios.service";
 import { login } from "../../services/api";
+import { mostrarToast } from "../../utils/toast";
 
 const selectRolCrear = document.getElementById("select-rol-crear") as HTMLSelectElement;
 const permisosCrear = document.getElementById("permisos-crear") as HTMLDivElement;
@@ -17,7 +18,6 @@ sincronizarPermisosCrear();
 
 const form = document.getElementById("form-crear-usuario") as HTMLFormElement;
 const tbody = document.getElementById("tbody-usuarios") as HTMLTableSectionElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const modalEliminar = document.getElementById("modal-eliminar") as HTMLDivElement;
 const modalNombre = document.getElementById("modal-usuario-nombre") as HTMLElement;
@@ -183,13 +183,6 @@ form.addEventListener("submit", async e => {
     mostrarToast(err.message || "Error al crear usuario", true);
   }
 });
-
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden", "error");
-  if (error) toast.classList.add("error");
-  setTimeout(() => toast.classList.add("hidden"), 3000);
-}
 
 cargarUsuarios();
 
