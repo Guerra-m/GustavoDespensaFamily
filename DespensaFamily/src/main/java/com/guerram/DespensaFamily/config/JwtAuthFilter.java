@@ -1,7 +1,8 @@
 package com.guerram.DespensaFamily.config;
 
+import com.guerram.DespensaFamily.model.Usuario;
+import com.guerram.DespensaFamily.repository.UsuarioRepository;
 import com.guerram.DespensaFamily.service.JwtService;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,12 +18,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,37 +39,67 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        try {
-            Claims claims = jwtService.validateToken(token);
+        Optional<Usuario> usuario = usuarioDelToken(token);
 
-            String username = claims.getSubject();
-            String rol = claims.get("rol", String.class);
-
-            // Permisos sueltos del empleado (ver Usuario.java): dos
-            // authorities más, aparte del rol, para que SecurityConfig pueda
-            // dejar pasar a un EMPLEADO puntual sin ascenderlo a ADMIN.
-            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + rol));
-            if (Boolean.TRUE.equals(claims.get("stock", Boolean.class))) {
-                authorities.add(new SimpleGrantedAuthority("PERM_STOCK"));
-            }
-            if (Boolean.TRUE.equals(claims.get("caja", Boolean.class))) {
-                authorities.add(new SimpleGrantedAuthority("PERM_CAJA"));
-            }
-
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                    username,
-                    null,
-                    authorities
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (JwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        if (usuario.isPresent()) {
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    usuario.get().getUsername(), null, authoritiesDe(usuario.get())));
+        } else {
+            // Token roto, vencido, o de un usuario que ya no existe: el pedido
+            // sigue como anonimo, sin cortarlo aca. Asi lo publico (la
+            // pantalla de login, sus iconos, /usuario/login y
+            // /usuario/logout) sigue andando con una cookie vieja en el
+            // navegador — antes, un token invalido daba 401 hasta en el
+            // logout, que es justamente lo que tiene que poder limpiarla. Si
+            // la ruta pide sesion, SesionInvalidaEntryPoint contesta 401 (el
+            // frontend manda al login) y borra la cookie.
+            SesionInvalidaEntryPoint.marcar(request);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * DF-SEC-002 (SESS-06): el token solo dice QUIEN es. Si todavia existe y
+     * que puede hacer sale de la base en cada pedido.
+     *
+     * <p>Antes rol y permisos venian grabados en el token, que vive 24 h:
+     * borrar a un empleado no le cortaba el acceso (se reprodujo una venta con
+     * la cookie de un usuario ya borrado), quitarle PERM_CAJA no le sacaba la
+     * caja, y un permiso nuevo no servia hasta volver a entrar. La consulta es
+     * un SELECT por clave unica contra el H2 local: el costo es despreciable
+     * al lado de dejar entrar a alguien que el dueño ya saco.
+     */
+    private Optional<Usuario> usuarioDelToken(String token) {
+        String username;
+        try {
+            username = jwtService.validateToken(token).getSubject();
+        } catch (JwtException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
+        if (username == null) {
+            return Optional.empty();
+        }
+        return usuarioRepository.findByUsername(username);
+    }
+
+    /**
+     * Rol + permisos sueltos del empleado (ver Usuario.java): dos authorities
+     * mas, aparte del rol, para que SecurityConfig pueda dejar pasar a un
+     * EMPLEADO puntual sin ascenderlo a ADMIN.
+     */
+    private static List<SimpleGrantedAuthority> authoritiesDe(Usuario usuario) {
+        // Mismo criterio que el login (UsuarioService.login): sin rol, EMPLEADO.
+        String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + rol));
+        if (usuario.isPuedeGestionarProductos()) {
+            authorities.add(new SimpleGrantedAuthority("PERM_STOCK"));
+        }
+        if (usuario.isPuedeVerCaja()) {
+            authorities.add(new SimpleGrantedAuthority("PERM_CAJA"));
+        }
+        return authorities;
     }
 
     /**

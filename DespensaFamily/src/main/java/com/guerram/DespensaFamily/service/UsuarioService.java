@@ -112,8 +112,7 @@ public class UsuarioService  {
         limitadorDeIntentos.registrarExito(claveIp);
 
         String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
-        String token = jwtService.generateToken(
-                username, rol, usuario.isPuedeGestionarProductos(), usuario.isPuedeVerCaja());
+        String token = jwtService.generateToken(username);
         return new LoginResponseDTO("Login exitoso", token, rol, usuario.isDebeCambiarPassword(), usuario.isPuedeGestionarProductos(), usuario.isPuedeVerCaja());
     }
 

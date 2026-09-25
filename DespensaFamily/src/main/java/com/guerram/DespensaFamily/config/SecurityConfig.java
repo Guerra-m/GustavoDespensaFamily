@@ -50,6 +50,10 @@ public class SecurityConfig {
                         + "connect-src 'self'")
                     .reportOnly()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // 401 + cookie borrada si la sesion que traia el pedido ya no
+            // vale (usuario borrado, token roto o vencido); 403 si nunca hubo
+            // sesion, como antes. Ver JwtAuthFilter (DF-SEC-002).
+            .exceptionHandling(e -> e.authenticationEntryPoint(new SesionInvalidaEntryPoint()))
             .authorizeHttpRequests(auth -> auth
                 // --- Publico ---
                 .requestMatchers("/usuario/login").permitAll()
@@ -58,6 +62,17 @@ public class SecurityConfig {
                 // rebotar y dejar al usuario sin forma de sacarsela de encima.
                 .requestMatchers("/usuario/logout").permitAll()
                 .requestMatchers("/", "/*.html", "/assets/**", "/src/**", "/favicon.ico").permitAll()
+                // Los SVG de FrontDespensaFamily/public/icons: la pantalla de
+                // login los usa antes de que haya sesion, y sin esto daban 403.
+                .requestMatchers("/icons/**").permitAll()
+
+                // DF-BUG-006: es a donde Spring despacha cualquier error que
+                // no resuelva un @ExceptionHandler. Cerrado, el error real se
+                // perdia y el cliente veia un 403 vacio, como si fuera de
+                // permisos. Solo devuelve status y un texto generico (Spring
+                // Boot no incluye mensaje ni stack trace por defecto), asi que
+                // abrirlo no expone nada (API-08).
+                .requestMatchers("/error").permitAll()
 
                 // El celular que escanea no tiene sesión propia (ver
                 // EscaneoService) — solo puede publicar un código dentro de
