@@ -1,11 +1,13 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
-import { checkAuth } from "../../services/auth.service";
+import { checkAuth, getUsername, isAdmin, puedeVerCaja } from "../../services/auth.service";
 checkAuth();
 
 import { getProductos } from "../../services/productos.service";
-import { getVentas, createVenta, cotizarVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
+import { getVentasPaginado, createVenta, cotizarVenta, getDetalleVenta, anularVenta } from "../../services/ventas.service";
 import { getCategorias } from "../../services/categorias.service";
 import { getPromociones } from "../../services/promociones.service";
+import { getDescuentos } from "../../services/descuentos.service";
+import type { Descuento } from "../../models/Descuento";
 import type { Categoria } from "../../models/Categoria";
 import type { Producto } from "../../models/Producto";
 import type { Promocion } from "../../models/Promocion";
@@ -15,7 +17,7 @@ import type { MetodoPago } from "../../models/MetodoPago";
 import type { Cotizacion } from "../../models/Cotizacion";
 import { Html5Qrcode } from "html5-qrcode";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora } from "../../utils/format";
+import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
 import QRCode from "qrcode";
@@ -79,6 +81,13 @@ let productos: Producto[] = [];
 let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
 let categorias: Categoria[] = [];
 let promosPorProducto: Map<number, Promocion> = new Map();
+// DF-UX-005: descuentos por % activos, indexados por producto y por
+// categoria por separado -- descuentoEfectivoPara resuelve la precedencia
+// (producto puntual gana sobre el de su categoria), MISMA regla que
+// DescuentoService.porcentajeEfectivoPara en el backend. No se duplica el
+// cálculo del precio acá, solo si corresponde mostrar el badge.
+let descuentosPorProducto: Map<number, number> = new Map();
+let descuentosPorCategoria: Map<number, number> = new Map();
 let carrito: DetalleVentaRequest[] = [];
 let html5QrCode: Html5Qrcode;
 let escaneando = false;
@@ -163,28 +172,88 @@ function formatearCantidadConPaquete(cantidad: number, producto?: Producto): str
 /* =======================
    CARGA DE DATOS
 ======================= */
-async function cargarProductos() {
-  const [productosData, categoriasData, promociones] = await Promise.all([
-    getProductos(),
-    getCategorias(),
-    getPromociones().catch(() => []) // no bloquea Ventas si falla (ej. red)
-  ]);
-  productos = productosData;
-  categorias = categoriasData;
-  productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  promosPorProducto = new Map(
-    promociones.filter(p => p.activo).map(p => [p.productoId, p])
-  );
-  renderFiltrosCategorias();
-  renderProductosGrid();
+function indexarDescuentos(descuentos: Descuento[]) {
+  descuentosPorProducto = new Map();
+  descuentosPorCategoria = new Map();
+  descuentos.filter(d => d.activo).forEach(d => {
+    if (d.alcance === "PRODUCTO" && d.productoId != null) {
+      descuentosPorProducto.set(d.productoId, d.porcentaje);
+    } else if (d.alcance === "CATEGORIA" && d.categoriaId != null) {
+      descuentosPorCategoria.set(d.categoriaId, d.porcentaje);
+    }
+  });
 }
 
-async function cargarVentas() {
-  const ventas = await getVentas();
+/** 0 si no hay descuento activo -- mismo criterio que DescuentoService.porcentajeEfectivoPara. */
+function descuentoEfectivoPara(producto: Producto): number {
+  const directo = descuentosPorProducto.get(producto.id!);
+  if (directo != null) return directo;
+  if (producto.categoriaId == null) return 0;
+  return descuentosPorCategoria.get(producto.categoriaId) ?? 0;
+}
+
+// DF-UX-003: antes esto no tenía try/catch -- un error de red al abrir
+// Ventas (por ejemplo, el backend recién reiniciando) dejaba la grilla vacía
+// sin ningún aviso, y quien vende no tenía forma de saber si tenía que
+// esperar o recargar.
+async function cargarProductos() {
+  try {
+    const [productosData, categoriasData, promociones, descuentos] = await Promise.all([
+      getProductos(),
+      getCategorias(),
+      getPromociones().catch(() => []), // no bloquea Ventas si falla (ej. red)
+      getDescuentos().catch(() => [])
+    ]);
+    productos = productosData;
+    categorias = categoriasData;
+    productos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    promosPorProducto = new Map(
+      promociones.filter(p => p.activo).map(p => [p.productoId, p])
+    );
+    indexarDescuentos(descuentos);
+    renderFiltrosCategorias();
+    renderProductosGrid();
+  } catch (error) {
+    mostrarToast(
+      `No se pudo cargar el catálogo: ${(error as Error).message || "error de red"}`,
+      true
+    );
+  }
+}
+
+// DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas
+// (~13 MB/año). El historial pagina en el servidor -- TAMANIO_PAGINA_VENTAS
+// filas por vez, con Anterior/Siguiente. paginaVentasActual es 0-based,
+// igual que el parametro `page` del backend.
+const TAMANIO_PAGINA_VENTAS = 50;
+let paginaVentasActual = 0;
+let totalPaginasVentas = 1;
+
+const btnPaginaAnterior = document.getElementById("btn-pagina-anterior") as HTMLButtonElement;
+const btnPaginaSiguiente = document.getElementById("btn-pagina-siguiente") as HTMLButtonElement;
+const textoPaginaVentas = document.getElementById("texto-pagina-ventas") as HTMLSpanElement;
+
+async function cargarVentas(page: number = paginaVentasActual) {
+  const pagina = await getVentasPaginado(page, TAMANIO_PAGINA_VENTAS);
+  paginaVentasActual = pagina.pagina;
+  totalPaginasVentas = Math.max(pagina.totalPaginas, 1);
+
   tablaVentas.innerHTML = "";
 
-  [...ventas].reverse().forEach(v => {
+  // Sin permiso de caja el servidor devuelve solo las ventas propias del día
+  // (DF-SEC-003): el título lo dice para que no parezca que faltan ventas.
+  const titulo = document.getElementById("titulo-ventas-registradas");
+  if (titulo) titulo.textContent = puedeVerCaja() ? "Ventas Registradas" : "Tus ventas de hoy";
+
+  textoPaginaVentas.textContent = `Página ${paginaVentasActual + 1} de ${totalPaginasVentas} (${pagina.totalElementos} ventas)`;
+  btnPaginaAnterior.disabled = paginaVentasActual <= 0;
+  btnPaginaSiguiente.disabled = paginaVentasActual >= totalPaginasVentas - 1;
+
+  // El backend ya ordena mas nueva primero (ORDER BY fecha_hora DESC) --
+  // antes esto hacia [...ventas].reverse() porque GET /ventas sin paginar
+  // venia en orden de insercion ascendente.
+  pagina.contenido.forEach(v => {
     if (!v.id) return;
 
     const anulada = v.estado === "ANULADA";
@@ -197,14 +266,14 @@ async function cargarVentas() {
     tr.innerHTML = `
       <td>${v.id}</td>
       <td>${formatearFechaHora(v.fechaHora)}</td>
-      <td>$${v.total}</td>
+      <td>${formatearMoneda(v.total)}</td>
       <td>${v.metodoPago ? etiquetaMetodoPago(v.metodoPago) : "—"}</td>
       <td>${esc(v.usuario) || "—"}</td>
       <td>
         ${anulada
           ? `<span class="etiqueta-anulada" title="Anulada por ${esc(v.anuladaPor) || "—"}">Anulada</span>`
           : `<button class="btn-imprimir">Imprimir</button>
-             <button class="btn-anular">Anular</button>`}
+             ${isAdmin() ? `<button class="btn-anular">Anular</button>` : ""}`}
       </td>
     `;
 
@@ -240,15 +309,21 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
   if (productoSeleccionado?.id === prod.id) card.classList.add("seleccionado");
 
   const promo = promosPorProducto.get(prod.id!);
+  // DF-UX-005: antes el % de descuento no se veía en ningún lado hasta
+  // llegar al carrito (o ni ahí, si no se lo miraba con atención) -- ahora
+  // la tarjeta lo anuncia igual que ya hacía con el combo de Promocion.
+  const descuentoPct = descuentoEfectivoPara(prod);
 
   card.innerHTML = `
     <div class="producto-imagen">
       ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${esc(prod.nombre)}">` : ""}
-      ${promo ? `<span class="promo-badge">${promo.cantidadLleva}x${promo.cantidadPaga}</span>` : ""}
+      ${descuentoPct > 0
+        ? `<span class="descuento-badge">-${formatearCantidad(descuentoPct)}%</span>`
+        : promo ? `<span class="promo-badge">${promo.cantidadLleva}x${promo.cantidadPaga}</span>` : ""}
     </div>
     <div class="producto-info">
       <div class="producto-nombre">${esc(prod.nombre)}</div>
-      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${unidadProducto(prod)}</div>
+      <div class="producto-precio">${formatearMoneda(prod.precioVenta)} / ${unidadProducto(prod)}</div>
       <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
   `;
@@ -309,6 +384,14 @@ function actualizarActivoCat() {
   });
 }
 
+// DF-PERF-001: con el catálogo completo (2.024 productos en la auditoría)
+// la grilla llegaba a 39.589 nodos DOM y 146ms por tecla. El escáner y el
+// Enter con código de barras (procesarCodigoEscaneado) buscan sobre el
+// array `productos` completo, NO sobre lo que está en pantalla, así que
+// bajar esto no les saca alcance: siguen encontrando cualquier producto,
+// esté o no entre estas tarjetas.
+const MAX_TARJETAS_POS = 60;
+
 function renderProductosGrid(filtro: string = "") {
   productosGrid.innerHTML = "";
   // El catálogo cambió (filtro o categoría): la marca de navegación por
@@ -333,7 +416,18 @@ function renderProductosGrid(filtro: string = "") {
     return;
   }
 
-  productosFiltrados.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+  const truncado = productosFiltrados.length > MAX_TARJETAS_POS;
+  const aRenderizar = truncado ? productosFiltrados.slice(0, MAX_TARJETAS_POS) : productosFiltrados;
+
+  aRenderizar.forEach(prod => productosGrid.appendChild(crearProductoCard(prod)));
+
+  if (truncado) {
+    const aviso = document.createElement("div");
+    aviso.className = "aviso-mas-productos";
+    aviso.textContent =
+      `Mostrando ${MAX_TARJETAS_POS} de ${productosFiltrados.length} — escribí más para encontrar el resto, o escaneá su código de barras`;
+    productosGrid.appendChild(aviso);
+  }
 }
 
 function seleccionarProducto(producto: Producto) {
@@ -390,7 +484,7 @@ function renderCarrito() {
     // Sin cotización todavía para esta línea (recién agregada, primera
     // vuelta): "…" en vez de inventar un precio del lado del cliente — eso
     // es exactamente lo que causaba DF-BUG-001.
-    const subtotalTexto = linea ? `$${linea.subtotal.toFixed(2)}` : "…";
+    const subtotalTexto = linea ? formatearMoneda(linea.subtotal) : "…";
     const avisoStock = linea?.stockInsuficiente ? `<div class="carrito-sin-stock">Sin stock suficiente</div>` : "";
 
     // El +/- solo aparece en productos por unidad: en los por peso, tocar
@@ -450,7 +544,7 @@ function renderCarrito() {
 
 function actualizarTotal() {
   if (!carrito.length) {
-    spanTotal.textContent = "0.00";
+    spanTotal.textContent = formatearMoneda(0);
     return;
   }
   if (cotizando && !cotizacionActual) {
@@ -461,8 +555,8 @@ function actualizarTotal() {
   }
   if (cotizacionActual) {
     spanTotal.textContent = cotizando
-      ? `${cotizacionActual.total.toFixed(2)} (actualizando…)`
-      : cotizacionActual.total.toFixed(2);
+      ? `${formatearMoneda(cotizacionActual.total)} (actualizando…)`
+      : formatearMoneda(cotizacionActual.total);
     return;
   }
   spanTotal.textContent = "—";
@@ -514,11 +608,104 @@ function programarCotizacion() {
   }, 250);
 }
 
+/* =======================
+   DF-UX-007: carrito persistente
+   El carrito se perdía con un F5, con la sesión vencida (el interceptor de
+   401 redirige al login) o con el reinicio por actualización, porque vivía
+   solo en la variable `carrito` en memoria. Ahora se espeja en
+   sessionStorage en cada cambio y se restaura al abrir la pantalla.
+======================= */
+
+// Atado al usuario logueado (no a la pestaña sola): si otra persona entra en
+// la misma PC/pestaña con su usuario, la clave cambia y no hereda el
+// carrito de quien vendía antes. sessionStorage ya de por sí no cruza
+// pestañas ni sobrevive a cerrar el navegador, que es lo que corresponde
+// para algo que se está por cobrar.
+function claveStorageCarrito(): string {
+  return `df-carrito-${getUsername() ?? "sin-usuario"}`;
+}
+
+function guardarCarritoEnStorage() {
+  try {
+    if (carrito.length) {
+      sessionStorage.setItem(claveStorageCarrito(), JSON.stringify(carrito));
+    } else {
+      sessionStorage.removeItem(claveStorageCarrito());
+    }
+  } catch {
+    // sessionStorage puede fallar (modo privado, cuota) — perder la
+    // persistencia no tiene que tirar abajo la venta que se está armando.
+  }
+}
+
+function limpiarCarritoStorage() {
+  try { sessionStorage.removeItem(claveStorageCarrito()); } catch { /* ver guardarCarritoEnStorage */ }
+}
+
+/**
+ * Lee el carrito guardado, si hay uno y tiene forma de tal. No valida stock
+ * ni existencia de los productos acá — eso lo hace `restaurarCarritoSiHayGuardado`
+ * una vez que `productos` ya está cargado, y es la MISMA cotización real
+ * (POST /ventas/cotizar) la que termina de confirmar precio y stock.
+ */
+function leerCarritoDeStorage(): DetalleVentaRequest[] {
+  try {
+    const crudo = sessionStorage.getItem(claveStorageCarrito());
+    if (!crudo) return [];
+    const parseado = JSON.parse(crudo);
+    if (!Array.isArray(parseado)) return [];
+    return parseado.filter(
+      (item): item is DetalleVentaRequest =>
+        item && typeof item.productoId === "number" && typeof item.cantidad === "number" && item.cantidad > 0
+    );
+  } catch {
+    return [];
+  }
+}
+
+let carritoYaRestaurado = false;
+
+/**
+ * Se llama una sola vez, después de que `productos` está cargado. Descarta
+ * las líneas de productos que ya no existen (de baja, o el id ya no es
+ * válido) — el resto se re-cotiza normal contra el backend vía
+ * `onCarritoCambio` → `programarCotizacion`, así que un producto sin stock
+ * suficiente sigue apareciendo en el carrito pero avisando "Sin stock
+ * suficiente", igual que si se hubiera armado recién.
+ */
+function restaurarCarritoSiHayGuardado() {
+  if (carritoYaRestaurado) return;
+  carritoYaRestaurado = true;
+
+  const guardado = leerCarritoDeStorage();
+  if (!guardado.length) return;
+
+  const idsValidos = new Set(productos.map(p => p.id));
+  const validos = guardado.filter(item => idsValidos.has(item.productoId));
+  const descartados = guardado.length - validos.length;
+
+  if (!validos.length) {
+    limpiarCarritoStorage();
+    if (descartados) mostrarToast("El carrito guardado tenía productos que ya no existen; se descartó", true);
+    return;
+  }
+
+  carrito = validos;
+  onCarritoCambio();
+
+  if (descartados) {
+    mostrarToast(`Se restauró el carrito (${descartados} producto(s) ya no disponible(s) se quitaron)`, true);
+  } else {
+    mostrarToast("Se restauró el carrito de la venta en curso");
+  }
+}
+
 // Todo lo que cambia el carrito pasa por acá: redibuja con lo que ya se sabe
 // y programa la cotización real. También invalida la clave de idempotencia
 // de la confirmación anterior — un carrito distinto es un pedido distinto.
 function onCarritoCambio() {
   claveIdempotenciaActual = null;
+  guardarCarritoEnStorage();
   renderCarrito();
   programarCotizacion();
 }
@@ -622,12 +809,12 @@ async function abrirDetalleVenta(ventaId: number) {
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${esc(nombre)}</td><td>${formatearCantidadConPaquete(item.cantidad, producto)}</td><td>$${item.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td><td>$${item.subtotal.toFixed(2)}</td>`;
+    tr.innerHTML = `<td>${esc(nombre)}</td><td>${formatearCantidadConPaquete(item.cantidad, producto)}</td><td>${formatearMoneda(item.precioUnitario)} / ${producto ? unidadProducto(producto) : "u"}</td><td>${formatearMoneda(item.subtotal)}</td>`;
     tablaDetalleVenta.appendChild(tr);
     total += item.subtotal;
   });
 
-  detalleTotal.textContent = total.toFixed(2);
+  detalleTotal.textContent = formatearMoneda(total);
   modalDetalle.classList.remove("hidden");
 }
 
@@ -752,13 +939,14 @@ async function confirmarVenta() {
 
     actualizarStockLocal(carrito);
     carrito = [];
+    limpiarCarritoStorage(); // DF-UX-007: la venta ya se confirmó, no hay nada que restaurar
     cotizacionActual = null;
     // A diferencia del método de pago, el cliente sí se limpia: el próximo
     // carrito casi seguro es para otra persona, y dejarlo puesto sería un
     // error mucho más probable que útil.
     inputCliente.value = "";
     renderCarrito();
-    cargarVentas();
+    cargarVentas(0); // la venta que se acaba de confirmar es la más nueva -> página 0
 
     await imprimirTicket(ventaCreada, cotizacionDeEsteCarrito);
 
@@ -783,6 +971,13 @@ btnCerrarDetalle.addEventListener("click", () => modalDetalle.classList.add("hid
 
 btnVerVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.remove("hidden"));
 btnCerrarVentasRegistradas.addEventListener("click", () => modalVentasRegistradas.classList.add("hidden"));
+
+btnPaginaAnterior.addEventListener("click", () => {
+  if (paginaVentasActual > 0) cargarVentas(paginaVentasActual - 1);
+});
+btnPaginaSiguiente.addEventListener("click", () => {
+  if (paginaVentasActual < totalPaginasVentas - 1) cargarVentas(paginaVentasActual + 1);
+});
 
 inputBuscarProducto.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
@@ -900,7 +1095,7 @@ inputBuscarProducto.addEventListener("input", () => {
 /* =======================
    INIT
 ======================= */
-cargarProductos();
+cargarProductos().then(restaurarCarritoSiHayGuardado);
 cargarVentas();
 getConfiguracion().then(config => {
   umbralStockBajo = config.umbralStockBajo;
@@ -918,7 +1113,7 @@ function etiquetaMetodoPago(metodo: MetodoPago): string {
   return etiquetas[metodo];
 }
 
-async function imprimirTicket(venta: Venta, cotizacion?: Cotizacion | null) {
+async function imprimirTicket(venta: Venta, _cotizacion?: Cotizacion | null) {
   if (!productos.length) await cargarProductos();
 
   const response = await getDetalleVenta(venta.id!);
@@ -931,23 +1126,24 @@ async function imprimirTicket(venta: Venta, cotizacion?: Cotizacion | null) {
     const producto = productos.find(p => p.id === d.productoId);
     const nombre = producto ? producto.nombre : "Producto eliminado";
 
-    // DF-BUG-001: antes el ticket mostraba "1 u × $2860 = $286" sin ninguna
-    // aclaración de por qué el precio unitario no coincide con el subtotal —
-    // ahora se anota el % o el combo que se aplicó, usando la cotización de
-    // ESTE carrito (misma fuente que ya fijó el total real de la venta).
-    const linea = cotizacion?.lineas.find(l => l.productoId === d.productoId);
-    const indicador = linea?.descuentoPorcentaje
-      ? ` <span style="font-size:8px">(-${formatearCantidad(linea.descuentoPorcentaje)}%)</span>`
-      : linea?.promoDescripcion
-        ? ` <span style="font-size:8px">(${esc(linea.promoDescripcion)})</span>`
+    // DF-UX-005: antes el ticket mostraba "1 u × $2860 = $286" sin ninguna
+    // aclaración de por qué el precio unitario no coincide con el subtotal.
+    // Se lee del DETALLE guardado en la base (d.descuentoPorcentaje /
+    // d.promoDescripcion, ver V15), no de la cotización efímera del carrito:
+    // así también sale bien al reimprimir un ticket viejo desde el
+    // historial, donde no hay ninguna cotización en memoria.
+    const indicador = d.descuentoPorcentaje
+      ? ` <span style="font-size:8px">(-${formatearCantidad(d.descuentoPorcentaje)}%)</span>`
+      : d.promoDescripcion
+        ? ` <span style="font-size:8px">(${esc(d.promoDescripcion)})</span>`
         : "";
 
     filas += `
       <tr>
         <td>${esc(nombre)}${indicador}</td>
         <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
-        <td style="text-align:right">$${d.precioUnitario.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
-        <td style="text-align:right">$${d.subtotal.toFixed(2)}</td>
+        <td style="text-align:right">${formatearMoneda(d.precioUnitario)} / ${producto ? unidadProducto(producto) : "u"}</td>
+        <td style="text-align:right">${formatearMoneda(d.subtotal)}</td>
       </tr>
     `;
   });
@@ -1090,7 +1286,7 @@ td:nth-child(4) {
 
     <div class="line"></div>
 
-    <p class="total">TOTAL: $${venta.total.toFixed(2)}</p>
+    <p class="total">TOTAL: ${formatearMoneda(venta.total)}</p>
     ${venta.metodoPago ? `<p class="center">${etiquetaMetodoPago(venta.metodoPago)}</p>` : ""}
 
     <div class="line"></div>
@@ -1143,17 +1339,30 @@ if (fechaElement) {
 ======================= */
 let eventSourceEscaneo: EventSource | null = null;
 
+// DF-UX-003: el caller (el callback de SSE, más abajo) la llama sin await
+// -- es un evento asincrónico, no hay nada ahí que esperar. Sin este
+// try/catch, un fallo acá (por ejemplo cargarProductos() adentro de
+// procesarCodigoEscaneado si la red falla justo en ese momento) quedaba
+// como una promesa rechazada sin manejar: ni toast, ni actualización del
+// cartel de estado, y quien escanea desde el celular no se enteraba de nada.
 async function agregarPorCodigoRemoto(codigo: string) {
-  const resultado = await procesarCodigoEscaneado(codigo);
-  if (!resultado) return; // procesarCodigoEscaneado ya avisó "no encontrado"
+  try {
+    const resultado = await procesarCodigoEscaneado(codigo);
+    if (!resultado) return; // procesarCodigoEscaneado ya avisó "no encontrado"
 
-  agregarAlCarrito(resultado.producto.id!, resultado.multiplicador ?? 1);
-  inputBuscarProducto.value = "";
-  inputCantidad.value = "";
-  delete inputBuscarProducto.dataset.id;
-  productoSeleccionado = null;
-  renderProductosGrid();
-  mostrarToast(`${esc(resultado.producto.nombre)} agregado desde el celular`);
+    agregarAlCarrito(resultado.producto.id!, resultado.multiplicador ?? 1);
+    inputBuscarProducto.value = "";
+    inputCantidad.value = "";
+    delete inputBuscarProducto.dataset.id;
+    productoSeleccionado = null;
+    renderProductosGrid();
+    mostrarToast(`${esc(resultado.producto.nombre)} agregado desde el celular`);
+  } catch (error) {
+    mostrarToast(
+      `No se pudo agregar el producto escaneado: ${(error as Error).message || "error de red"}`,
+      true
+    );
+  }
 }
 
 btnEscanearCelular.addEventListener("click", async () => {

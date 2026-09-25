@@ -1,5 +1,6 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.config.PermisosDeLectura;
 import com.guerram.DespensaFamily.dto.ConfiguracionDTO;
 import com.guerram.DespensaFamily.dto.ia.ClaveIaDTO;
 import com.guerram.DespensaFamily.dto.ia.EstadoIaDTO;
@@ -8,6 +9,7 @@ import com.guerram.DespensaFamily.service.ConfiguracionService;
 import com.guerram.DespensaFamily.util.OptimisticRetry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -20,9 +22,15 @@ public class ConfiguracionController {
     private final ConfiguracionService configuracionService;
     private final ConfiguracionIaService configuracionIaService;
 
+    // DF-SEC-003: el margen por defecto, junto con el precio de venta, deja
+    // sacar el costo de cada producto que lo usa. Quien no ve costos (ver
+    // PermisosDeLectura) recibe el resto —nombre del negocio, umbral de stock
+    // bajo, que usan Ventas y el menu— sin ese campo.
     @GetMapping
-    public ConfiguracionDTO obtener() {
-        return configuracionService.obtener();
+    public ConfiguracionDTO obtener(Authentication quien) {
+        ConfiguracionDTO config = configuracionService.obtener();
+        if (!PermisosDeLectura.veCostos(quien)) config.setGananciaPorDefecto(null);
+        return config;
     }
 
     @PutMapping

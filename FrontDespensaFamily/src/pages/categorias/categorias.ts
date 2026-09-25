@@ -149,9 +149,13 @@ async function actualizarGananciaProductos(
   );
 
   for (const producto of productosCategoria) {
+    // Sin costo en la respuesta (quien pide no ve costos, DF-SEC-003) no hay
+    // de dónde calcular: mejor no tocarlo que pisarle el costo con 0.
+    const costo = producto.precioCosto;
+    if (costo === undefined) continue;
     const precioVentaNuevo =
-  producto.precioCosto +
-  (producto.precioCosto * porcentajeGanancia) / 100;
+  costo +
+  (costo * porcentajeGanancia) / 100;
 
 const productoActualizado = {
   ...producto,

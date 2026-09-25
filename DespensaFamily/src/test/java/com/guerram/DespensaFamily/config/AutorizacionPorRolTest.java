@@ -71,7 +71,9 @@ class AutorizacionPorRolTest {
         permitido(mockMvc.perform(get("/productos").with(EMPLEADO)).andReturn(), "ver productos");
         permitido(mockMvc.perform(get("/categorias").with(EMPLEADO)).andReturn(), "ver categorias");
         permitido(mockMvc.perform(get("/ventas").with(EMPLEADO)).andReturn(), "ver ventas");
-        permitido(mockMvc.perform(get("/compras").with(EMPLEADO)).andReturn(), "ver compras");
+        // Las compras ya no: tienen costos y proveedores (DF-SEC-003, ver
+        // LecturaPorRolTest para PERM_STOCK).
+        prohibido(mockMvc.perform(get("/compras").with(EMPLEADO)).andReturn(), "ver compras");
         permitido(mockMvc.perform(post("/ventas")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"detalles\":[]}").with(EMPLEADO)).andReturn(), "registrar una venta");

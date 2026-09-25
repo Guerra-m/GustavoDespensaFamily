@@ -72,6 +72,8 @@ public class Mapper {
                 .precioUnitario(dv.getPrecioUnitario())
                 .precioCosto(dv.getPrecioCosto())
                 .subtotal(dv.getSubtotal())
+                .descuentoPorcentaje(dv.getDescuentoPorcentaje())
+                .promoDescripcion(dv.getPromoDescripcion())
                 .productoId(dv.getProducto() != null ? dv.getProducto().getId() : null)
                 .ventaId(dv.getVenta() != null ? dv.getVenta().getId() : null)
                 .build();

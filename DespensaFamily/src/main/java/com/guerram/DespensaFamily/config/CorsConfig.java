@@ -29,7 +29,11 @@ public class CorsConfig {
                         // Es seguro porque los orígenes de arriba son una lista
                         // explícita: allowCredentials(true) con "*" lo rechaza
                         // el propio navegador, y con razón (API-06).
-                        .allowCredentials(true);
+                        .allowCredentials(true)
+                        // El rol y los permisos vigentes van en X-Permisos (ver
+                        // JwtAuthFilter); sin exponerla, en desarrollo el navegador
+                        // se la esconde al script del front.
+                        .exposedHeaders("X-Permisos");
             }
         };
     }

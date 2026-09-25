@@ -310,6 +310,18 @@ button.btn-imprimir:hover {
   color: #6c757d;
 }
 
+/* DF-PERF-001: aviso cuando el catálogo filtrado tiene más productos que
+   tarjetas se muestran (MAX_TARJETAS_POS). */
+.aviso-mas-productos {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 12px;
+  margin-top: 4px;
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+}
+
 /* ── BLOQUES DE CATEGORÍA (fuera del registrar) ── */
 #categorias-section {
   display: flex;
@@ -441,6 +453,23 @@ button.btn-imprimir:hover {
   right: 6px;
   z-index: 2;
   background: linear-gradient(135deg, #ff7043 0%, #e64a19 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* DF-UX-005: badge del % de descuento activo, mismo lugar/tamaño que
+   promo-badge (nunca aparecen los dos juntos: el backend prioriza el
+   descuento por % sobre el combo, ver VentaService.calcularLinea). */
+.descuento-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -969,6 +998,25 @@ hr {
    no necesitan el ancho mínimo de las tablas con botones de acción */
 .modal-content .tabla-scroll table {
   min-width: 0;
+}
+
+/* DF-PERF-001: paginado del historial de ventas. */
+.paginado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.paginado button {
+  padding: 4px 10px;
+}
+
+.paginado button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tabla-scroll::-webkit-scrollbar {

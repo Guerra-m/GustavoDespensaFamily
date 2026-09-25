@@ -3,6 +3,7 @@ package com.guerram.DespensaFamily.service;
 import com.guerram.DespensaFamily.dto.CotizacionDTO;
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
 import com.guerram.DespensaFamily.dto.LineaCotizadaDTO;
+import com.guerram.DespensaFamily.dto.PaginaDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.dto.VentaDetalleResponseDTO;
 import com.guerram.DespensaFamily.mapper.Mapper;
@@ -21,6 +22,9 @@ import com.guerram.DespensaFamily.util.Dinero;
 import com.guerram.DespensaFamily.repository.VentaRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -127,6 +131,8 @@ public class VentaService {
             dv.setPrecioUnitario(calc.precioUnitario());
             dv.setPrecioCosto(producto.getPrecioCosto());
             dv.setSubtotal(calc.subtotal());
+            dv.setDescuentoPorcentaje(calc.descuentoPorcentaje());
+            dv.setPromoDescripcion(calc.promoDescripcion());
             dv.setVenta(venta);
 
             total += dv.getSubtotal();
@@ -284,6 +290,24 @@ public class VentaService {
                 .toList();
     }
 
+    // DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas
+    // (~13 MB/ano). Este metodo es NUEVO -- no reemplaza listarVentas(), que
+    // sigue devolviendo todo sin filtros para quien ya depende de eso (ver
+    // VentaController, home.ts es el unico consumidor hoy).
+    @Transactional(readOnly = true)
+    public PaginaDTO<VentaDTO> listarVentasPaginado(LocalDateTime desde, LocalDateTime hasta, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Venta> resultado = ventaRepository.buscarPaginado(desde, hasta, pageable);
+
+        return PaginaDTO.<VentaDTO>builder()
+                .contenido(resultado.getContent().stream().map(Mapper::toDTO).toList())
+                .totalElementos(resultado.getTotalElements())
+                .totalPaginas(resultado.getTotalPages())
+                .pagina(page)
+                .tamanio(size)
+                .build();
+    }
+
     /** DF-BUG-003: usado por el controller para resolver un choque de clave concurrente. */
     @Transactional(readOnly = true)
     public Optional<VentaDTO> buscarPorClaveIdempotencia(String claveIdempotencia) {
@@ -297,6 +321,7 @@ public class VentaService {
         return Mapper.toDTO(venta);
     }
 
+    @Transactional(readOnly = true)
     public VentaDetalleResponseDTO buscarDetallePorId(Long id) {
         Venta venta = ventaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venta no encontrada"));

@@ -3,12 +3,34 @@ import type { Venta } from "../models/Venta";
 import type { VentaRequest } from "../models/VentaRequest";
 import type { Cotizacion } from "../models/Cotizacion";
 import type { DetalleVentaRequest } from "../models/DetalleVentaRequest";
+import type { Pagina } from "../models/Pagina";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/ventas`;
 
 export async function getVentas(): Promise<Venta[]> {
   const res = await fetch(BASE_URL, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Error al obtener ventas");
+  return res.json();
+}
+
+// DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas
+// (~13 MB/año). Endpoint NUEVO (GET /ventas/pagina) -- no reemplaza
+// getVentas(), que sigue sirviendo a quien necesita la lista completa
+// (home.ts). Sin PERM_CAJA el backend ignora desde/hasta y devuelve solo
+// las ventas propias del día (DF-SEC-003) -- este servicio no necesita
+// saber nada de permisos, la respuesta ya viene filtrada.
+export async function getVentasPaginado(
+  page: number,
+  size: number,
+  desde?: string,
+  hasta?: string
+): Promise<Pagina<Venta>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (desde) params.set("desde", desde);
+  if (hasta) params.set("hasta", hasta);
+
+  const res = await fetch(`${BASE_URL}/pagina?${params.toString()}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Error al obtener ventas");
   return res.json();
 }
