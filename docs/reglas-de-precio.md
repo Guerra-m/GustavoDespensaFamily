@@ -26,10 +26,11 @@ a este endpoint, nunca recalcularlo aparte.
 
 Para cada producto + cantidad del carrito, en este orden:
 
-1. **Redondeo de cantidad** (`Cantidades.redondear`, `util/Cantidades.java`): la cantidad se
-   redondea a 3 decimales (al gramo, la fracción mínima del negocio). Esto evita el error de coma
-   flotante de `double` (restarle 1,538 a 5 no da 3,462 exacto en binario) antes de que llegue a
-   mostrarse o guardarse.
+1. **Redondeo de cantidad** (`Cantidades.redondear`, `util/Cantidades.java`): la cantidad es
+   `BigDecimal` y se redondea con `setScale(3, HALF_UP)` — 3 decimales, al gramo, la fracción
+   mínima del negocio (DF-DEBT-001: migrado de `double`, que no representa exacto en binario;
+   restarle 1,538 a 5 no daba 3,462 sino 3.4619999999999997). Esto pasa antes de que la cantidad
+   llegue a mostrarse o guardarse.
 
 2. **Validación de decimales**: si `producto.tipoCantidad` **no** es `"PESO"` y la cantidad tiene
    parte decimal, se rechaza ("Este producto no permite decimales"). La regla es al revés de lo que
@@ -63,10 +64,10 @@ Para cada producto + cantidad del carrito, en este orden:
    el descuento aplica a cualquier `tipoCantidad` y es más simple de calcular de forma consistente
    sobre el total de la línea.
 
-5. **Redondeo del subtotal** (`Dinero.redondear`, `util/Dinero.java`): cada subtotal de línea se
-   redondea a 2 decimales (el centavo) con `Math.round(importe * 100) / 100.0`. Mismo problema de
-   `double` que en cantidades, pero aplicado a plata: sin esto, un costo de 123,45 con 33% de
-   ganancia da 164,1885 en vez de 164,19.
+5. **Redondeo del subtotal** (`Dinero.redondear`, `util/Dinero.java`): cada subtotal de línea es
+   `BigDecimal` y se redondea con `setScale(2, HALF_UP)` — 2 decimales, el centavo (DF-DEBT-001:
+   migrado de `double`, mismo problema de coma flotante que en cantidades pero aplicado a plata:
+   sin escala fija, un costo de 123,45 con 33% de ganancia daba 164,1885 en vez de 164,19).
 
 ## Cómo se arma el total de la venta
 
