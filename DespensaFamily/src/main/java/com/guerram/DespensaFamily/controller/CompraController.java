@@ -1,5 +1,8 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.dto.AnularCompraResponseDTO;
+import com.guerram.DespensaFamily.dto.CompraCotizacionDTO;
+import com.guerram.DespensaFamily.dto.CompraCotizarRequestDTO;
 import com.guerram.DespensaFamily.dto.CompraDTO;
 import com.guerram.DespensaFamily.dto.CompraDetalleResponseDTO;
 import com.guerram.DespensaFamily.dto.CompraRequestDTO;
@@ -25,6 +28,15 @@ public class CompraController {
     }
 
 
+    // DF-RISK-001: lo que costaria cada linea si se confirmara la compra
+    // ahora, sin registrar nada. Comparte la formula con registrarCompra
+    // (ver CompraService.previsualizar) — mismo patron que POST
+    // /ventas/cotizar.
+    @PostMapping("/previsualizar")
+    public CompraCotizacionDTO previsualizar(@Valid @RequestBody CompraCotizarRequestDTO request) {
+        return compraService.previsualizar(request.getDetalles());
+    }
+
     @GetMapping
     public List<CompraDTO> listarCompras() {
         return compraService.listarCompras();
@@ -42,8 +54,8 @@ public class CompraController {
     // Solo ADMIN, igual que anular una venta (ver SecurityConfig: todo
     // /compras salvo GET ya es ADMIN).
     @DeleteMapping("/{id}")
-    public void anularCompra(@PathVariable Long id) {
-        OptimisticRetry.ejecutar(() -> compraService.anularCompra(id));
+    public AnularCompraResponseDTO anularCompra(@PathVariable Long id) {
+        return OptimisticRetry.ejecutar(() -> compraService.anularCompra(id));
     }
 
     /** Marca como pagada una compra que había quedado a cuenta (Fase 11). */

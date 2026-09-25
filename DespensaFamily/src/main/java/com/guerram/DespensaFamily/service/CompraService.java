@@ -194,9 +194,15 @@ public class CompraService {
      * producto con ese costo y con el precio de venta recalculado sobre el, sin
      * ninguna forma de volver atras salvo editar el producto a mano y adivinar
      * los valores viejos.
+     *
+     * <p>DF-BUG-005: el precio solo se restaura si sigue siendo el que dejo
+     * ESTA compra. Si alguien lo edito a mano despues (o entro otra compra mas
+     * nueva del mismo producto), anular ya no puede saber cual es el valor
+     * "correcto" al que volver — pisarlo silenciosamente era el bug — asi que
+     * lo deja como esta y lo informa en la respuesta.
      */
     @Transactional
-    public void anularCompra(Long id) {
+    public AnularCompraResponseDTO anularCompra(Long id) {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compra no encontrada"));
 
@@ -207,6 +213,8 @@ public class CompraService {
         List<DetalleCompra> enOrden = compra.getDetalles().stream()
                 .sorted(java.util.Comparator.comparing(d -> d.getProducto().getId()))
                 .toList();
+
+        List<String> productosConPrecioConservado = new ArrayList<>();
 
         for (DetalleCompra detalle : enOrden) {
             Producto producto = productoRepository.buscarParaActualizarStock(detalle.getProducto().getId())
@@ -228,9 +236,25 @@ public class CompraService {
             // deshacer. Las compras viejas, anteriores a que se guardara este
             // dato, no tienen con que volver: se les deja el costo actual.
             if (detalle.getPrecioCostoAnterior() != null) {
-                producto.setPrecioCosto(detalle.getPrecioCostoAnterior());
-                producto.setPrecioVenta(Dinero.precioConGanancia(
-                        detalle.getPrecioCostoAnterior(), producto.getPorcentajeGanancia()));
+                // "Sigue siendo el que dejo esta compra": el costo actual es
+                // el que esta compra escribio, Y el precio de venta actual es
+                // el que resultaria de ese costo con el % de ganancia de HOY
+                // (la misma cuenta que hizo registrarCompra). Si cualquiera de
+                // los dos difiere, algo paso despues — una edicion manual o
+                // otra compra mas nueva — y restaurar seria pisarlo.
+                double precioVentaQueDejoEstaCompra = Dinero.precioConGanancia(
+                        detalle.getPrecioCosto(), producto.getPorcentajeGanancia());
+
+                boolean costoSinCambios = valoresIguales(producto.getPrecioCosto(), detalle.getPrecioCosto());
+                boolean precioVentaSinCambios = valoresIguales(producto.getPrecioVenta(), precioVentaQueDejoEstaCompra);
+
+                if (costoSinCambios && precioVentaSinCambios) {
+                    producto.setPrecioCosto(detalle.getPrecioCostoAnterior());
+                    producto.setPrecioVenta(Dinero.precioConGanancia(
+                            detalle.getPrecioCostoAnterior(), producto.getPorcentajeGanancia()));
+                } else {
+                    productosConPrecioConservado.add(producto.getNombre());
+                }
             }
         }
 
@@ -245,6 +269,51 @@ public class CompraService {
         movimientoCajaRepository
                 .findByCompraIdAndCategoriaAndRevierteAIsNull(compra.getId(), CategoriaMovimiento.COMPRA)
                 .ifPresent(m -> cajaService.revertirMovimiento(m.getId()));
+
+        return AnularCompraResponseDTO.builder()
+                .productosConPrecioConservado(productosConPrecioConservado)
+                .build();
+    }
+
+    // Comparacion con tolerancia de centavo: los precios pasan por
+    // Dinero.redondear en todos los caminos que los escriben, pero comparar
+    // doubles con == es fragil (arrastre de precision entre el double en
+    // memoria y el DOUBLE de la base). Ver Dinero para el mismo criterio de
+    // redondeo.
+    private boolean valoresIguales(double a, double b) {
+        return Math.abs(a - b) < 0.005;
+    }
+
+    // DF-RISK-001: lo que pasaria a costar CADA linea si se confirmara esta
+    // compra ahora mismo, SIN persistir nada. Comparte la formula con
+    // registrarCompra (Dinero.precioConGanancia) para que el frontend no
+    // tenga que recalcularla por su cuenta — mismo patron que
+    // VentaService.cotizar.
+    @Transactional(readOnly = true)
+    public CompraCotizacionDTO previsualizar(List<DetalleCompraRequestDTO> detallesDTO) {
+        List<LineaCompraCotizadaDTO> lineas = new ArrayList<>();
+
+        for (DetalleCompraRequestDTO dto : detallesDTO) {
+            Producto producto = productoRepository.findById(dto.getProductoId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            double precioVentaActual = producto.getPrecioVenta();
+            double precioVentaNuevo = Dinero.precioConGanancia(dto.getPrecioCosto(), producto.getPorcentajeGanancia());
+
+            boolean cambioSignificativo = precioVentaActual > 0
+                    && Math.abs(precioVentaNuevo - precioVentaActual) / precioVentaActual > 0.5;
+
+            lineas.add(LineaCompraCotizadaDTO.builder()
+                    .productoId(producto.getId())
+                    .productoNombre(producto.getNombre())
+                    .precioCostoActual(producto.getPrecioCosto())
+                    .precioVentaActual(precioVentaActual)
+                    .precioVentaNuevo(precioVentaNuevo)
+                    .cambioSignificativo(cambioSignificativo)
+                    .build());
+        }
+
+        return CompraCotizacionDTO.builder().lineas(lineas).build();
     }
 
     private String usuarioActual() {

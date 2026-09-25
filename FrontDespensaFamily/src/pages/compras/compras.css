@@ -872,3 +872,47 @@ table {
 .btn-marcar-pagada:hover {
   background: var(--color-exito-suave, #e6f7ea);
 }
+
+/* ---------------------------------------------------------------
+   Confirmar precios antes de registrar la compra (DF-RISK-001).
+   --------------------------------------------------------------- */
+.modal-acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modal-acciones button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--color-borde, #e9ecef);
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#btn-confirmar-precios {
+  border-color: var(--color-primario, #2f6fed);
+  background: var(--color-primario, #2f6fed);
+  color: #fff;
+}
+
+/* Cambio de más del 50%: la auditoría pide resaltarlo antes de confirmar
+   (un cero de más en el costo multiplica por 10 el precio). */
+tr.fila-cambio-grande {
+  background: var(--color-peligro-suave, #ffe3e3);
+}
+
+tr.fila-cambio-grande td {
+  color: var(--color-peligro, #c92a2a);
+  font-weight: 600;
+}
+
+/* DF-BUG-005: aviso de que un precio se conservó porque cambió después de
+   la compra que se está anulando. */
+.aviso-precio-conservado {
+  color: var(--color-advertencia-dark, #c05600);
+  font-size: 13px;
+  margin-top: 4px;
+}
