@@ -16,8 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import tools.jackson.databind.ObjectMapper;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -44,6 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (usuario.isPresent()) {
             SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                     usuario.get().getUsername(), null, authoritiesDe(usuario.get())));
+            response.setHeader(CABECERA_PERMISOS, permisosComoJson(usuario.get()));
         } else {
             // Token roto, vencido, o de un usuario que ya no existe: el pedido
             // sigue como anonimo, sin cortarlo aca. Asi lo publico (la
@@ -84,15 +89,39 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     /**
+     * El rol y los permisos con que se decidio ESTE pedido, para que el menu
+     * del frontend se corrija solo si el dueño los cambio con la sesion
+     * abierta (ver auth.service.ts). Viaja en todas las respuestas con sesion
+     * valida —tambien en un 403— asi el frontend no necesita un pedido aparte
+     * a /usuario/perfil en cada pantalla. No es secreto: es lo mismo que el
+     * login ya le devuelve a esa misma persona, y el frontend lo usa solo para
+     * decidir que dibujar; quien autoriza sigue siendo SecurityConfig.
+     */
+    static final String CABECERA_PERMISOS = "X-Permisos";
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    private static String permisosComoJson(Usuario usuario) {
+        Map<String, Object> permisos = new LinkedHashMap<>();
+        permisos.put("rol", rolDe(usuario));
+        permisos.put("puedeGestionarProductos", usuario.isPuedeGestionarProductos());
+        permisos.put("puedeVerCaja", usuario.isPuedeVerCaja());
+        return JSON.writeValueAsString(permisos);
+    }
+
+    // Mismo criterio que el login (UsuarioService.login): sin rol, EMPLEADO.
+    private static String rolDe(Usuario usuario) {
+        return usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
+    }
+
+    /**
      * Rol + permisos sueltos del empleado (ver Usuario.java): dos authorities
      * mas, aparte del rol, para que SecurityConfig pueda dejar pasar a un
      * EMPLEADO puntual sin ascenderlo a ADMIN.
      */
     private static List<SimpleGrantedAuthority> authoritiesDe(Usuario usuario) {
-        // Mismo criterio que el login (UsuarioService.login): sin rol, EMPLEADO.
-        String rol = usuario.getRol() != null ? usuario.getRol() : "EMPLEADO";
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + rol));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + rolDe(usuario)));
         if (usuario.isPuedeGestionarProductos()) {
             authorities.add(new SimpleGrantedAuthority("PERM_STOCK"));
         }
