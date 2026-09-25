@@ -13,6 +13,8 @@ public class DetalleVentaDTO {
     private double precioUnitario;
     private double precioCosto;
     private double subtotal;
+    private Double descuentoPorcentaje;
+    private String promoDescripcion;
     private Long ventaId;
     private Long productoId;
 }

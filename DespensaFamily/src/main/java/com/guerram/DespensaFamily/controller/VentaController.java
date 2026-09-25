@@ -2,6 +2,7 @@ package com.guerram.DespensaFamily.controller;
 
 import com.guerram.DespensaFamily.dto.CotizacionDTO;
 import com.guerram.DespensaFamily.dto.CotizarRequestDTO;
+import com.guerram.DespensaFamily.dto.PaginaDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.dto.VentaDetalleResponseDTO;
 import com.guerram.DespensaFamily.dto.VentaRequestDTO;
@@ -10,8 +11,10 @@ import com.guerram.DespensaFamily.util.OptimisticRetry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -56,6 +59,19 @@ public class VentaController {
     @GetMapping
     public List<VentaDTO> listarVentas() {
         return ventaService.listarVentas();
+    }
+
+    // DF-PERF-001: endpoint NUEVO, no reemplaza GET /ventas -- ese sigue
+    // devolviendo la lista completa (home.ts y cualquier otro consumidor que
+    // ya cuenta con eso no se tocan). Los tres parametros son opcionales;
+    // sin ninguno, trae la pagina 0 de 50 ventas mas recientes.
+    @GetMapping("/pagina")
+    public PaginaDTO<VentaDTO> listarVentasPaginado(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ventaService.listarVentasPaginado(desde, hasta, page, size);
     }
     @GetMapping("/{id}")
     public VentaDTO buscarVentaPorId(@PathVariable Long id) {

@@ -15,6 +15,10 @@ export interface DetalleVentaResponse {
   precioUnitario: number;
   precioCosto: number;
   subtotal: number;
+  /** null si la linea no tuvo descuento por % (incluye ventas anteriores a V15). */
+  descuentoPorcentaje?: number | null;
+  /** null si la linea no tuvo combo/promo aplicada. */
+  promoDescripcion?: string | null;
   ventaId: number;
   productoId: number;
 }

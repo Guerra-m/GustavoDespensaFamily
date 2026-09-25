@@ -83,6 +83,18 @@ export function formatearFechaHora(iso?: string | null): string {
   });
 }
 
+/**
+ * Plata en formato es-AR: separador de miles con punto, decimales con coma
+ * ($276.336,80). DF-UX-003/DF-UX-008: `toFixed(2)` (usado en ventas y en el
+ * ticket) da "$2600.00" — ni separa miles ni usa la coma decimal argentina,
+ * mientras que caja ya mostraba el monto bien formateado. Mismo criterio que
+ * caja.ts ya usaba en un helper local; acá queda compartido.
+ */
+export function formatearMoneda(monto: number): string {
+  if (!Number.isFinite(monto)) return "$0,00";
+  return `$${monto.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /** Solo el día, para columnas donde la hora no aporta. */
 export function formatearFecha(iso?: string | null): string {
   if (!iso) return "";
