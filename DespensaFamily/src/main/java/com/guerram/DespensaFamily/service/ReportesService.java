@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -42,9 +44,9 @@ public class ReportesService {
      * usan {@link ConfiguracionService#obtener()}, Reportes no. El default
      * ahora es el mismo umbral configurado, no un numero de fabrica.
      */
-    public List<ProductoBajoStockDTO> productosConBajoStock(Double limite) {
+    public List<ProductoBajoStockDTO> productosConBajoStock(BigDecimal limite) {
 
-        if (limite == null || limite <= 0) {
+        if (limite == null || limite.compareTo(BigDecimal.ZERO) <= 0) {
             limite = configuracionService.obtener().getUmbralStockBajo();
         }
 
@@ -70,16 +72,16 @@ public class ReportesService {
             default -> throw new RuntimeException("Periodo inválido");
         }
 
-        Double totalVentas = ventaRepository
+        BigDecimal totalVentas = ventaRepository
                 .totalVentasEntreFechas(inicioDe(desde), finDe(hoy));
 
         Long cantidadVentas = ventaRepository
                 .cantidadVentasEntreFechas(inicioDe(desde), finDe(hoy));
 
-        Double totalCosto = detalleVentaRepository
+        BigDecimal totalCosto = detalleVentaRepository
                 .totalCostoEntreFechas(inicioDe(desde), finDe(hoy));
 
-        Double ganancia = totalVentas - totalCosto;
+        BigDecimal ganancia = totalVentas.subtract(totalCosto);
 
         return ResumenVentasDTO.builder()
                 .totalVentas(totalVentas)
@@ -176,14 +178,16 @@ public class ReportesService {
         LocalDateTime inicio = inicioDe(desde);
         LocalDateTime fin = finDe(hasta);
 
-        double ventas = ventaRepository.totalVentasEntreFechas(inicio, fin);
-        double costo = detalleVentaRepository.totalCostoEntreFechas(inicio, fin);
-        double gananciaBruta = ventas - costo;
-        double margen = ventas > 0 ? (gananciaBruta / ventas) * 100 : 0.0;
+        BigDecimal ventas = ventaRepository.totalVentasEntreFechas(inicio, fin);
+        BigDecimal costo = detalleVentaRepository.totalCostoEntreFechas(inicio, fin);
+        BigDecimal gananciaBruta = ventas.subtract(costo);
+        BigDecimal margen = ventas.compareTo(BigDecimal.ZERO) > 0
+                ? gananciaBruta.divide(ventas, 10, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+                : BigDecimal.ZERO;
 
-        double compras = movimientoCajaRepository
+        BigDecimal compras = movimientoCajaRepository
                 .totalNetoPorCategoriaEntreFechas(CategoriaMovimiento.COMPRA, inicio, fin);
-        double gastos = movimientoCajaRepository
+        BigDecimal gastos = movimientoCajaRepository
                 .totalNetoPorCategoriaEntreFechas(CategoriaMovimiento.GASTO, inicio, fin);
         boolean gastosCargados = movimientoCajaRepository
                 .existsByCategoriaAndFechaHoraBetween(CategoriaMovimiento.GASTO, inicio, fin);
@@ -196,7 +200,7 @@ public class ReportesService {
                 .comprasTotales(compras)
                 .gastosTotales(gastos)
                 .gastosCargados(gastosCargados)
-                .resultadoNeto(gananciaBruta - gastos)
+                .resultadoNeto(gananciaBruta.subtract(gastos))
                 .build();
     }
 

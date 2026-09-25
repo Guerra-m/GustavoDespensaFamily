@@ -10,6 +10,7 @@ import com.guerram.DespensaFamily.dto.caja.RegistrarMovimientoRequestDTO;
 import com.guerram.DespensaFamily.model.CategoriaMovimiento;
 import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.TipoMovimiento;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,13 +43,14 @@ class ArqueoTest {
         RegistrarMovimientoRequestDTO aporte = new RegistrarMovimientoRequestDTO();
         aporte.setTipo(TipoMovimiento.INGRESO);
         aporte.setCategoria(CategoriaMovimiento.APORTE);
-        aporte.setMonto(Math.max(10_000, Math.abs(cajaService.estadoDeCaja().getEfectivoEnCaja()) + 10_000));
+        BigDecimal efectivoActual = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        aporte.setMonto(efectivoActual.abs().add(BigDecimal.valueOf(10_000)).max(BigDecimal.valueOf(10_000)));
         aporte.setMetodoPago(MetodoPago.EFECTIVO);
         aporte.setDescripcion("Piso de efectivo para el test de arqueo");
         cajaService.registrarMovimientoManual(aporte);
     }
 
-    private ArqueoRequestDTO pedido(double contado, String descripcion) {
+    private ArqueoRequestDTO pedido(BigDecimal contado, String descripcion) {
         ArqueoRequestDTO dto = new ArqueoRequestDTO();
         dto.setEfectivoContado(contado);
         dto.setDescripcion(descripcion);
@@ -61,31 +63,35 @@ class ArqueoTest {
         sembrarEfectivoSuficiente();
 
         // Caja en efectivo = X (lo que sea que haya)
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         // Se cuenta el cajón y falta $1.500 contra lo esperado
-        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(esperado - 1500, null));
+        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(
+                pedido(esperado.subtract(BigDecimal.valueOf(1500)), null));
 
-        assertThat(resultado.getDiferencia()).isEqualTo(-1500.0);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(BigDecimal.valueOf(-1500.0));
         assertThat(resultado.getMovimiento()).isNotNull();
         assertThat(resultado.getMovimiento().getTipo()).isEqualTo(TipoMovimiento.EGRESO);
         assertThat(resultado.getMovimiento().getCategoria()).isEqualTo(CategoriaMovimiento.AJUSTE);
-        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(1500.0);
+        assertThat(resultado.getMovimiento().getMonto()).isEqualByComparingTo(BigDecimal.valueOf(1500.0));
 
         // Y el saldo de efectivo queda exactamente en lo contado, no en lo esperado
-        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualTo(esperado - 1500);
+        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja())
+                .isEqualByComparingTo(esperado.subtract(BigDecimal.valueOf(1500)));
     }
 
     @Test
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void contarMasDeLoEsperadoGeneraUnAjustePositivo() {
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
-        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(esperado + 200, null));
+        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(
+                pedido(esperado.add(BigDecimal.valueOf(200)), null));
 
-        assertThat(resultado.getDiferencia()).isEqualTo(200.0);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
         assertThat(resultado.getMovimiento().getTipo()).isEqualTo(TipoMovimiento.INGRESO);
-        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualTo(esperado + 200);
+        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja())
+                .isEqualByComparingTo(esperado.add(BigDecimal.valueOf(200)));
     }
 
     @Test
@@ -94,14 +100,14 @@ class ArqueoTest {
         // DF-UX-006 de la auditoria del 23/09: un arqueo exacto ahora SI
         // queda en el historial (antes no dejaba rastro de que alguien conto
         // el cajon), pero con monto 0 -- no puede mover el saldo.
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(esperado, null));
 
-        assertThat(resultado.getDiferencia()).isEqualTo(0.0);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(resultado.getMovimiento()).isNotNull();
-        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(0.0);
-        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualTo(esperado);
+        assertThat(resultado.getMovimiento().getMonto()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualByComparingTo(esperado);
     }
 
     @Test
@@ -112,20 +118,20 @@ class ArqueoTest {
         RegistrarMovimientoRequestDTO tarjeta = new RegistrarMovimientoRequestDTO();
         tarjeta.setTipo(TipoMovimiento.INGRESO);
         tarjeta.setCategoria(CategoriaMovimiento.APORTE);
-        tarjeta.setMonto(50000);
+        tarjeta.setMonto(BigDecimal.valueOf(50000));
         tarjeta.setMetodoPago(MetodoPago.TARJETA);
         tarjeta.setDescripcion("Prueba: no deberia afectar el arqueo");
         cajaService.registrarMovimientoManual(tarjeta);
 
-        double efectivoEsperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal efectivoEsperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         // El arqueo cuenta el mismo efectivo de antes: no tiene que aparecer
         // ninguna diferencia por la plata que entro con tarjeta.
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(efectivoEsperado, null));
 
-        assertThat(resultado.getDiferencia()).isEqualTo(0.0);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(resultado.getMovimiento()).isNotNull();
-        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(0.0);
+        assertThat(resultado.getMovimiento().getMonto()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -133,13 +139,15 @@ class ArqueoTest {
     void unaDescripcionPropiaSeConservaYSinoQuedaUnaAutomatica() {
         sembrarEfectivoSuficiente();
 
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
-        ArqueoResultadoDTO conNota = cajaService.registrarArqueo(pedido(esperado - 100, "Faltante del turno tarde"));
+        ArqueoResultadoDTO conNota = cajaService.registrarArqueo(
+                pedido(esperado.subtract(BigDecimal.valueOf(100)), "Faltante del turno tarde"));
         assertThat(conNota.getMovimiento().getDescripcion()).isEqualTo("Faltante del turno tarde");
 
-        double esperado2 = cajaService.estadoDeCaja().getEfectivoEnCaja();
-        ArqueoResultadoDTO sinNota = cajaService.registrarArqueo(pedido(esperado2 - 50, null));
+        BigDecimal esperado2 = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        ArqueoResultadoDTO sinNota = cajaService.registrarArqueo(
+                pedido(esperado2.subtract(BigDecimal.valueOf(50)), null));
         assertThat(sinNota.getMovimiento().getDescripcion()).contains("Arqueo");
     }
 
@@ -151,7 +159,7 @@ class ArqueoTest {
         // $99.999. Un cajon no puede tener menos que nada: un signo de mas
         // mal tipeado no puede terminar en un faltante enorme escrito en el
         // libro (revertible, pero el rastro queda).
-        assertThatThrownBy(() -> cajaService.registrarArqueo(pedido(-99999, null)))
+        assertThatThrownBy(() -> cajaService.registrarArqueo(pedido(BigDecimal.valueOf(-99999), null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -163,11 +171,11 @@ class ArqueoTest {
         // contarse.
         sembrarEfectivoSuficiente();
 
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
-        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(0, "Cajon vacio"));
+        ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido(BigDecimal.ZERO, "Cajon vacio"));
 
-        assertThat(resultado.getEfectivoContado()).isEqualTo(0.0);
-        assertThat(resultado.getDiferencia()).isEqualTo(-esperado);
+        assertThat(resultado.getEfectivoContado()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(esperado.negate());
     }
 }

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.AnularCompraResponseDTO;
 import com.guerram.DespensaFamily.dto.CompraDTO;
 import com.guerram.DespensaFamily.dto.CompraRequestDTO;
@@ -43,16 +45,18 @@ class AnularCompraConservaPrecioManualTest {
     private Producto productoConCosto(double costo, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre("Torta de prueba")
-                .precioCosto(costo).precioVenta(costo * 2).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
-                .fraccionMinima(1.0).activo(true)
+                .precioCosto(BigDecimal.valueOf(costo)).precioVenta(BigDecimal.valueOf(costo * 2))
+                .porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
+                .fraccionMinima(BigDecimal.valueOf(1.0)).activo(true)
                 .build());
     }
 
     private CompraDTO comprar(Producto p, double cantidad, double costo) {
         CompraRequestDTO pedido = new CompraRequestDTO();
         pedido.setProveedor("Mayorista");
-        pedido.setDetalles(List.of(new DetalleCompraRequestDTO(p.getId(), cantidad, costo)));
+        pedido.setDetalles(List.of(new DetalleCompraRequestDTO(
+                p.getId(), BigDecimal.valueOf(cantidad), BigDecimal.valueOf(costo))));
         pedido.setMetodoPago(MetodoPago.EFECTIVO);
         return compraService.registrarCompra(pedido);
     }
@@ -64,24 +68,24 @@ class AnularCompraConservaPrecioManualTest {
         // (100% de ganancia), como en la evidencia de la auditoria.
         Producto p = productoConCosto(500, 5);
         CompraDTO compra = comprar(p, 10, 800);
-        assertThat(productoRepository.findById(p.getId()).orElseThrow().getPrecioVenta()).isEqualTo(1600.0);
+        assertThat(productoRepository.findById(p.getId()).orElseThrow().getPrecioVenta()).isEqualByComparingTo(BigDecimal.valueOf(1600.0));
 
         // Edicion manual del precio de venta DESPUES de la compra (PATCH,
         // no toca el costo).
-        productoService.actualizarPrecioYStock(p.getId(), 1500.0, null, null);
+        productoService.actualizarPrecioYStock(p.getId(), BigDecimal.valueOf(1500.0), null, null);
 
         AnularCompraResponseDTO respuesta = compraService.anularCompra(compra.getId());
 
         Producto despues = productoRepository.findById(p.getId()).orElseThrow();
         assertThat(despues.getPrecioVenta())
                 .as("el precio manual tiene que sobrevivir a la anulacion")
-                .isEqualTo(1500.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(1500.0));
         assertThat(despues.getPrecioCosto())
                 .as("el costo tampoco se toca cuando el precio de venta se conservo")
-                .isEqualTo(800.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(800.0));
         assertThat(despues.getStock())
                 .as("el stock si se deshace, eso no cambia")
-                .isEqualTo(5.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(5.0));
         assertThat(respuesta.getProductosConPrecioConservado())
                 .as("la respuesta tiene que avisar que este producto conservo su precio")
                 .containsExactly("Torta de prueba");
@@ -96,8 +100,8 @@ class AnularCompraConservaPrecioManualTest {
         AnularCompraResponseDTO respuesta = compraService.anularCompra(compra.getId());
 
         Producto despues = productoRepository.findById(p.getId()).orElseThrow();
-        assertThat(despues.getPrecioCosto()).isEqualTo(500.0);
-        assertThat(despues.getPrecioVenta()).isEqualTo(1000.0);
+        assertThat(despues.getPrecioCosto()).isEqualByComparingTo(BigDecimal.valueOf(500.0));
+        assertThat(despues.getPrecioVenta()).isEqualByComparingTo(BigDecimal.valueOf(1000.0));
         assertThat(respuesta.getProductosConPrecioConservado())
                 .as("sin cambios intermedios, no hay nada que avisar")
                 .isEmpty();
@@ -115,15 +119,15 @@ class AnularCompraConservaPrecioManualTest {
         Producto despues = productoRepository.findById(p.getId()).orElseThrow();
         assertThat(despues.getPrecioCosto())
                 .as("el costo lo fijo la segunda compra, anular la primera no lo puede pisar")
-                .isEqualTo(900.0);
-        assertThat(despues.getPrecioVenta()).isEqualTo(1800.0);
+                .isEqualByComparingTo(BigDecimal.valueOf(900.0));
+        assertThat(despues.getPrecioVenta()).isEqualByComparingTo(BigDecimal.valueOf(1800.0));
         assertThat(respuesta.getProductosConPrecioConservado()).containsExactly("Torta de prueba");
 
         // La segunda compra, en cambio, si puede anularse y restaurar en
         // cascada hasta el costo que dejo la primera.
         AnularCompraResponseDTO respuestaSegunda = compraService.anularCompra(segunda.getId());
         Producto finalProducto = productoRepository.findById(p.getId()).orElseThrow();
-        assertThat(finalProducto.getPrecioCosto()).isEqualTo(700.0);
+        assertThat(finalProducto.getPrecioCosto()).isEqualByComparingTo(BigDecimal.valueOf(700.0));
         assertThat(respuestaSegunda.getProductosConPrecioConservado()).isEmpty();
     }
 }

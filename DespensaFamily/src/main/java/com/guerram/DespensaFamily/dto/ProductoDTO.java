@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,21 +20,21 @@ public class ProductoDTO {
     private String nombre;
 
     @DecimalMin("0.0")
-    private double precioVenta;
+    private BigDecimal precioVenta;
 
     @DecimalMin("0.0")
-    private double precioCosto;
+    private BigDecimal precioCosto;
 
     @DecimalMin("0.0")
-    private double porcentajeGanancia;
+    private BigDecimal porcentajeGanancia;
 
     @DecimalMin("0.0")
-    private double stock;
+    private BigDecimal stock;
 
     @Pattern(regexp = "UNIDAD|PESO", message = "tipoCantidad debe ser UNIDAD o PESO")
     private String tipoCantidad;
     private String unidadMedida;
-    private Double fraccionMinima;
+    private BigDecimal fraccionMinima;
     private Integer unidadesPorPaquete;
     private String codigoBarras;
 

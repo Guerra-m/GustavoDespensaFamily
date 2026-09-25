@@ -11,6 +11,7 @@ import com.guerram.DespensaFamily.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -58,17 +59,17 @@ public class DescuentoService {
     }
 
     /** 0 si no hay descuento activo. Producto puntual gana sobre categoria. */
-    public double porcentajeEfectivoPara(Producto producto) {
+    public BigDecimal porcentajeEfectivoPara(Producto producto) {
         var directo = descuentoRepository.findByProductoIdAndActivoTrue(producto.getId());
         if (directo.isPresent()) {
             return directo.get().getPorcentaje();
         }
         if (producto.getCategoria() == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         return descuentoRepository.findByCategoriaIdAndActivoTrue(producto.getCategoria().getId())
                 .map(Descuento::getPorcentaje)
-                .orElse(0.0);
+                .orElse(BigDecimal.ZERO);
     }
 
     private void aplicarDatos(Descuento descuento, DescuentoDTO dto, Long idActual) {
@@ -118,11 +119,12 @@ public class DescuentoService {
         }
     }
 
-    private String formatearPorcentaje(double porcentaje) {
-        if (porcentaje == Math.floor(porcentaje)) {
-            return String.valueOf((long) porcentaje);
+    private String formatearPorcentaje(BigDecimal porcentaje) {
+        BigDecimal sinCeros = porcentaje.stripTrailingZeros();
+        if (sinCeros.scale() <= 0) {
+            return sinCeros.toBigInteger().toString();
         }
-        return String.valueOf(porcentaje);
+        return sinCeros.toPlainString();
     }
 
     private DescuentoDTO toDTO(Descuento d) {

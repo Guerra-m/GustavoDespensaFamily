@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -37,13 +39,13 @@ class VentasPaginadasTest {
     private Long crearProductoYVender(String sufijo) {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto paginado " + sufijo + " " + System.nanoTime())
-                .precioCosto(100).precioVenta(200).porcentajeGanancia(100)
-                .stock(1000).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(200)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(1000)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
         return venta.getId();
     }
 

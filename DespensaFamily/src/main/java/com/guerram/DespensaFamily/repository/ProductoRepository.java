@@ -25,7 +25,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             Long categoriaId
     );
     List<Producto> findByActivoTrue();
-    List<Producto> findByStockLessThanAndActivoTrue(Double stock);
+    List<Producto> findByStockLessThanAndActivoTrue(java.math.BigDecimal stock);
 
     // Coincidencia EXACTA (a diferencia de findByCodigoBarrasContaining, que
     // es un buscador por substring): la usa la validacion de unicidad de

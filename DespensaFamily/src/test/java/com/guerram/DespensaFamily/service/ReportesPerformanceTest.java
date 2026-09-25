@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -50,8 +52,9 @@ class ReportesPerformanceTest {
     private Producto productoConStock(String nombre, double precioVenta, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre(nombre)
-                .precioCosto(precioVenta / 2).precioVenta(precioVenta).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(precioVenta / 2)).precioVenta(BigDecimal.valueOf(precioVenta))
+                .porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -60,7 +63,7 @@ class ReportesPerformanceTest {
     @WithMockUser(username = "cajera-de-prueba", roles = "EMPLEADO")
     void unProductoDadoDeBajaNoApareceEnProductosMasVendidos() {
         Producto p = producto("DF-PERF-002 mas vendido dado de baja", 1000);
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 3.0)), MetodoPago.EFECTIVO);
+        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(3.0))), MetodoPago.EFECTIVO);
 
         LocalDate hoy = LocalDate.now();
         assertThat(reportesService.productosMasVendidos(hoy, hoy))
@@ -78,7 +81,7 @@ class ReportesPerformanceTest {
         // Triangulacion con el otro reporte que hacia el mismo N+1
         // (ReportesService.movimientosPorFecha), sobre la misma causa raiz.
         Producto p = producto("DF-PERF-002 movimiento dado de baja", 2000);
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         LocalDate hoy = LocalDate.now();
         assertThat(contieneProducto(reportesService.movimientosPorFecha(hoy, hoy, "VENTA"), p.getId())).isTrue();
@@ -98,7 +101,7 @@ class ReportesPerformanceTest {
         // quede primera sin importar que mas se haya vendido en la corrida.
         Producto ganador = productoConStock("DF-PERF-002 top acotado, ganador garantizado", 10, 1_000_000);
         ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(ganador.getId(), 999_999.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(ganador.getId(), BigDecimal.valueOf(999_999.0))), MetodoPago.EFECTIVO);
 
         LocalDate hoy = LocalDate.now();
 
@@ -115,7 +118,7 @@ class ReportesPerformanceTest {
         // Triangulacion: pedir mas de lo que hay no puede fallar ni inventar
         // filas -- simplemente devuelve lo que haya.
         Producto p = producto("DF-PERF-002 top mayor a lo vendido", 500);
-        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), 2.0)), MetodoPago.EFECTIVO);
+        ventaService.registrarVenta(List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(2.0))), MetodoPago.EFECTIVO);
 
         LocalDate hoy = LocalDate.now();
         List<ProductoMasVendidoDTO> top = reportesService.productosMasVendidosTop(hoy, hoy, 10_000);

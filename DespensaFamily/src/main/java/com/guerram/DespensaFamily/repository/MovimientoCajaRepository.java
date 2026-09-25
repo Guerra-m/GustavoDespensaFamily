@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.repository;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.CategoriaMovimiento;
 import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.MovimientoCaja;
@@ -29,27 +31,27 @@ public interface MovimientoCajaRepository extends JpaRepository<MovimientoCaja, 
      * fecha dada hace falta otra consulta, con su propio nombre.
      */
     @Query("""
-    SELECT COALESCE(SUM(CASE WHEN m.tipo = 'INGRESO' THEN m.monto ELSE -m.monto END), 0.0)
+    SELECT COALESCE(SUM(CASE WHEN m.tipo = 'INGRESO' THEN m.monto ELSE -m.monto END), 0)
     FROM MovimientoCaja m
     WHERE m.metodoPago = :metodo
     """)
-    Double saldoActual(@Param("metodo") MetodoPago metodo);
+    BigDecimal saldoActual(@Param("metodo") MetodoPago metodo);
 
     @Query("""
-    SELECT COALESCE(SUM(m.monto), 0.0)
+    SELECT COALESCE(SUM(m.monto), 0)
     FROM MovimientoCaja m
     WHERE m.tipo = 'INGRESO'
     AND m.fechaHora BETWEEN :desde AND :hasta
     """)
-    Double totalIngresosEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+    BigDecimal totalIngresosEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 
     @Query("""
-    SELECT COALESCE(SUM(m.monto), 0.0)
+    SELECT COALESCE(SUM(m.monto), 0)
     FROM MovimientoCaja m
     WHERE m.tipo = 'EGRESO'
     AND m.fechaHora BETWEEN :desde AND :hasta
     """)
-    Double totalEgresosEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+    BigDecimal totalEgresosEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 
     /**
      * DF-UX-006 de la auditoria del 23/09: "egresos de hoy" sumaba tambien
@@ -60,22 +62,22 @@ public interface MovimientoCajaRepository extends JpaRepository<MovimientoCaja, 
      * (GASTO, RETIRO, COMPRA, AJUSTE negativo), nunca una reversion.
      */
     @Query("""
-    SELECT COALESCE(SUM(m.monto), 0.0)
+    SELECT COALESCE(SUM(m.monto), 0)
     FROM MovimientoCaja m
     WHERE m.tipo = 'EGRESO'
     AND m.revierteA IS NULL
     AND m.fechaHora BETWEEN :desde AND :hasta
     """)
-    Double totalEgresosRealesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+    BigDecimal totalEgresosRealesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 
     /** Cuanto se anulo en el periodo -- reversiones de cualquier categoria, en valor absoluto (siempre positivo). */
     @Query("""
-    SELECT COALESCE(SUM(m.monto), 0.0)
+    SELECT COALESCE(SUM(m.monto), 0)
     FROM MovimientoCaja m
     WHERE m.revierteA IS NOT NULL
     AND m.fechaHora BETWEEN :desde AND :hasta
     """)
-    Double totalAnulacionesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+    BigDecimal totalAnulacionesEntreFechas(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
 
     List<MovimientoCaja> findByFechaHoraBetweenOrderByFechaHoraDesc(LocalDateTime desde, LocalDateTime hasta);
 
@@ -116,12 +118,12 @@ public interface MovimientoCajaRepository extends JpaRepository<MovimientoCaja, 
      * mismo que ya hace el libro de caja.
      */
     @Query("""
-    SELECT COALESCE(SUM(CASE WHEN m.tipo = 'EGRESO' THEN m.monto ELSE -m.monto END), 0.0)
+    SELECT COALESCE(SUM(CASE WHEN m.tipo = 'EGRESO' THEN m.monto ELSE -m.monto END), 0)
     FROM MovimientoCaja m
     WHERE m.categoria = :categoria
     AND m.fechaHora BETWEEN :desde AND :hasta
     """)
-    Double totalNetoPorCategoriaEntreFechas(
+    BigDecimal totalNetoPorCategoriaEntreFechas(
             @Param("categoria") CategoriaMovimiento categoria,
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta);

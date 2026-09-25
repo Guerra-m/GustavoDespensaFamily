@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.guerram.DespensaFamily.dto.CompraDTO;
@@ -40,30 +42,30 @@ class CompraTotalTest {
     void elTotalQuedaCongeladoAlRegistrarLaCompra() {
         Producto uno = productoRepository.save(Producto.builder()
                 .nombre("Producto uno")
-                .precioCosto(50).precioVenta(75).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(50)).precioVenta(BigDecimal.valueOf(75)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
         Producto dos = productoRepository.save(Producto.builder()
                 .nombre("Producto dos")
-                .precioCosto(200).precioVenta(300).porcentajeGanancia(50)
-                .stock(0).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(200)).precioVenta(BigDecimal.valueOf(300)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(0)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         CompraRequestDTO request = new CompraRequestDTO();
         request.setProveedor("Proveedor de prueba");
         request.setDetalles(List.of(
-                new DetalleCompraRequestDTO(uno.getId(), 3.0, 50.0),    // 150
-                new DetalleCompraRequestDTO(dos.getId(), 2.0, 200.0))); // 400
+                new DetalleCompraRequestDTO(uno.getId(), BigDecimal.valueOf(3.0), BigDecimal.valueOf(50.0)),    // 150
+                new DetalleCompraRequestDTO(dos.getId(), BigDecimal.valueOf(2.0), BigDecimal.valueOf(200.0)))); // 400
         request.setMetodoPago(com.guerram.DespensaFamily.model.MetodoPago.EFECTIVO);
 
         CompraDTO compra = compraService.registrarCompra(request);
 
-        assertEquals(550.0, compra.getTotal(), 0.01);
+        assertEquals(0, compra.getTotal().compareTo(BigDecimal.valueOf(550.0)));
 
         // Y el mismo valor congelado al volver a leerla, no recalculado.
         CompraDTO releida = compraService.buscarPorId(compra.getId());
-        assertEquals(550.0, releida.getTotal(), 0.01);
+        assertEquals(0, releida.getTotal().compareTo(BigDecimal.valueOf(550.0)));
     }
 }

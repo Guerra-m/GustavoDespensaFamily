@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.caja;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.CategoriaMovimiento;
 import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.TipoMovimiento;
@@ -26,7 +28,7 @@ public class RegistrarMovimientoRequestDTO {
     private CategoriaMovimiento categoria;
 
     @DecimalMin(value = "0.0", inclusive = false, message = "El monto debe ser mayor a 0")
-    private double monto;
+    private BigDecimal monto;
 
     @NotNull
     private MetodoPago metodoPago;

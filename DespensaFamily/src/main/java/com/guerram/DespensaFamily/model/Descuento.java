@@ -3,6 +3,8 @@ package com.guerram.DespensaFamily.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
@@ -23,6 +25,7 @@ public class Descuento {
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
 
-    private double porcentaje;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal porcentaje;
     private boolean activo;
 }

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.dto.CompraDTO;
 import com.guerram.DespensaFamily.dto.CompraRequestDTO;
 import com.guerram.DespensaFamily.dto.DetalleCompraRequestDTO;
@@ -41,16 +43,18 @@ class AnularCompraTest {
     private Producto productoConCosto(double costo, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre("Arroz de prueba")
-                .precioCosto(costo).precioVenta(costo * 2).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
-                .fraccionMinima(1.0).activo(true)
+                .precioCosto(BigDecimal.valueOf(costo)).precioVenta(BigDecimal.valueOf(costo * 2))
+                .porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
+                .fraccionMinima(BigDecimal.ONE).activo(true)
                 .build());
     }
 
     private CompraDTO comprar(Producto p, double cantidad, double costo) {
         CompraRequestDTO pedido = new CompraRequestDTO();
         pedido.setProveedor("Mayorista");
-        pedido.setDetalles(List.of(new DetalleCompraRequestDTO(p.getId(), cantidad, costo)));
+        pedido.setDetalles(List.of(new DetalleCompraRequestDTO(
+                p.getId(), BigDecimal.valueOf(cantidad), BigDecimal.valueOf(costo))));
         pedido.setMetodoPago(com.guerram.DespensaFamily.model.MetodoPago.EFECTIVO);
         return compraService.registrarCompra(pedido);
     }
@@ -60,11 +64,13 @@ class AnularCompraTest {
     void anularDevuelveElStockQueSumoLaCompra() {
         Producto p = productoConCosto(700, 10);
         CompraDTO compra = comprar(p, 50, 700);
-        assertEquals(60.0, productoRepository.findById(p.getId()).orElseThrow().getStock());
+        assertEquals(0, productoRepository.findById(p.getId()).orElseThrow().getStock()
+                .compareTo(BigDecimal.valueOf(60.0)));
 
         compraService.anularCompra(compra.getId());
 
-        assertEquals(10.0, productoRepository.findById(p.getId()).orElseThrow().getStock());
+        assertEquals(0, productoRepository.findById(p.getId()).orElseThrow().getStock()
+                .compareTo(BigDecimal.valueOf(10.0)));
     }
 
     @Test
@@ -73,14 +79,15 @@ class AnularCompraTest {
         // El caso que motiva todo: se tipea 7000 en vez de 700.
         Producto p = productoConCosto(700, 10);
         CompraDTO compra = comprar(p, 50, 7000);
-        assertEquals(7000.0, productoRepository.findById(p.getId()).orElseThrow().getPrecioCosto());
+        assertEquals(0, productoRepository.findById(p.getId()).orElseThrow().getPrecioCosto()
+                .compareTo(BigDecimal.valueOf(7000.0)));
 
         compraService.anularCompra(compra.getId());
 
         Producto despues = productoRepository.findById(p.getId()).orElseThrow();
-        assertEquals(700.0, despues.getPrecioCosto(),
+        assertEquals(0, despues.getPrecioCosto().compareTo(BigDecimal.valueOf(700.0)),
                 "anular tiene que devolver el costo que el producto tenia antes de la compra");
-        assertEquals(1400.0, despues.getPrecioVenta(), 0.01,
+        assertEquals(0, despues.getPrecioVenta().compareTo(BigDecimal.valueOf(1400.0)),
                 "y recalcular el precio de venta sobre ese costo");
     }
 
@@ -92,7 +99,8 @@ class AnularCompraTest {
         compraService.anularCompra(compra.getId());
 
         assertThrows(RuntimeException.class, () -> compraService.anularCompra(compra.getId()));
-        assertEquals(10.0, productoRepository.findById(p.getId()).orElseThrow().getStock(),
+        assertEquals(0, productoRepository.findById(p.getId()).orElseThrow().getStock()
+                        .compareTo(BigDecimal.valueOf(10.0)),
                 "la segunda anulacion no puede volver a restar el stock");
     }
 
@@ -103,10 +111,12 @@ class AnularCompraTest {
         // poder anular.
         Producto p = productoConCosto(700, 2);
         CompraDTO compra = comprar(p, 5, 700);
-        ventaService.registrarVenta(List.of(new com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO(p.getId(), 6)));
+        ventaService.registrarVenta(List.of(new com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO(
+                p.getId(), BigDecimal.valueOf(6))));
 
         assertThrows(RuntimeException.class, () -> compraService.anularCompra(compra.getId()));
-        assertEquals(1.0, productoRepository.findById(p.getId()).orElseThrow().getStock(),
+        assertEquals(0, productoRepository.findById(p.getId()).orElseThrow().getStock()
+                        .compareTo(BigDecimal.valueOf(1.0)),
                 "el stock no puede haber cambiado por una anulacion que fallo");
     }
 

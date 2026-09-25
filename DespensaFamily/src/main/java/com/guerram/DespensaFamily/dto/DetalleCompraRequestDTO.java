@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -16,8 +18,8 @@ public class DetalleCompraRequestDTO {
     private Long productoId;
 
     @DecimalMin(value = "0.001", message = "La cantidad debe ser mayor a 0")
-    private double cantidad;
+    private BigDecimal cantidad;
 
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a 0")
-    private double precioCosto;
+    private BigDecimal precioCosto;
 }

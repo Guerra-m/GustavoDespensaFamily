@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -36,10 +38,10 @@ class ProductoValidacionTest {
     private ProductoDTO dtoBase(String nombre) {
         return ProductoDTO.builder()
                 .nombre(nombre)
-                .precioCosto(100)
-                .precioVenta(150)
-                .porcentajeGanancia(50)
-                .stock(1)
+                .precioCosto(BigDecimal.valueOf(100))
+                .precioVenta(BigDecimal.valueOf(150))
+                .porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(1))
                 .build();
     }
 
@@ -49,7 +51,7 @@ class ProductoValidacionTest {
     void rechazaStockDecimalAlDarDeAltaUnProductoPorUnidad() throws Exception {
         ProductoDTO dto = dtoBase("Chupetin frac " + System.nanoTime());
         dto.setTipoCantidad("UNIDAD");
-        dto.setStock(0.5);
+        dto.setStock(BigDecimal.valueOf(0.5));
 
         assertThatThrownBy(() -> productoService.crearProducto(dto, null))
                 .isInstanceOf(RuntimeException.class)
@@ -62,7 +64,7 @@ class ProductoValidacionTest {
         // seguir aplicando la misma regla de stock entero (segundo caso para
         // triangular, no el mismo camino que el de arriba).
         ProductoDTO dto = dtoBase("Sin tipo frac " + System.nanoTime());
-        dto.setStock(2.75);
+        dto.setStock(BigDecimal.valueOf(2.75));
 
         assertThatThrownBy(() -> productoService.crearProducto(dto, null))
                 .isInstanceOf(RuntimeException.class)
@@ -74,21 +76,21 @@ class ProductoValidacionTest {
         ProductoDTO dto = dtoBase("Queso frac " + System.nanoTime());
         dto.setTipoCantidad("PESO");
         dto.setUnidadMedida("kg");
-        dto.setStock(2.75);
+        dto.setStock(BigDecimal.valueOf(2.75));
 
         ProductoDTO creado = productoService.crearProducto(dto, null);
 
-        assertThat(creado.getStock()).isEqualTo(2.75);
+        assertThat(creado.getStock()).isEqualByComparingTo(BigDecimal.valueOf(2.75));
     }
 
     @Test
     void elPatchDeStockTambienRechazaFraccionEnUnProductoPorUnidad() throws Exception {
         ProductoDTO dto = dtoBase("Patch entero " + System.nanoTime());
         dto.setTipoCantidad("UNIDAD");
-        dto.setStock(5);
+        dto.setStock(BigDecimal.valueOf(5));
         ProductoDTO creado = productoService.crearProducto(dto, null);
 
-        assertThatThrownBy(() -> productoService.actualizarPrecioYStock(creado.getId(), null, null, 5.5))
+        assertThatThrownBy(() -> productoService.actualizarPrecioYStock(creado.getId(), null, null, BigDecimal.valueOf(5.5)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("entero");
     }
@@ -101,7 +103,7 @@ class ProductoValidacionTest {
         ProductoDTO dto = dtoBase("Fiambre incoherente " + System.nanoTime());
         dto.setTipoCantidad("UNIDAD");
         dto.setUnidadMedida("kg");
-        dto.setStock(3);
+        dto.setStock(BigDecimal.valueOf(3));
 
         assertThatThrownBy(() -> productoService.crearProducto(dto, null))
                 .isInstanceOf(RuntimeException.class)
@@ -113,7 +115,7 @@ class ProductoValidacionTest {
         ProductoDTO dto = dtoBase("Peso con u " + System.nanoTime());
         dto.setTipoCantidad("PESO");
         dto.setUnidadMedida("u");
-        dto.setStock(1.5);
+        dto.setStock(BigDecimal.valueOf(1.5));
 
         ProductoDTO creado = productoService.crearProducto(dto, null);
 
@@ -199,13 +201,13 @@ class ProductoValidacionTest {
     void ventaRechazaMedioProductoPorUnidad() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Chupetin venta " + System.nanoTime())
-                .precioCosto(100).precioVenta(150).porcentajeGanancia(50)
-                .stock(10).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(150)).porcentajeGanancia(BigDecimal.valueOf(50))
+                .stock(BigDecimal.valueOf(10)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         assertThatThrownBy(() -> ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 0.5))))
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(0.5)))))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("no permite decimales");
     }
@@ -218,14 +220,14 @@ class ProductoValidacionTest {
         // UNIDAD se rechaza.
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Jamon venta " + System.nanoTime())
-                .precioCosto(1000).precioVenta(2000).porcentajeGanancia(100)
-                .stock(5).tipoCantidad("PESO").unidadMedida("kg")
+                .precioCosto(BigDecimal.valueOf(1000)).precioVenta(BigDecimal.valueOf(2000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(5)).tipoCantidad("PESO").unidadMedida("kg")
                 .activo(true)
                 .build());
 
         var venta = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 0.5)));
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(0.5))));
 
-        assertThat(venta.getTotal()).isEqualTo(1000.0);
+        assertThat(venta.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(1000.0));
     }
 }

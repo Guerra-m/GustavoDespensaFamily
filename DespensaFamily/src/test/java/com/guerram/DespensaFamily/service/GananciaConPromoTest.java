@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -71,8 +73,8 @@ class GananciaConPromoTest {
 
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto con promo 3x2")
-                .precioCosto(600).precioVenta(1000).porcentajeGanancia(66.67)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(600)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(66.67))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
@@ -84,7 +86,7 @@ class GananciaConPromoTest {
                 .build());
 
         ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         // /reportes/ganancia
         double ventasDespues = ventasDeHoy(hoy);
@@ -97,16 +99,16 @@ class GananciaConPromoTest {
         // asi que los dos totales ABSOLUTOS tienen que coincidir aunque
         // incluyan ventas de otros tests de la misma corrida.
         ResumenVentasDTO resumen = reportesService.resumenVentas("dia");
-        assertEquals(gananciaDespues, resumen.getGanancia(), 0.01);
+        assertEquals(gananciaDespues, resumen.getGanancia().doubleValue(), 0.01);
     }
 
     private double gananciaDeHoy(LocalDate hoy) {
         List<GananciaPorFechaDTO> porFecha = reportesService.gananciaPorFecha(hoy, hoy);
-        return porFecha.isEmpty() ? 0.0 : porFecha.get(0).getGanancia();
+        return porFecha.isEmpty() ? 0.0 : porFecha.get(0).getGanancia().doubleValue();
     }
 
     private double ventasDeHoy(LocalDate hoy) {
         List<GananciaPorFechaDTO> porFecha = reportesService.gananciaPorFecha(hoy, hoy);
-        return porFecha.isEmpty() ? 0.0 : porFecha.get(0).getTotalVentas();
+        return porFecha.isEmpty() ? 0.0 : porFecha.get(0).getTotalVentas().doubleValue();
     }
 }

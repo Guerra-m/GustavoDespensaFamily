@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.caja.EstadoCajaDTO;
@@ -96,7 +98,7 @@ class EmpleadoTest {
         EstadoCajaDTO antes = cajaService.estadoDeCaja();
 
         PagarEmpleadoRequestDTO pago = new PagarEmpleadoRequestDTO();
-        pago.setMonto(25000);
+        pago.setMonto(BigDecimal.valueOf(25000));
         pago.setMetodoPago(MetodoPago.EFECTIVO);
 
         MovimientoCajaDTO movimiento = empleadoService.pagar(e.getId(), pago);
@@ -105,7 +107,7 @@ class EmpleadoTest {
         assertThat(movimiento.getEmpleadoId()).isEqualTo(e.getId());
 
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getSaldoTotal() - antes.getSaldoTotal()).isEqualTo(-25000.0);
+        assertThat(despues.getSaldoTotal().subtract(antes.getSaldoTotal())).isEqualByComparingTo(BigDecimal.valueOf(-25000.0));
     }
 
     @Test
@@ -116,7 +118,7 @@ class EmpleadoTest {
         EmpleadoDTO e = crearEmpleado("Empleado de prueba categoria");
 
         PagarEmpleadoRequestDTO pago = new PagarEmpleadoRequestDTO();
-        pago.setMonto(1000);
+        pago.setMonto(BigDecimal.valueOf(1000));
         pago.setMetodoPago(MetodoPago.EFECTIVO);
 
         MovimientoCajaDTO movimiento = empleadoService.pagar(e.getId(), pago);

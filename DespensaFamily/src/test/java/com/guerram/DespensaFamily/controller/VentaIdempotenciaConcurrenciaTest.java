@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.controller;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -56,8 +58,8 @@ class VentaIdempotenciaConcurrenciaTest {
     void dosPeticionesConcurrentesConLaMismaClaveGeneranUnaSolaVenta() throws Exception {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Idempotencia concurrente " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
@@ -99,6 +101,7 @@ class VentaIdempotenciaConcurrenciaTest {
                 "todas las peticiones concurrentes con la misma clave tendrian que devolver la MISMA venta");
 
         Producto releido = productoRepository.findById(producto.getId()).orElseThrow();
-        assertEquals(49.0, releido.getStock(), "el stock solo se tiene que haber descontado una vez");
+        assertEquals(0, BigDecimal.valueOf(49.0).compareTo(releido.getStock()),
+                "el stock solo se tiene que haber descontado una vez");
     }
 }

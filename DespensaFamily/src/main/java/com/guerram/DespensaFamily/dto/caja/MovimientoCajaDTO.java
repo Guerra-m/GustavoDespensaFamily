@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.caja;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.CategoriaMovimiento;
 import com.guerram.DespensaFamily.model.MetodoPago;
 import com.guerram.DespensaFamily.model.TipoMovimiento;
@@ -16,7 +18,7 @@ public class MovimientoCajaDTO {
     private LocalDateTime fechaHora;
     private TipoMovimiento tipo;
     private CategoriaMovimiento categoria;
-    private double monto;
+    private BigDecimal monto;
     private MetodoPago metodoPago;
     private String descripcion;
     private String usuario;

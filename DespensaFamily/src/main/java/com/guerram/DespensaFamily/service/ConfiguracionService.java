@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -34,9 +35,9 @@ public class ConfiguracionService {
     private Configuracion crearPorDefecto() {
         Configuracion c = Configuracion.builder()
                 .id(ID_UNICO)
-                .umbralStockBajo(10.0)
+                .umbralStockBajo(BigDecimal.valueOf(10.0))
                 .nombreNegocio("Despensa Family")
-                .gananciaPorDefecto(30.0)
+                .gananciaPorDefecto(BigDecimal.valueOf(30.0))
                 .build();
         return configuracionRepository.save(c);
     }
@@ -46,7 +47,7 @@ public class ConfiguracionService {
         Configuracion c = obtenerOCrear();
 
         if (dto.getUmbralStockBajo() != null) {
-            if (dto.getUmbralStockBajo() < 0) {
+            if (dto.getUmbralStockBajo().compareTo(BigDecimal.ZERO) < 0) {
                 throw new RuntimeException("El umbral de stock bajo no puede ser negativo");
             }
             c.setUmbralStockBajo(dto.getUmbralStockBajo());
@@ -69,8 +70,8 @@ public class ConfiguracionService {
     // no duplica ni corrompe nada — el resultado final es el mismo sin
     // importar cuántas veces se ejecute con el mismo porcentaje.
     @Transactional
-    public int aplicarGananciaATodos(double porcentaje) {
-        if (porcentaje < 0) {
+    public int aplicarGananciaATodos(BigDecimal porcentaje) {
+        if (porcentaje == null || porcentaje.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("El porcentaje de ganancia no puede ser negativo");
         }
 

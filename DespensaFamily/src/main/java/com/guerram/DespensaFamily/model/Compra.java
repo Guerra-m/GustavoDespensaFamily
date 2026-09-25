@@ -3,6 +3,7 @@ package com.guerram.DespensaFamily.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,7 +26,8 @@ public class Compra {
     // recalculado sumando detalles cada vez. Es un hecho historico igual que
     // Venta.total: si el dia de manana cambia como se redondea un subtotal, las
     // compras viejas no tienen por que cambiar de importe con retroactividad.
-    private double total;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal total;
 
     // Si ya se le pago al proveedor. false = a cuenta: entro la mercaderia
     // pero no salio plata de caja todavia (ver CompraService y Fase 11 del

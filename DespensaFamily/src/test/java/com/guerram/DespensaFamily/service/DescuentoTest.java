@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -36,7 +38,7 @@ class DescuentoTest {
     @Test
     void unProductoSinDescuentoNoTienePorcentaje() {
         Producto producto = crearProducto("Sin descuento", null);
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(0.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(0.0));
     }
 
     @Test
@@ -47,12 +49,12 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(conDescuento.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(true)
                 .build());
 
-        assertThat(descuentoService.porcentajeEfectivoPara(conDescuento)).isEqualTo(20.0);
-        assertThat(descuentoService.porcentajeEfectivoPara(sinDescuento)).isEqualTo(0.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(conDescuento)).isEqualByComparingTo(BigDecimal.valueOf(20.0));
+        assertThat(descuentoService.porcentajeEfectivoPara(sinDescuento)).isEqualByComparingTo(BigDecimal.valueOf(0.0));
     }
 
     @Test
@@ -65,11 +67,11 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(15)
+                .porcentaje(BigDecimal.valueOf(15))
                 .activo(true)
                 .build());
 
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(15.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(15.0));
     }
 
     @Test
@@ -82,18 +84,18 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(30)
+                .porcentaje(BigDecimal.valueOf(30))
                 .activo(true)
                 .build());
 
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(30.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(30.0));
     }
 
     @Test
@@ -103,16 +105,16 @@ class DescuentoTest {
         DescuentoDTO creado = descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(25)
+                .porcentaje(BigDecimal.valueOf(25))
                 .activo(true)
                 .build());
 
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(25.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(25.0));
 
         creado.setActivo(false);
         descuentoService.actualizar(creado.getId(), creado);
 
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(0.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(0.0));
     }
 
     // DF-BUG-004: un segundo descuento activo sobre el mismo producto rompe
@@ -127,14 +129,14 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         assertThatThrownBy(() -> descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(true)
                 .build()))
                 .isInstanceOf(RuntimeException.class)
@@ -151,14 +153,14 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(15)
+                .porcentaje(BigDecimal.valueOf(15))
                 .activo(true)
                 .build());
 
         assertThatThrownBy(() -> descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(25)
+                .porcentaje(BigDecimal.valueOf(25))
                 .activo(true)
                 .build()))
                 .isInstanceOf(RuntimeException.class)
@@ -172,19 +174,19 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         DescuentoDTO segundo = descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(false)
                 .build());
 
         assertThat(segundo.getId()).isNotNull();
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(10.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(10.0));
     }
 
     @Test
@@ -194,14 +196,14 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         DescuentoDTO inactivo = descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(false)
                 .build());
 
@@ -218,14 +220,14 @@ class DescuentoTest {
         DescuentoDTO creado = descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
-        creado.setPorcentaje(12);
+        creado.setPorcentaje(BigDecimal.valueOf(12));
         descuentoService.actualizar(creado.getId(), creado);
 
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(12.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(12.0));
     }
 
     @Test
@@ -238,14 +240,14 @@ class DescuentoTest {
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.CATEGORIA)
                 .categoriaId(categoria.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(true)
                 .build());
 
@@ -254,14 +256,14 @@ class DescuentoTest {
         // alcance rompia esto con "no unique result"; el mix producto +
         // categoria nunca estuvo roto porque son columnas distintas, pero
         // se deja el caso cubierto explicitamente).
-        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualTo(20.0);
+        assertThat(descuentoService.porcentajeEfectivoPara(producto)).isEqualByComparingTo(BigDecimal.valueOf(20.0));
     }
 
     private Producto crearProducto(String nombre, Categoria categoria) {
         return productoRepository.save(Producto.builder()
                 .nombre(nombre + " " + System.nanoTime())
-                .precioCosto(100).precioVenta(200).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(100)).precioVenta(BigDecimal.valueOf(200)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .categoria(categoria)
                 .activo(true)
                 .build());

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto.caja;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,9 +10,9 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class ArqueoResultadoDTO {
-    private double efectivoEsperado;
-    private double efectivoContado;
-    private double diferencia;
+    private BigDecimal efectivoEsperado;
+    private BigDecimal efectivoContado;
+    private BigDecimal diferencia;
     /** null si dio exacto: no hay nada que ajustar. */
     private MovimientoCajaDTO movimiento;
 }

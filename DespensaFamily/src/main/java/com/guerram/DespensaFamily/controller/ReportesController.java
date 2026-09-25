@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class ReportesController {
 
     @GetMapping("/productos-bajo-stock")
     public List<ProductoBajoStockDTO> productosBajoStock(
-            @RequestParam(required = false) Double limite
+            @RequestParam(required = false) BigDecimal limite
     ) {
         return reportesService.productosConBajoStock(limite);
     }

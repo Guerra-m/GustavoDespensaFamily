@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -39,8 +41,8 @@ class VentaIdempotenciaTest {
     private Producto crearProducto(double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre("Idempotencia " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -52,13 +54,13 @@ class VentaIdempotenciaTest {
         String clave = UUID.randomUUID().toString();
 
         VentaDTO primera = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 2.0)),
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(2.0))),
                 MetodoPago.EFECTIVO, null, clave);
 
         long movimientosDespuesDeLaPrimera = movimientoCajaRepository.count();
 
         VentaDTO segunda = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 2.0)),
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(2.0))),
                 MetodoPago.EFECTIVO, null, clave);
 
         assertThat(segunda.getId()).isEqualTo(primera.getId());
@@ -66,7 +68,7 @@ class VentaIdempotenciaTest {
 
         Producto releido = productoRepository.findById(producto.getId()).orElseThrow();
         // Stock descontado UNA sola vez (50 - 2 = 48), no dos.
-        assertThat(releido.getStock()).isEqualTo(48.0);
+        assertThat(releido.getStock()).isEqualByComparingTo(BigDecimal.valueOf(48.0));
     }
 
     @Test
@@ -75,17 +77,17 @@ class VentaIdempotenciaTest {
         Producto producto = crearProducto(50);
 
         VentaDTO primera = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 1.0)),
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))),
                 MetodoPago.EFECTIVO, null, UUID.randomUUID().toString());
 
         VentaDTO segunda = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 1.0)),
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))),
                 MetodoPago.EFECTIVO, null, UUID.randomUUID().toString());
 
         assertThat(segunda.getId()).isNotEqualTo(primera.getId());
 
         Producto releido = productoRepository.findById(producto.getId()).orElseThrow();
-        assertThat(releido.getStock()).isEqualTo(48.0);
+        assertThat(releido.getStock()).isEqualByComparingTo(BigDecimal.valueOf(48.0));
     }
 
     @Test
@@ -94,10 +96,10 @@ class VentaIdempotenciaTest {
         Producto producto = crearProducto(50);
 
         VentaDTO primera = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         VentaDTO segunda = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                List.of(new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         assertThat(segunda.getId()).isNotEqualTo(primera.getId());
     }

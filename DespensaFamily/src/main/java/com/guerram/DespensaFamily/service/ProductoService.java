@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,7 +64,7 @@ public class ProductoService {
             // partida, y eso solo tiene sentido para lo que se vende por
             // peso). getStock() ya viene redondeado a 3 decimales
             // (Cantidades), asi que el modulo detecta cualquier fraccion real.
-            if (producto.getStock() % 1 != 0) {
+            if (producto.getStock().stripTrailingZeros().scale() > 0) {
                 throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
             }
         } else {
@@ -215,7 +216,7 @@ public class ProductoService {
         producto.setProveedor(dto.getProveedor());
         producto.setTipoCantidad(dto.getTipoCantidad());
         producto.setUnidadMedida(dto.getUnidadMedida());
-        producto.setFraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0);
+        producto.setFraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : BigDecimal.ONE);
         producto.setUnidadesPorPaquete(dto.getUnidadesPorPaquete());
         normalizarYValidarTipoYUnidad(producto);
 
@@ -249,9 +250,9 @@ public class ProductoService {
     @Transactional
     public ProductoDTO actualizarPrecioYStock(
             Long id,
-            Double precioVenta,
-            Double precioCosto,
-            Double stock
+            BigDecimal precioVenta,
+            BigDecimal precioCosto,
+            BigDecimal stock
     ) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -260,15 +261,15 @@ public class ProductoService {
             throw new RuntimeException("Debe enviar al menos un valor a actualizar");
         }
 
-        if (precioVenta != null && precioVenta < 0) {
+        if (precioVenta != null && precioVenta.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("El precio de venta no puede ser negativo");
         }
 
-        if (precioCosto != null && precioCosto < 0) {
+        if (precioCosto != null && precioCosto.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("El precio de costo no puede ser negativo");
         }
 
-        if (stock != null && stock < 0) {
+        if (stock != null && stock.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("El stock no puede ser negativo");
         }
 
@@ -276,7 +277,7 @@ public class ProductoService {
         // el que un producto por unidad podia terminar con stock fraccionado
         // (ej. dejar 2,5 chupetines) sin pasar nunca por VentaService.
         if (stock != null && "UNIDAD".equals(producto.getTipoCantidad())
-                && Cantidades.redondear(stock) % 1 != 0) {
+                && Cantidades.redondear(stock).stripTrailingZeros().scale() > 0) {
             throw new RuntimeException("El stock debe ser un número entero para un producto por unidad");
         }
 

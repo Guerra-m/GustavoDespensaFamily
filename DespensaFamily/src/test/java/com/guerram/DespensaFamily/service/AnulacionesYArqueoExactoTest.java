@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DetalleVentaRequestDTO;
@@ -55,8 +57,9 @@ class AnulacionesYArqueoExactoTest {
     private Producto producto(double precioVenta, double stock) {
         return productoRepository.save(Producto.builder()
                 .nombre("Producto para anulacion de prueba")
-                .precioCosto(precioVenta / 2).precioVenta(precioVenta).porcentajeGanancia(100)
-                .stock(stock).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(precioVenta / 2)).precioVenta(BigDecimal.valueOf(precioVenta))
+                .porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(stock)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
     }
@@ -70,12 +73,12 @@ class AnulacionesYArqueoExactoTest {
         Producto p = producto(20000, 5);
 
         VentaDTO venta = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         ventaService.anularVenta(venta.getId());
 
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getEgresosDeHoy()).isEqualTo(antes.getEgresosDeHoy());
+        assertThat(despues.getEgresosDeHoy()).isEqualByComparingTo(antes.getEgresosDeHoy());
     }
 
     @Test
@@ -89,14 +92,14 @@ class AnulacionesYArqueoExactoTest {
         RegistrarMovimientoRequestDTO gasto = new RegistrarMovimientoRequestDTO();
         gasto.setTipo(TipoMovimiento.EGRESO);
         gasto.setCategoria(CategoriaMovimiento.GASTO);
-        gasto.setMonto(4000);
+        gasto.setMonto(BigDecimal.valueOf(4000));
         gasto.setMetodoPago(MetodoPago.EFECTIVO);
         gasto.setDescripcion("Gasto de prueba para anular");
         MovimientoCajaDTO registrado = cajaService.registrarMovimientoManual(gasto);
 
         // Con el gasto cargado, "egresos de hoy" sube 4000.
         EstadoCajaDTO conGasto = cajaService.estadoDeCaja();
-        assertThat(conGasto.getEgresosDeHoy() - antes.getEgresosDeHoy()).isEqualTo(4000.0);
+        assertThat(conGasto.getEgresosDeHoy().subtract(antes.getEgresosDeHoy())).isEqualByComparingTo(BigDecimal.valueOf(4000.0));
 
         cajaService.revertirMovimiento(registrado.getId());
 
@@ -104,8 +107,8 @@ class AnulacionesYArqueoExactoTest {
         // "egresos de hoy" sigue reflejandolo -- lo que cambia es que ahora
         // la reversion aparece contada aparte, en "anulaciones de hoy".
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getEgresosDeHoy() - antes.getEgresosDeHoy()).isEqualTo(4000.0);
-        assertThat(despues.getAnulacionesDeHoy() - antes.getAnulacionesDeHoy()).isEqualTo(4000.0);
+        assertThat(despues.getEgresosDeHoy().subtract(antes.getEgresosDeHoy())).isEqualByComparingTo(BigDecimal.valueOf(4000.0));
+        assertThat(despues.getAnulacionesDeHoy().subtract(antes.getAnulacionesDeHoy())).isEqualByComparingTo(BigDecimal.valueOf(4000.0));
     }
 
     @Test
@@ -115,15 +118,15 @@ class AnulacionesYArqueoExactoTest {
         Producto p = producto(15000, 5);
 
         VentaDTO venta = ventaService.registrarVenta(
-                List.of(new DetalleVentaRequestDTO(p.getId(), 1.0)), MetodoPago.EFECTIVO);
+                List.of(new DetalleVentaRequestDTO(p.getId(), BigDecimal.valueOf(1.0))), MetodoPago.EFECTIVO);
 
         EstadoCajaDTO conVenta = cajaService.estadoDeCaja();
-        assertThat(conVenta.getVentasNetasDeHoy() - antes.getVentasNetasDeHoy()).isEqualTo(15000.0);
+        assertThat(conVenta.getVentasNetasDeHoy().subtract(antes.getVentasNetasDeHoy())).isEqualByComparingTo(BigDecimal.valueOf(15000.0));
 
         ventaService.anularVenta(venta.getId());
 
         EstadoCajaDTO despues = cajaService.estadoDeCaja();
-        assertThat(despues.getVentasNetasDeHoy()).isEqualTo(antes.getVentasNetasDeHoy());
+        assertThat(despues.getVentasNetasDeHoy()).isEqualByComparingTo(antes.getVentasNetasDeHoy());
     }
 
     // --- Arqueo exacto queda registrado ---
@@ -132,7 +135,8 @@ class AnulacionesYArqueoExactoTest {
         RegistrarMovimientoRequestDTO aporte = new RegistrarMovimientoRequestDTO();
         aporte.setTipo(TipoMovimiento.INGRESO);
         aporte.setCategoria(CategoriaMovimiento.APORTE);
-        aporte.setMonto(Math.max(10_000, Math.abs(cajaService.estadoDeCaja().getEfectivoEnCaja()) + 10_000));
+        BigDecimal efectivoActual = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        aporte.setMonto(efectivoActual.abs().add(BigDecimal.valueOf(10_000)).max(BigDecimal.valueOf(10_000)));
         aporte.setMetodoPago(MetodoPago.EFECTIVO);
         aporte.setDescripcion("Piso de efectivo para el test de arqueo exacto");
         cajaService.registrarMovimientoManual(aporte);
@@ -142,7 +146,7 @@ class AnulacionesYArqueoExactoTest {
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void unArqueoExactoQuedaRegistradoComoConstancia() {
         sembrarEfectivoSuficiente();
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         ArqueoRequestDTO pedido = new ArqueoRequestDTO();
         pedido.setEfectivoContado(esperado);
@@ -150,9 +154,9 @@ class AnulacionesYArqueoExactoTest {
 
         ArqueoResultadoDTO resultado = cajaService.registrarArqueo(pedido);
 
-        assertThat(resultado.getDiferencia()).isEqualTo(0.0);
+        assertThat(resultado.getDiferencia()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(resultado.getMovimiento()).isNotNull();
-        assertThat(resultado.getMovimiento().getMonto()).isEqualTo(0.0);
+        assertThat(resultado.getMovimiento().getMonto()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(resultado.getMovimiento().getCategoria()).isEqualTo(CategoriaMovimiento.AJUSTE);
     }
 
@@ -162,21 +166,21 @@ class AnulacionesYArqueoExactoTest {
         // Triangulacion: ademas de quedar registrado, el monto 0 no puede
         // alterar el saldo -- ni para arriba ni para abajo.
         sembrarEfectivoSuficiente();
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         ArqueoRequestDTO pedido = new ArqueoRequestDTO();
         pedido.setEfectivoContado(esperado);
 
         cajaService.registrarArqueo(pedido);
 
-        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualTo(esperado);
+        assertThat(cajaService.estadoDeCaja().getEfectivoEnCaja()).isEqualByComparingTo(esperado);
     }
 
     @Test
     @WithMockUser(username = "duenio-de-prueba", roles = "ADMIN")
     void elArqueoExactoApareceEnElHistorialDeMovimientos() {
         sembrarEfectivoSuficiente();
-        double esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
+        BigDecimal esperado = cajaService.estadoDeCaja().getEfectivoEnCaja();
 
         ArqueoRequestDTO pedido = new ArqueoRequestDTO();
         pedido.setEfectivoContado(esperado);

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.guerram.DespensaFamily.dto.DescuentoDTO;
@@ -48,31 +50,31 @@ class VentaConDescuentoTest {
     void unaVentaConDescuentoGuardaElPorcentajeEnElDetalle() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Galletitas con 90% off " + System.nanoTime())
-                .precioCosto(500).precioVenta(2860).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(2860)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(90)
+                .porcentaje(BigDecimal.valueOf(90))
                 .activo(true)
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         VentaDetalleResponseDTO detalle = ventaService.buscarDetallePorId(venta.getId());
 
         assertThat(detalle.getDetalles()).hasSize(1);
-        assertThat(detalle.getDetalles().get(0).getDescuentoPorcentaje()).isEqualTo(90.0);
+        assertThat(detalle.getDetalles().get(0).getDescuentoPorcentaje()).isEqualByComparingTo(BigDecimal.valueOf(90.0));
         assertThat(detalle.getDetalles().get(0).getPromoDescripcion()).isNull();
         // El precio de lista sigue siendo el de venta, sin el descuento
         // aplicado -- lo aplicado va en subtotal. El ticket necesita las dos
         // cosas para mostrar "precio lista, descuento, subtotal".
-        assertThat(detalle.getDetalles().get(0).getPrecioUnitario()).isEqualTo(2860.0);
-        assertThat(detalle.getDetalles().get(0).getSubtotal()).isEqualTo(286.0);
+        assertThat(detalle.getDetalles().get(0).getPrecioUnitario()).isEqualByComparingTo(BigDecimal.valueOf(2860.0));
+        assertThat(detalle.getDetalles().get(0).getSubtotal()).isEqualByComparingTo(BigDecimal.valueOf(286.0));
     }
 
     @Test
@@ -80,8 +82,8 @@ class VentaConDescuentoTest {
     void unaVentaConPromoGuardaLaDescripcionDeLaPromoYSinPorcentaje() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Yerba 3x2 " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
@@ -93,7 +95,7 @@ class VentaConDescuentoTest {
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 3.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(3.0))));
 
         VentaDetalleResponseDTO detalle = ventaService.buscarDetallePorId(venta.getId());
 
@@ -106,13 +108,13 @@ class VentaConDescuentoTest {
     void unaVentaSinDescuentoNiPromoQuedaEnNullEnLosDos() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto sin promo ni descuento " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         VentaDetalleResponseDTO detalle = ventaService.buscarDetallePorId(venta.getId());
 
@@ -128,28 +130,28 @@ class VentaConDescuentoTest {
     void cotizarYRegistrarCoincidenEnElPorcentajeDeDescuento() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Leche con 10% off " + System.nanoTime())
-                .precioCosto(700).precioVenta(910).porcentajeGanancia(30)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(700)).precioVenta(BigDecimal.valueOf(910)).porcentajeGanancia(BigDecimal.valueOf(30))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         var cotizacion = ventaService.cotizar(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
         VentaDetalleResponseDTO detalle = ventaService.buscarDetallePorId(venta.getId());
 
         assertThat(cotizacion.getLineas().get(0).getDescuentoPorcentaje())
-                .isEqualTo(detalle.getDetalles().get(0).getDescuentoPorcentaje());
-        assertThat(cotizacion.getTotal()).isEqualTo(venta.getTotal());
+                .isEqualByComparingTo(detalle.getDetalles().get(0).getDescuentoPorcentaje());
+        assertThat(cotizacion.getTotal()).isEqualByComparingTo(venta.getTotal());
     }
 
     @Test
@@ -157,23 +159,23 @@ class VentaConDescuentoTest {
     void unDescuentoDel20PorCientoCobraElPrecioConDescuento() {
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Producto con 20% off " + System.nanoTime())
-                .precioCosto(500).precioVenta(1000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("UNIDAD").unidadMedida("u")
+                .precioCosto(BigDecimal.valueOf(500)).precioVenta(BigDecimal.valueOf(1000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("UNIDAD").unidadMedida("u")
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(20)
+                .porcentaje(BigDecimal.valueOf(20))
                 .activo(true)
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 2.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(2.0))));
 
         // 2 unidades a $1000 con 20% off: $1600, no $2000.
-        assertThat(venta.getTotal()).isEqualTo(1600.0);
+        assertThat(venta.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(1600.0));
     }
 
     @Test
@@ -184,23 +186,23 @@ class VentaConDescuentoTest {
         // no cubre.
         Producto producto = productoRepository.save(Producto.builder()
                 .nombre("Fiambre con descuento " + System.nanoTime())
-                .precioCosto(1000).precioVenta(2000).porcentajeGanancia(100)
-                .stock(50).tipoCantidad("PESO").unidadMedida("kg")
-                .fraccionMinima(0.001)
+                .precioCosto(BigDecimal.valueOf(1000)).precioVenta(BigDecimal.valueOf(2000)).porcentajeGanancia(BigDecimal.valueOf(100))
+                .stock(BigDecimal.valueOf(50)).tipoCantidad("PESO").unidadMedida("kg")
+                .fraccionMinima(BigDecimal.valueOf(0.001))
                 .activo(true)
                 .build());
 
         descuentoService.crear(DescuentoDTO.builder()
                 .alcance(AlcanceDescuento.PRODUCTO)
                 .productoId(producto.getId())
-                .porcentaje(10)
+                .porcentaje(BigDecimal.valueOf(10))
                 .activo(true)
                 .build());
 
         VentaDTO venta = ventaService.registrarVenta(List.of(
-                new DetalleVentaRequestDTO(producto.getId(), 1.0)));
+                new DetalleVentaRequestDTO(producto.getId(), BigDecimal.valueOf(1.0))));
 
         // 1kg a $2000 con 10% off: $1800.
-        assertThat(venta.getTotal()).isEqualTo(1800.0);
+        assertThat(venta.getTotal()).isEqualByComparingTo(BigDecimal.valueOf(1800.0));
     }
 }

@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,7 +18,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActualizarStockPrecioDTO {
-    private Double precioVenta;
-    private Double precioCosto;
-    private Double stock;
+    private BigDecimal precioVenta;
+    private BigDecimal precioCosto;
+    private BigDecimal stock;
 }

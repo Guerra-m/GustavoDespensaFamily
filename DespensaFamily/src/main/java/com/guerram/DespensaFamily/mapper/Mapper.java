@@ -3,6 +3,8 @@ package com.guerram.DespensaFamily.mapper;
 import com.guerram.DespensaFamily.dto.*;
 import com.guerram.DespensaFamily.model.*;
 
+import java.math.BigDecimal;
+
 public class Mapper {
 
     // ----------- PRODUCTO -------------
@@ -136,7 +138,7 @@ public class Mapper {
                 .imagenUrl(dto.getImagenUrl())
                 .tipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD")
                 .unidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u")
-                .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0)
+                .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : BigDecimal.ONE)
                 .unidadesPorPaquete(dto.getUnidadesPorPaquete())
                 .build();
 

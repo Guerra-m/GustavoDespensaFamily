@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.config;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.Compra;
 import com.guerram.DespensaFamily.model.DetalleVenta;
 import com.guerram.DespensaFamily.model.EstadoVenta;
@@ -96,14 +98,14 @@ class LecturaPorRolTest {
 
         producto = productoRepository.save(Producto.builder()
                 .nombre("Yerba lectura-por-rol")
-                .precioVenta(1500)
-                .precioCosto(900)
-                .porcentajeGanancia(66.6)
+                .precioVenta(BigDecimal.valueOf(1500))
+                .precioCosto(BigDecimal.valueOf(900))
+                .porcentajeGanancia(BigDecimal.valueOf(66.6))
                 .proveedor("Distribuidora Secreta")
-                .stock(10)
+                .stock(BigDecimal.valueOf(10))
                 .tipoCantidad("UNIDAD")
                 .unidadMedida("u")
-                .fraccionMinima(1.0)
+                .fraccionMinima(BigDecimal.valueOf(1.0))
                 .activo(true)
                 .build());
 
@@ -116,7 +118,7 @@ class LecturaPorRolTest {
         compra = compraRepository.save(Compra.builder()
                 .fechaHora(ahora)
                 .proveedor("Distribuidora Secreta")
-                .total(9000)
+                .total(BigDecimal.valueOf(9000))
                 .metodoPago(MetodoPago.EFECTIVO)
                 .pagada(true)
                 .usuario(DUENIO)
@@ -158,7 +160,7 @@ class LecturaPorRolTest {
     private Venta venta(String usuario, LocalDateTime cuando) {
         Venta v = Venta.builder()
                 .fechaHora(cuando)
-                .total(1500)
+                .total(BigDecimal.valueOf(1500))
                 .metodoPago(MetodoPago.EFECTIVO)
                 .usuario(usuario)
                 .estado(EstadoVenta.ACTIVA)
@@ -166,10 +168,10 @@ class LecturaPorRolTest {
         v.setDetalles(new ArrayList<>(List.of(DetalleVenta.builder()
                 .venta(v)
                 .producto(producto)
-                .cantidad(1)
-                .precioUnitario(1500)
-                .precioCosto(900)
-                .subtotal(1500)
+                .cantidad(BigDecimal.valueOf(1))
+                .precioUnitario(BigDecimal.valueOf(1500))
+                .precioCosto(BigDecimal.valueOf(900))
+                .subtotal(BigDecimal.valueOf(1500))
                 .build())));
         Venta guardada = ventaRepository.save(v);
         ventasCreadas.add(guardada);

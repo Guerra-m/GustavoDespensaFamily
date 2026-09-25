@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 /**
  * DF-SEC-003 (API-04): el producto como lo ve quien vende sin gestionar el
  * catalogo. Lo mismo que ProductoDTO menos precioCosto, porcentajeGanancia y
@@ -12,11 +14,11 @@ package com.guerram.DespensaFamily.dto;
 public record ProductoParaVentaDTO(
         Long id,
         String nombre,
-        double precioVenta,
-        double stock,
+        BigDecimal precioVenta,
+        BigDecimal stock,
         String tipoCantidad,
         String unidadMedida,
-        Double fraccionMinima,
+        BigDecimal fraccionMinima,
         Integer unidadesPorPaquete,
         String codigoBarras,
         String imagenUrl,
