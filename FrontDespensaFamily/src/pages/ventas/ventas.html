@@ -23,12 +23,12 @@
   <!-- HEADER -->
   <div class="ventas-header">
     <div id="fecha"></div>
-    <div>
-  Cliente:
-  <select id="select-cliente">
-    <option value="consumidor_final">Consumidor final</option>
-  </select>
-</div>
+    <!-- El cliente se pide una sola vez: en el carrito (input-cliente, más
+         abajo), que es el que de verdad se usa (ver crearImpresorTicket en
+         ventas.ticket.ts). Este <select> era un resabio -- nunca estuvo
+         conectado a nada, siempre decía "Consumidor final" sin importar lo
+         que el vendedor eligiera -- y duplicaba la pregunta del cliente al
+         principio de la pantalla. -->
     <button type="button" id="btn-escanear-celular">📱 Escanear con el celular</button>
     <button type="button" id="btn-ver-ventas-registradas">Ventas Registradas</button>
   </div>

@@ -260,8 +260,14 @@ async function cargarVentas(page: number = paginaVentasActual) {
       }
     });
 
-    const btnImprimir = tr.querySelector(".btn-imprimir") as HTMLButtonElement;
-    btnImprimir.addEventListener("click", async (e) => {
+    // DF-BUG-003: en una venta ANULADA este botón no se dibuja (el <td> de
+    // arriba muestra la etiqueta "Anulada" en su lugar), así que querySelector
+    // da null acá. Antes esto hacía `as HTMLButtonElement` sin chequear y
+    // llamaba `.addEventListener` directo -- un TypeError a mitad del forEach
+    // que cortaba el render: ninguna venta después de la anulada llegaba a
+    // pintarse. `?.` evita depender de que el botón exista.
+    const btnImprimir = tr.querySelector(".btn-imprimir") as HTMLButtonElement | null;
+    btnImprimir?.addEventListener("click", async (e) => {
       e.stopPropagation();
       await imprimirTicket(v);
     });
@@ -299,6 +305,16 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
       <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
   `;
+  // DF-UX-007: `imagenUrl` puede apuntar a un archivo que ya no está (se
+  // borró del disco, o es de otra instalación restaurada de un backup). El
+  // <img> roto mostraba el ícono nativo del navegador MÁS el texto de `alt`
+  // (el nombre del producto) desbordado sobre la tarjeta de 130px -- se leía
+  // como texto superpuesto/roto. Sacar el <img> en el error dispara el
+  // placeholder que ya existe en CSS (`.producto-imagen:not(:has(img))`),
+  // el mismo cajón gris que se ve cuando el producto nunca tuvo imagen.
+  const img = card.querySelector<HTMLImageElement>(".producto-imagen img");
+  img?.addEventListener("error", () => img.remove(), { once: true });
+
   card.addEventListener("click", () => {
     if (esProductoPesable(prod)) {
       // Por peso: hace falta que el vendedor tipee la cantidad exacta, un
@@ -435,28 +451,44 @@ function renderCarrito() {
     const subtotalTexto = linea ? formatearMoneda(linea.subtotal) : "…";
     const avisoStock = linea?.stockInsuficiente ? `<div class="carrito-sin-stock">Sin stock suficiente</div>` : "";
 
+    // DF-BUG-002: mostrar acá lo mismo que ya cobró /ventas/cotizar. Antes se
+    // formateaba item.cantidad (el valor crudo tipeado, redondeado del lado
+    // del cliente) y con ciertos decimales eso no coincidía con la cantidad
+    // que el backend redondeó con BigDecimal HALF_UP para calcular el
+    // subtotal (ej: tipear 1,2345 kg mostraba "1,234" cuando el subtotal ya
+    // cobraba 1,235). Con cotización en mano, linea.cantidad ES la cantidad
+    // facturada -- se muestra esa. Sin cotización todavía (primera vuelta,
+    // sin red aún), formatearCantidadConPaquete ya redondea bien (ver
+    // DF-BUG-002 en utils/format.ts).
+    const cantidadMostrada = linea?.cantidad ?? item.cantidad;
+
     // El +/- solo aparece en productos por unidad: en los por peso, tocar
     // "+1" no tiene sentido (la fracción mínima es el gramo) y lo que hace
     // falta ahí es re-tipear un peso exacto, no incrementar de a poco.
     const stepper = esProductoPesable(prod)
-      ? `<span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>`
+      ? `<span class="carrito-cantidad-texto">${formatearCantidadConPaquete(cantidadMostrada, prod)}</span>`
       : `<div class="carrito-stepper">
           <button class="btn-stepper" data-index="${index}" data-delta="-1" aria-label="Quitar una unidad">−</button>
-          <span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>
+          <span class="carrito-cantidad-texto">${formatearCantidadConPaquete(cantidadMostrada, prod)}</span>
           <button class="btn-stepper" data-index="${index}" data-delta="1" aria-label="Agregar una unidad">+</button>
         </div>`;
 
+    // DF-UX-006 ("arreglar el carrito"): antes eran dos renglones por ítem
+    // (nombre+cantidad arriba, subtotal+"Quitar" abajo) -- con los botones
+    // de 32px+ que pide la auditoría (stepper, quitar) apilados en dos
+    // renglones, cada ítem terminaba pesando ~80px de alto aunque el
+    // contenido cupiera en uno solo. Un renglón (nombre, cantidad, subtotal,
+    // ✕) mide lo que mide el más alto de sus botones (~40-44px) en vez de
+    // la suma de los dos -- así entran 5-6 ítems sin scroll donde antes
+    // entraban 2 y medio. El nombre corta a dos líneas si hace falta (ver
+    // .carrito-item-nombre) sin romper la fila ni empujar el resto.
     const fila = document.createElement("div");
     fila.className = "carrito-item";
     fila.innerHTML = `
-      <div class="carrito-item-fila1">
-        <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
-        ${stepper}
-      </div>
-      <div class="carrito-item-fila2">
-        <span class="carrito-item-subtotal">${subtotalTexto}</span>
-        <button class="btn-quitar" data-index="${index}">Quitar</button>
-      </div>
+      <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
+      ${stepper}
+      <span class="carrito-item-subtotal">${subtotalTexto}</span>
+      <button class="btn-quitar" data-index="${index}" aria-label="Quitar ${esc(prod.nombre)} del carrito" title="Quitar">✕</button>
       ${avisoStock}
     `;
     tablaDetalle.appendChild(fila);

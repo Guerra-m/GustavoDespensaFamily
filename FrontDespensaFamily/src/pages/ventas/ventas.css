@@ -592,15 +592,28 @@ tbody tr { transition: all 0.2s ease; }
 tbody tr:hover { background-color: #f8f9fa; transform: scale(1.01); }
 tbody tr:last-child td { border-bottom: none; }
 
-/* Tabla detalle de venta (carrito): antes decía "#tabla-detalle button",
-   que le pintaba el rojo de "Quitar" a cualquier botón nuevo que se agregue
-   a esta tabla (como el +/- del stepper). Acotado a .btn-quitar, que es a
-   quien en realidad le corresponde ese color. */
+/* DF-UX-006: era un botón de texto completo ("Quitar", padding 8x16) del
+   ancho de media fila -- con 5-6 ítems visibles a la vez no entraba. Un
+   ícono ✕ chico dice lo mismo (aria-label/title llevan el texto completo
+   para lector de pantalla y tooltip) en una fracción del espacio. Queda un
+   poco debajo del mínimo de 32px que pide la auditoría (DF-UX-001) para el
+   stepper -- se acepta acá porque es una acción destructiva de una sola
+   vez (no se toca repetidas veces como el +/- de cantidad) y porque el
+   espacio ganado es lo que permite ver más de un ítem sin scrollear. */
 #tabla-detalle .btn-quitar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
-  padding: 8px 16px;
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1;
   box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
 }
 
@@ -848,15 +861,54 @@ hr {
    Todo lo que se muestra sigue viniendo de la cotización del backend
    (DF-BUG-001) — acá solo cambia cómo se dibuja. */
 .carrito-lista-scroll {
-  /* 260px y no más: a 1366x768 (notebook chica) el resto del carrito -header,
-     método de pago, cliente, resumen y atajos- ya ocupa buena parte del
-     alto; con esto "Confirmar Venta" queda visible sin scroll también ahí,
-     no solo en pantallas más altas. Con muchos ítems, la lista scrollea
-     adentro (ver overflow-y) sin arrastrar el resto de la columna. */
-  max-height: 260px;
+  /* DF-UX-006: antes esto era un max-height fijo en píxeles (260px), pensado
+     solo para 1366x768. En una pantalla más baja (1280x720) ese alto fijo no
+     dejaba lugar para el resto del panel (método de pago, cliente, resumen)
+     y "Confirmar Venta" quedaba empujado fuera de la vista; en una más alta
+     (1920x1080) sobraba pantalla y el corte a los 260px era artificial. Ahora
+     el alto lo da flex (ver .carrito): la lista es el ÚNICO bloque que cede
+     -- todo lo demás del panel (título, método de pago, cliente, resumen,
+     atajos) mantiene su tamaño natural y nunca se lo tapa ni se lo empuja
+     afuera de la pantalla. min-height evita que la lista desaparezca del
+     todo si el panel completo no entrara igual en una pantalla muy baja. */
+  flex: 1 1 auto;
+  min-height: 96px;
   overflow-y: auto;
   border-radius: 12px;
   border: 1px solid #f1f3f5;
+  /* Scrollbar visible: sin esto, en Windows/Chrome la barra es un overlay
+     que no se ve hasta pasar el mouse por encima, así que un ítem cortado a
+     la mitad al fondo de la lista se leía como un elemento roto o tapado por
+     el método de pago de abajo -- no como "hay más para scrollear". */
+  scrollbar-width: thin;
+  scrollbar-color: #adb5bd #f1f3f5;
+  /* Con una cantidad de ítems que no es múltiplo exacto de la altura de la
+     lista, el último visible queda cortado a la mitad -- normal en
+     cualquier lista con scroll, pero sin ningún indicio visual se leía
+     como un elemento roto o tapado por el método de pago de abajo (esa fue
+     la confusión original: "se superpone"). El degradé desvanece el borde
+     de corte para que se lea como "hay más para scrollear, seguí bajando",
+     no como algo roto o tapado. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
+}
+
+.carrito-lista-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.carrito-lista-scroll::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.carrito-lista-scroll::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 10px;
+}
+
+.carrito-lista-scroll::-webkit-scrollbar-thumb:hover {
+  background: #868e96;
 }
 
 .carrito-lista {
@@ -864,8 +916,24 @@ hr {
   flex-direction: column;
 }
 
+/* DF-UX-006 ("arreglar el carrito"): antes eran dos renglones por ítem
+   (nombre+cantidad arriba, subtotal+"Quitar" abajo). Apilar los botones de
+   32px+ que pide la auditoría (stepper, quitar) en dos renglones hacía que
+   cada ítem pesara ~80px de alto aunque el contenido entrara en uno solo.
+   Un renglón mide lo que mide el más alto de sus botones (~36-40px con
+   padding) en vez de la SUMA de los dos -- con eso entran 5-6 ítems sin
+   scroll donde antes entraban 2 y medio. flex-wrap es la red de seguridad
+   para nombres largos: el nombre corta a dos líneas (ver
+   .carrito-item-nombre) antes de forzar el wrap de toda la fila, pero si
+   aun así no entrara todo, cede el nombre primero (es el único con
+   flex-grow) y el resto (cantidad/subtotal/quitar, todos flex-shrink:0)
+   nunca se aprieta ni se corta. */
 .carrito-item {
-  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 5px 8px;
   border-bottom: 1px solid #f1f3f5;
 }
 
@@ -873,30 +941,33 @@ hr {
   border-bottom: none;
 }
 
-.carrito-item-fila1,
-.carrito-item-fila2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.carrito-item-fila2 {
-  margin-top: 6px;
-}
-
 .carrito-item-nombre {
-  font-size: 13px;
+  font-size: 12.5px;
   color: #2c3e50;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 56px;
+  min-width: 56px;
   overflow-wrap: break-word;
+  /* Nombre largo: dos líneas y corta, nunca rompe la fila ni empuja la
+     cantidad/subtotal/quitar de al lado. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .carrito-item-subtotal {
   font-weight: 700;
   color: #2c3e50;
-  font-size: 14px;
+  font-size: 12.5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* "Sin stock suficiente": si aparece, ocupa su propio renglón dentro del
+   ítem (flex-basis 100%) en vez de apretarse entre la cantidad y el
+   subtotal. */
+.carrito-sin-stock {
+  flex-basis: 100%;
 }
 
 /* Subir o bajar de a 1 unidad sin borrar la línea y volver a escanear:
@@ -906,16 +977,18 @@ hr {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 /* DF-UX-001: eran 20x20px, chicos para tocar con el dedo en una pantalla
-   táctil. La auditoría pide 32px o más — quedan en 34px, con un poco de
-   margen sobre el mínimo. */
+   táctil. La auditoría pide 32px o más — quedan en 32px, justo en el
+   mínimo (antes 34px; con el ítem en un solo renglón cada píxel de ancho
+   cuenta más que antes, y 2px no cambian el tamaño de clic en la
+   práctica). */
 .btn-stepper {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   padding: 0;
   margin: 0;
@@ -935,9 +1008,10 @@ hr {
 }
 
 .carrito-cantidad-texto {
-  min-width: 36px;
+  min-width: 30px;
   text-align: center;
-  font-size: 13px;
+  font-size: 12.5px;
+  flex-shrink: 0;
 }
 
 /* DF-BUG-001: marca en la línea del carrito qué descuento o combo aplicó la
@@ -1128,11 +1202,37 @@ hr {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
+  /* Sin esto, max-height de acá abajo solo cubre el contenido y el padding
+     (20px arriba y abajo) se suma aparte -- el panel terminaba 40px más
+     alto de lo que decía max-height y se salía igual del viewport. */
+  box-sizing: border-box;
   /* Era var(--espacio-3, 12px) entre los 6 bloques de la columna (título,
      lista, método de pago, cliente, resumen, atajos): a 1366x768 esos 5
      espacios de más empujaban "Confirmar Venta" 16px por debajo del borde
      inferior de la pantalla. */
-  gap: 8px;
+  gap: 6px;
+  /* DF-UX-006 ("arreglar el carrito"): el panel entero queda acotado a lo
+     que entra debajo del header sin scrollear la página. El offset (204px)
+     sale de medir con devtools a 1366x768: header + hr + márgenes +
+     el padding inferior de .content (40px) + el padding propio de este
+     panel (ya contado por box-sizing:border-box) -- con margen chico. En
+     una pantalla más alta el panel crece y la lista de ítems (única que
+     tiene flex:1, ver .carrito-lista-scroll) muestra más filas sin scroll
+     interno; en una más baja (1280x720) se achica y es la lista la que
+     cede, nunca el total ni Confirmar Venta. overflow:hidden es la red de
+     seguridad: si algo no entrara igual, se recorta ACÁ (donde no se ve
+     nada raro) y no empuja ni tapa lo que sigue abajo en la página. */
+  max-height: calc(100vh - 204px);
+  overflow: hidden;
+}
+
+/* Todo el panel es fijo excepto la lista de ítems: título, método de pago,
+   cliente, resumen (total + Confirmar) y la leyenda de atajos nunca ceden
+   espacio -- es la lista la que se achica o scrollea (ver
+   .carrito-lista-scroll). Así "Confirmar Venta" nunca desaparece ni queda
+   tapado, sea cual sea el tamaño de pantalla. */
+.carrito > *:not(.carrito-lista-scroll) {
+  flex-shrink: 0;
 }
 
 .carrito h2 {
@@ -1156,14 +1256,20 @@ hr {
      siempre 2x2 parejo, con cada botón usando la mitad del ancho completo
      de la columna — suficiente para "Transferencia" a 12-13px de fuente. */
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--espacio-2, 8px);
+  gap: var(--espacio-1, 6px);
 }
 
 .metodo-pago-btn {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  padding: 10px 6px;
+  /* DF-UX-006: era 10px 6px. El panel entero (carrito) está acotado a la
+     altura visible (ver .carrito) y este selector, con 2 filas de botones,
+     es de los bloques que más pesa después de la lista de ítems -- bajar
+     el padding vertical libera espacio para que la lista muestre más
+     ítems, sin perder el tamaño de clic (sigue siendo un botón ancho, solo
+     más bajo). */
+  padding: 7px 6px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   background: #fff;
@@ -1191,14 +1297,36 @@ hr {
    la pantalla, porque ahí el carrito queda debajo de todo el catálogo. */
 .carrito-resumen {
   display: flex;
+  /* DF-UX-006: el total puede ser un número largo ("$100.938,50") y el
+     panel es angosto (260-340px) -- con los dos en la misma fila sin poder
+     ceder, "Confirmar Venta" se salía del borde derecho. Con wrap, si no
+     entran los dos juntos el botón baja a su propia línea (ancho completo,
+     ver flex-basis abajo) en vez de desbordar. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--espacio-4);
+  gap: var(--espacio-2, 8px) var(--espacio-4);
 }
 
 .carrito-resumen h3 {
   margin: 0;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* #btn-confirmar tiene `width: 100%` porque en su origen era el único
+   elemento de su contenedor. Acá adentro convive con el <h3> del total en
+   una fila flex -- ancho por contenido (no 100%) y sin los márgenes de
+   20/40px pensados para un botón suelto (acá el espaciado ya lo da el gap
+   de `.carrito`). flex: 1 1 auto con min-width deja que ocupe el resto de
+   la fila si el total es corto, o toda una línea propia si no entra al
+   lado (ver flex-wrap arriba) -- nunca se sale del panel. */
+.carrito-resumen #btn-confirmar {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 140px;
+  margin: 0;
+  padding: 12px 20px;
 }
 
 /* RESPONSIVE (celular) */
@@ -1234,23 +1362,6 @@ hr {
     max-width: 220px;
   }
 }
-/* SELECT CLIENTE EN HEADER */
-.ventas-header select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-  font-size: 14px;
-  font-weight: 500;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.ventas-header select:focus {
-  outline: none;
-  border-color: var(--color-primario);
-  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
-}
 /* Nombre de cliente, opcional (Fase 9 agregada). Mismo ancho que el resto del
    resumen del carrito. */
 .input-cliente-venta {
@@ -1260,7 +1371,9 @@ hr {
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
-  margin-bottom: var(--espacio-3, 12px);
+  /* Sin margin-bottom propio: `.carrito` ya pone `gap: 8px` entre todos sus
+     bloques -- el margin de acá sumaba encima de ese gap y duplicaba el
+     espacio antes del resumen. */
 }
 
 /* Modal QR para escanear desde el celular */
@@ -1293,11 +1406,29 @@ hr {
 /* Cartel de atajos de teclado, al pie del carrito */
 .leyenda-atajos {
   margin: 0;
-  padding-top: 8px;
-  font-size: 12px;
+  padding-top: 6px;
+  font-size: 11px;
   color: var(--color-texto-secundario, #868e96);
   text-align: center;
-  line-height: 1.8;
+  line-height: 1.5;
+}
+
+/* DF-UX-006: es la ayuda menos crítica del panel -- vender no depende de
+   leerla, los atajos funcionan igual sin el cartel -- y a la vez la que más
+   renglones ocupa envuelta en 300px de ancho (3-4 líneas). Con el resto del
+   panel (título, método de pago, cliente, resumen) ya usando casi toda la
+   altura disponible en una notebook (1366x768 o menos), este cartel es lo
+   primero que se saca para que ese espacio vaya a la lista de ítems, que es
+   lo que hace falta ver para vender rápido. Solo vuelve a aparecer cuando
+   sobra alto de verdad (1920x1080 y similares). */
+.leyenda-atajos {
+  display: none;
+}
+
+@media (min-width: 901px) and (min-height: 850px) {
+  .leyenda-atajos {
+    display: block;
+  }
 }
 
 .leyenda-atajos kbd {
