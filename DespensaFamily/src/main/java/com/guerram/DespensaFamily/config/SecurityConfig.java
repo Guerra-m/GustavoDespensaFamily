@@ -104,7 +104,9 @@ public class SecurityConfig {
                 .requestMatchers("/categorias/**").hasAnyAuthority("ROLE_ADMIN", "PERM_STOCK")
 
                 // Compras: una compra reescribe costo y precio de venta.
-                .requestMatchers(HttpMethod.GET, "/compras/**").authenticated()
+                // Leerlas tambien es ver costos y proveedores (DF-SEC-003):
+                // el dueño o quien gestiona productos. Antes, cualquiera.
+                .requestMatchers(HttpMethod.GET, "/compras/**").hasAnyAuthority("ROLE_ADMIN", "PERM_STOCK")
                 .requestMatchers("/compras/**").hasRole("ADMIN")
 
                 // El asistente de IA gasta la cuota paga del dueno, y sirve

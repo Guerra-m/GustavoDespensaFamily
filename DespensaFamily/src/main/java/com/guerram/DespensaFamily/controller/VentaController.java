@@ -1,15 +1,18 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.config.PermisosDeLectura;
 import com.guerram.DespensaFamily.dto.CotizacionDTO;
 import com.guerram.DespensaFamily.dto.CotizarRequestDTO;
 import com.guerram.DespensaFamily.dto.VentaDTO;
 import com.guerram.DespensaFamily.dto.VentaDetalleResponseDTO;
 import com.guerram.DespensaFamily.dto.VentaRequestDTO;
+import com.guerram.DespensaFamily.service.LecturaDeVentasPorRol;
 import com.guerram.DespensaFamily.service.VentaService;
 import com.guerram.DespensaFamily.util.OptimisticRetry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +23,7 @@ import java.util.List;
 public class VentaController {
 
     private final VentaService ventaService;
+    private final LecturaDeVentasPorRol lecturaPorRol;
 
     // DF-BUG-003: header opcional. El frontend manda un UUID por intento de
     // confirmar (mismo si reintenta el mismo carrito tras un error de red,
@@ -53,17 +57,22 @@ public class VentaController {
         return ventaService.cotizar(request.getDetalles());
     }
 
+    // DF-SEC-003: sin PERM_CAJA (ver PermisosDeLectura) cada GET contesta con
+    // las ventas propias del dia y nada mas — ver LecturaDeVentasPorRol.
     @GetMapping
-    public List<VentaDTO> listarVentas() {
+    public List<VentaDTO> listarVentas(Authentication quien) {
+        if (!PermisosDeLectura.veTodasLasVentas(quien)) return lecturaPorRol.deHoy(quien);
         return ventaService.listarVentas();
     }
     @GetMapping("/{id}")
-    public VentaDTO buscarVentaPorId(@PathVariable Long id) {
+    public VentaDTO buscarVentaPorId(@PathVariable Long id, Authentication quien) {
+        if (!PermisosDeLectura.veTodasLasVentas(quien)) return lecturaPorRol.unaDeHoy(id, quien);
         return ventaService.buscarPorId(id);
     }
     @GetMapping("/{id}/detalle")
-    public VentaDetalleResponseDTO buscarVentaConDetalle(@PathVariable Long id) {
-        return ventaService.buscarDetallePorId(id);
+    public VentaDetalleResponseDTO buscarVentaConDetalle(@PathVariable Long id, Authentication quien) {
+        if (!PermisosDeLectura.veTodasLasVentas(quien)) return lecturaPorRol.detalleDeHoy(id, quien);
+        return lecturaPorRol.segunQuien(ventaService.buscarDetallePorId(id), quien);
     }
     @DeleteMapping("/{id}")
     public void anularVenta(@PathVariable Long id) {
