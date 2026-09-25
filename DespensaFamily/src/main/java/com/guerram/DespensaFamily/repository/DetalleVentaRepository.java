@@ -5,6 +5,7 @@ import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
 import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.model.DetalleVenta;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,6 +27,11 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
             @Param("hasta") LocalDateTime hasta
     );
 
+    // DF-PERF-002 de la auditoria del 23/09: antes esta consulta devolvia
+    // TODOS los productos vendidos alguna vez en el rango (166 KB medidos
+    // contra la base real) y ReportesService recortaba en Java. Ahora
+    // filtra p.activo=true en el SQL (nada de findById por fila) y el
+    // Pageable limita el resultado a un top acotado sin traer de mas.
     @Query("""
     SELECT new com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO(
         p.id,
@@ -37,14 +43,19 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     JOIN dv.venta v
     WHERE v.fechaHora BETWEEN :desde AND :hasta
     AND v.estado = 'ACTIVA'
+    AND p.activo = true
     GROUP BY p.id, p.nombre
     ORDER BY SUM(dv.cantidad) DESC
     """)
     List<ProductoMasVendidoDTO> productosMasVendidos(
             @Param("desde") LocalDateTime desde,
-            @Param("hasta") LocalDateTime hasta
+            @Param("hasta") LocalDateTime hasta,
+            Pageable pageable
     );
 
+    // DF-PERF-002: "AND p.activo = true" reemplaza el filtro que
+    // ReportesService.movimientosPorFecha hacia con un findById por fila
+    // (N+1 medido en 1,09 s para 2 meses de datos reales).
     @Query("""
     SELECT new com.guerram.DespensaFamily.dto.reportes.MovimientoDTO(
         v.fechaHora,
@@ -61,6 +72,7 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     JOIN dv.producto p
     WHERE v.fechaHora BETWEEN :desde AND :hasta
     AND v.estado = 'ACTIVA'
+    AND p.activo = true
     """)
     List<MovimientoDTO> movimientosVentas(
             @Param("desde") LocalDateTime desde,
