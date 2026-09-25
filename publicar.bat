@@ -48,6 +48,10 @@ echo.
 
 REM --- Tests: no se publica algo que no pasa la suite -----------------------
 echo Corriendo los tests...
+REM Los tests van contra una carpeta de datos descartable. Sin esto usaban la
+REM de la instalacion real (%LOCALAPPDATA%\DespensaFamily) y pisaban su
+REM credenciales-iniciales.txt (DF-TEST-001). Queda acotado por el setlocal.
+set "DESPENSA_HOME=%TEMP%\DespensaFamily-tests"
 call "%RAIZ%DespensaFamily\mvnw.cmd" -f "%RAIZ%DespensaFamily" test
 if errorlevel 1 (
     echo.

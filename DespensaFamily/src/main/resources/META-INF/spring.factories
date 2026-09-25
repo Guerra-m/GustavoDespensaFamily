@@ -1,1 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=com.guerram.DespensaFamily.config.AppPathsEnvironmentPostProcessor
+org.springframework.boot.diagnostics.FailureAnalyzer=com.guerram.DespensaFamily.config.BaseDeUnaVersionMasNuevaFailureAnalyzer
