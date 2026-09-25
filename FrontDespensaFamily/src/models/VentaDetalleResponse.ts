@@ -13,7 +13,8 @@ export interface DetalleVentaResponse {
   id: number;
   cantidad: number;
   precioUnitario: number;
-  precioCosto: number;
+  // Solo para quien ve costos (dueño o PERM_STOCK): si no, no viene. DF-SEC-003.
+  precioCosto?: number;
   subtotal: number;
   ventaId: number;
   productoId: number;

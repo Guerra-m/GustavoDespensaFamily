@@ -1,4 +1,10 @@
-import { isAdmin, clearAuth, puedeVerCaja } from "../../services/auth.service";
+import {
+  isAdmin,
+  clearAuth,
+  puedeVerCaja,
+  puedeGestionarProductos,
+  EVENTO_PERMISOS_CAMBIADOS,
+} from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { iniciarAvisoDeActualizacion } from "../actualizacion/aviso-actualizacion";
@@ -40,7 +46,7 @@ const NAVBAR_HTML = `
     <li><a href="../../pages/productos/productos.html"><span class="icon" style="--icono:url('/icons/package.svg')"></span> Productos</a></li>
     <li class="nav-admin-only"><a href="../../pages/asistente-ia/asistente-ia.html"><span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Asistente IA</a></li>
     <li><a href="../../pages/categorias/categorias.html"><span class="icon" style="--icono:url('/icons/layers.svg')"></span> Categorías</a></li>
-    <li><a href="../../pages/compras/compras.html"><span class="icon" style="--icono:url('/icons/shopping-bag.svg')"></span> Compras</a></li>
+    <li class="nav-solo-stock"><a href="../../pages/compras/compras.html"><span class="icon" style="--icono:url('/icons/shopping-bag.svg')"></span> Compras</a></li>
     <li class="nav-admin-only"><a href="../../pages/promos/promos.html"><span class="icon" style="--icono:url('/icons/tag.svg')"></span> Promos</a></li>
     <li class="nav-admin-only"><a href="../../pages/reportes/reportes.html"><span class="icon" style="--icono:url('/icons/bar-chart-3.svg')"></span> Reportes</a></li>
     <li class="nav-admin-only"><a href="../../pages/usuarios/usuarios.html"><span class="icon" style="--icono:url('/icons/users.svg')"></span> Usuarios</a></li>
@@ -54,6 +60,24 @@ const NAVBAR_HTML = `
     © 2025 Despensa Family
   </div>
 </nav>`;
+
+/**
+ * Muestra u oculta cada ítem según lo mismo que decide el backend (ver
+ * SecurityConfig). Muestra también, no solo oculta: se vuelve a llamar cuando
+ * cambian los permisos, y un permiso recién dado tiene que aparecer.
+ */
+function aplicarPermisosAlMenu() {
+  const visible = (selector: string, puede: boolean) =>
+    document.querySelectorAll<HTMLElement>(selector).forEach(el => {
+      el.style.display = puede ? "" : "none";
+    });
+  visible(".nav-admin-only", isAdmin());
+  // Caja: del dueño, o de quien tenga PERM_CAJA prendido.
+  visible(".nav-solo-caja", puedeVerCaja());
+  // Compras: tienen costos y proveedores, así que del dueño o de quien
+  // gestiona productos (PERM_STOCK). DF-SEC-003.
+  visible(".nav-solo-stock", puedeGestionarProductos());
+}
 
 function initNavbar() {
   const toggle = document.getElementById("menuToggle") as HTMLButtonElement;
@@ -69,18 +93,19 @@ function initNavbar() {
   // permiso de caja igual la veía. Ahora cada ítem se muestra según lo mismo
   // que decide el backend (ver SecurityConfig): el menú no puede ofrecer algo
   // que el servidor va a rechazar, ni esconder algo que sí se puede usar.
-  if (!isAdmin()) {
-    document.querySelectorAll<HTMLElement>(".nav-admin-only").forEach(el => {
-      el.style.display = "none";
-    });
-  }
+  aplicarPermisosAlMenu();
 
-  // Caja: del dueño, o de quien tenga PERM_CAJA prendido.
-  if (!isAdmin() && !puedeVerCaja()) {
-    document.querySelectorAll<HTMLElement>(".nav-solo-caja").forEach(el => {
-      el.style.display = "none";
-    });
-  }
+  // Si el dueño le cambia los permisos a esta persona con la sesión abierta,
+  // el primer pedido de la pantalla ya trae los nuevos (ver
+  // actualizarPermisosDesde en auth.service): el menú se redibuja ahí, y si la
+  // pantalla actual dejó de estar permitida se va a Ventas, que es de todos.
+  window.addEventListener(EVENTO_PERMISOS_CAMBIADOS, () => {
+    aplicarPermisosAlMenu();
+    const actual = document.querySelector<HTMLElement>(".nav-links a.active")?.closest("li");
+    if (actual && actual.style.display === "none") {
+      location.replace("../../pages/ventas/ventas.html");
+    }
+  });
 
   // Toggle menú hamburguesa
   toggle?.addEventListener("click", () => {
