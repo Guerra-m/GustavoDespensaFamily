@@ -1095,7 +1095,7 @@ async function imprimirTicket(venta: Venta, _cotizacion?: Cotizacion | null) {
       <tr>
         <td>${esc(nombre)}${indicador}</td>
         <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
-        <td style="text-align:right">${formatearMoneda(d.precioUnitario)} / ${producto ? unidadProducto(producto) : "u"}</td>
+        <td style="text-align:right">${formatearMoneda(d.precioUnitario)}</td>
         <td style="text-align:right">${formatearMoneda(d.subtotal)}</td>
       </tr>
     `;
@@ -1162,31 +1162,37 @@ async function imprimirTicket(venta: Venta, _cotizacion?: Cotizacion | null) {
       /* Producto (más chico) */
 th:nth-child(1),
 td:nth-child(1) {
-  width: 45%;
+  width: 38%;
   word-break: break-word;
 }
 
 /* Cant (más pegado al producto) */
 th:nth-child(2),
 td:nth-child(2) {
-  width: 10%;
+  width: 9%;
   text-align: left;
 }
 
-/* Precio */
+/* Precio: antes 20% con "$2.860,00" (9 caracteres) no entraba en una
+   línea y el navegador partía el contenido de la celda en dos renglones.
+   Se agranda la columna y se fuerza una sola línea (el ticket ya no
+   repite la unidad acá -- "u"/"kg" -- porque la columna Cant de al lado
+   ya la muestra). */
 th:nth-child(3),
 td:nth-child(3) {
-  width: 20%;
+  width: 25%;
   text-align: right;
   padding-left: 4px;
+  white-space: nowrap;
 }
 
 /* Subtotal (más separado) */
 th:nth-child(4),
 td:nth-child(4) {
-  width: 25%;
+  width: 28%;
   text-align: right;
   padding-left: 6px;
+  white-space: nowrap;
 }
 
       /* Números más legibles */
