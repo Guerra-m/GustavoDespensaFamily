@@ -1,4 +1,4 @@
-import { esc, formatearFechaHora } from "../../utils/format";
+import { esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
@@ -9,6 +9,18 @@ import { getProductosMasVendidos, getResumenVentas, getMovimientos, getProductos
 import Chart from "chart.js/auto";
 
 // ---------------- DOM ----------------
+const toast = document.getElementById("toast") as HTMLDivElement | null;
+
+/** DF-UX-003/DF-UX-008: aviso visible ante un error -- antes home.ts solo
+ * hacia console.error, y quien mira la pantalla no tiene consola abierta. */
+function mostrarToast(mensaje: string, error = true) {
+  if (!toast) return;
+  toast.textContent = mensaje;
+  toast.classList.remove("hidden");
+  toast.classList.toggle("error", error);
+  setTimeout(() => toast.classList.add("hidden"), 3000);
+}
+
 const kpiVentas = document.getElementById("kpi-ventas") as HTMLParagraphElement;
 const kpiCompras = document.getElementById("kpi-compras") as HTMLParagraphElement;
 const kpiStockBajo = document.getElementById("kpi-stock-bajo") as HTMLParagraphElement;
@@ -42,12 +54,14 @@ async function cargarKPIs() {
 
     // Ventas hoy
     const resumenHoy = await getResumenVentas("dia");
-    kpiVentas.textContent = `$${resumenHoy.totalVentas.toLocaleString()}`;
+    kpiVentas.textContent = formatearMoneda(resumenHoy.totalVentas);
 
-    // Compras hoy
+    // Compras registradas hoy: TODAS las activas (pagadas o no) -- distinto
+    // de "Compras pagadas" de Rentabilidad, que solo cuenta lo que salio de
+    // caja de verdad (DF-UX-010).
     const movimientosComprasHoy = await getMovimientos(hoyStr, hoyStr, "COMPRA");
     const totalComprasHoy = movimientosComprasHoy.reduce((acc, m) => acc + m.subtotal, 0);
-    kpiCompras.textContent = `$${totalComprasHoy.toLocaleString()}`;
+    kpiCompras.textContent = formatearMoneda(totalComprasHoy);
 
     // Stock bajo: se resalta la tarjeta en naranja solo cuando hay algo
     // que atender — si no, compite visualmente con métricas que no piden
@@ -64,30 +78,36 @@ async function cargarKPIs() {
     kpiCompras.textContent = "Error";
     kpiStockBajo.textContent = "Error";
     kpiProductos.textContent = "Error";
+    mostrarToast("No se pudieron cargar los indicadores del inicio");
   }
 }
 
 // Cargar últimas ventas y compras
 async function cargarUltimas() {
-  // Últimas 5 ventas
-  const ultimasVentas = ventas.slice(-5).reverse();
-  tablaUltimasVentas.innerHTML = "";
-  ultimasVentas.forEach(v => {
-    const tr = document.createElement("tr");
-    if (v.estado === "ANULADA") tr.classList.add("venta-anulada");
-    tr.innerHTML = `<td>${v.id}</td><td>${formatearFechaHora(v.fechaHora)}</td><td>$${v.total.toLocaleString()}</td>`;
-    tablaUltimasVentas.appendChild(tr);
-  });
+  try {
+    // Últimas 5 ventas
+    const ultimasVentas = ventas.slice(-5).reverse();
+    tablaUltimasVentas.innerHTML = "";
+    ultimasVentas.forEach(v => {
+      const tr = document.createElement("tr");
+      if (v.estado === "ANULADA") tr.classList.add("venta-anulada");
+      tr.innerHTML = `<td>${v.id}</td><td>${formatearFechaHora(v.fechaHora)}</td><td>${formatearMoneda(v.total)}</td>`;
+      tablaUltimasVentas.appendChild(tr);
+    });
 
-  // Últimas 5 compras
-  const ultimasCompras = compras.slice(-5).reverse();
-  tablaUltimasCompras.innerHTML = "";
-  for (const c of ultimasCompras) {
-    const detalle = await getCompraDetalle(c.id!);
-    const total = detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.id}</td><td>${esc(c.proveedor)}</td><td>$${total.toLocaleString()}</td>`;
-    tablaUltimasCompras.appendChild(tr);
+    // Últimas 5 compras
+    const ultimasCompras = compras.slice(-5).reverse();
+    tablaUltimasCompras.innerHTML = "";
+    for (const c of ultimasCompras) {
+      const detalle = await getCompraDetalle(c.id!);
+      const total = detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${c.id}</td><td>${esc(c.proveedor)}</td><td>${formatearMoneda(total)}</td>`;
+      tablaUltimasCompras.appendChild(tr);
+    }
+  } catch (err) {
+    console.error(err);
+    mostrarToast("No se pudieron cargar las últimas ventas y compras");
   }
 }
 
@@ -165,6 +185,7 @@ async function renderTopProductosChart() {
     });
   } catch (err) {
     console.error(err);
+    mostrarToast("No se pudo cargar el top de productos más vendidos");
   }
 }
 
@@ -172,7 +193,12 @@ async function renderTopProductosChart() {
 async function initHome() {
   await cargarKPIs();
   await cargarUltimas();
-  renderVentasChart();
+  try {
+    renderVentasChart();
+  } catch (err) {
+    console.error(err);
+    mostrarToast("No se pudo dibujar el gráfico de ventas");
+  }
   await renderTopProductosChart();
 }
 

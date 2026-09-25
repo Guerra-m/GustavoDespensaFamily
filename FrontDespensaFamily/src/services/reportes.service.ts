@@ -9,10 +9,12 @@ export async function getProductosBajoStock(): Promise<ProductoBajoStock[]> {
   return res.json();
 }
 
-export async function getProductosMasVendidos(desde?: string, hasta?: string): Promise<ProductoMasVendido[]> {
+/** DF-PERF-002: 'top' es opcional -- sin el, el backend aplica su propio default. */
+export async function getProductosMasVendidos(desde?: string, hasta?: string, top?: number): Promise<ProductoMasVendido[]> {
   const params = new URLSearchParams();
   if (desde && desde.trim() !== "") params.append("desde", desde);
   if (hasta && hasta.trim() !== "") params.append("hasta", hasta);
+  if (top !== undefined && top > 0) params.append("top", String(top));
 
   const url = params.toString()
     ? `${BASE_URL}/productos-mas-vendidos?${params.toString()}`

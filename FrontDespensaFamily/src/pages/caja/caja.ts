@@ -11,7 +11,7 @@ if (!isAdmin() && !puedeVerCaja()) {
 }
 
 import { confirmar } from "../../services/confirm.service";
-import { esc } from "../../utils/format";
+import { esc, formatearMoneda } from "../../utils/format";
 import {
   getEstadoCaja,
   getUltimosMovimientos,
@@ -49,10 +49,6 @@ function mostrarToast(mensaje: string, error = false) {
   setTimeout(() => toast.classList.add("hidden"), 3000);
 }
 
-function formatearMoneda(monto: number): string {
-  return `$${monto.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function formatearHora(iso: string): string {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return "";
@@ -79,6 +75,8 @@ const spanElectronico = document.getElementById("saldo-electronico") as HTMLSpan
 const spanIngresosHoy = document.getElementById("ingresos-hoy") as HTMLParagraphElement;
 const spanEgresosHoy = document.getElementById("egresos-hoy") as HTMLParagraphElement;
 const spanResultadoHoy = document.getElementById("resultado-hoy") as HTMLParagraphElement;
+const spanVentasNetasHoy = document.getElementById("ventas-netas-hoy") as HTMLParagraphElement | null;
+const spanAnulacionesHoy = document.getElementById("anulaciones-hoy") as HTMLParagraphElement | null;
 
 async function cargarEstado() {
   try {
@@ -89,6 +87,10 @@ async function cargarEstado() {
     spanIngresosHoy.textContent = formatearMoneda(estado.ingresosDeHoy);
     spanEgresosHoy.textContent = formatearMoneda(estado.egresosDeHoy);
     spanResultadoHoy.textContent = formatearMoneda(estado.resultadoDeHoy);
+    // DF-UX-006: anular una venta ya no infla "egresos de hoy" -- se
+    // muestran aparte para que se vea que fue una anulacion, no un gasto.
+    if (spanVentasNetasHoy) spanVentasNetasHoy.textContent = formatearMoneda(estado.ventasNetasDeHoy);
+    if (spanAnulacionesHoy) spanAnulacionesHoy.textContent = formatearMoneda(estado.anulacionesDeHoy);
     spanResultadoHoy.classList.toggle("caja-stat-ingreso", estado.resultadoDeHoy >= 0);
     spanResultadoHoy.classList.toggle("caja-stat-egreso", estado.resultadoDeHoy < 0);
   } catch (error) {
@@ -269,8 +271,10 @@ formArqueo.addEventListener("submit", async e => {
     });
 
     if (resultado.diferencia === 0) {
+      // DF-UX-006: aunque no hay ajuste de plata, SI queda una constancia en
+      // el historial (movimiento de $0) de que alguien conto el cajon hoy.
       divArqueoResultado.className = "caja-arqueo-resultado caja-arqueo-exacto";
-      divArqueoResultado.textContent = "El cajón cuadra exacto. No se registró ningún ajuste.";
+      divArqueoResultado.textContent = "El cajón cuadra exacto. Quedó registrado en el historial, sin ajustar nada.";
     } else {
       const signo = resultado.diferencia > 0 ? "sobraron" : "faltaron";
       divArqueoResultado.className = "caja-arqueo-resultado caja-arqueo-diferencia";
