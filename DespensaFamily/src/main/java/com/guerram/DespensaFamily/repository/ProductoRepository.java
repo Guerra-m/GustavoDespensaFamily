@@ -27,6 +27,12 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByActivoTrue();
     List<Producto> findByStockLessThanAndActivoTrue(Double stock);
 
+    // Coincidencia EXACTA (a diferencia de findByCodigoBarrasContaining, que
+    // es un buscador por substring): la usa la validacion de unicidad de
+    // DF-BUG-009, que necesita saber si YA existe un producto con ese codigo
+    // exacto, activo o no (ver ProductoService.validarCodigoBarrasUnico).
+    Optional<Producto> findByCodigoBarras(String codigoBarras);
+
     /**
      * Trae el producto con el registro bloqueado para escritura.
      *
