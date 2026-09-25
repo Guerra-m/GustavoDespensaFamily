@@ -1,8 +1,16 @@
 import { habilitarCierreConEscape } from "../../utils/modales";
-import { esc, formatearFechaHora } from "../../utils/format";
-import { checkAuth } from "../../services/auth.service";
+import { esc, formatearFechaHora, formatearMoneda, formatearCantidadConUnidad } from "../../utils/format";
+import { checkAuth, isAdmin } from "../../services/auth.service";
 import { confirmar } from "../../services/confirm.service";
 checkAuth();
+
+// Registrar, anular o marcar pagada una compra reescribe costo/precio de venta
+// y mueve caja: el backend lo exige solo de ADMIN (SecurityConfig,
+// /compras/** salvo GET). Ocultar estos controles a un empleado con
+// PERM_STOCK no es opcional acá como en Productos/Categorías: a diferencia
+// de esas pantallas, el backend no le da a un empleado ningún camino para
+// hacer esto, así que mostrárselos solo termina en un 403.
+const ES_ADMIN = isAdmin();
 
 import type { Compra } from "../../models/Compra";
 import type { CompraRequest, DetalleCompraRequest } from "../../models/CompraRequest";
@@ -39,9 +47,8 @@ function fraccionMinima(producto: Producto): number {
 }
 
 function formatearCantidad(cantidad: number, producto?: Producto) {
-  if (!producto) return cantidad.toString();
-  if (esProductoPesable(producto)) return `${cantidad.toFixed(3)} ${unidadProducto(producto)}`;
-  return `${cantidad} ${unidadProducto(producto)}`;
+  if (!producto) return formatearCantidadConUnidad(cantidad, "");
+  return formatearCantidadConUnidad(cantidad, unidadProducto(producto));
 }
 
 function esProductoPorPaquete(producto: Producto): boolean {
@@ -121,7 +128,7 @@ async function cargarCompras() {
     renderCompras(comprasOrdenadas);
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar compras", true);
+    mostrarToast((error as Error).message || "Error al cargar compras", true);
   }
 }
 
@@ -144,7 +151,7 @@ function renderCompras(lista: Compra[]) {
             <td>${compra.id}</td>
             <td>${esc(compra.proveedor)}</td>
             <td>${formatearFechaHora(compra.fechaHora)}</td>
-            <td>$${(compra.total ?? 0).toFixed(2)}</td>
+            <td>${formatearMoneda(compra.total ?? 0)}</td>
             <td>
               ${pendiente
                 ? '<span class="etiqueta-pendiente">A cuenta</span>'
@@ -154,8 +161,10 @@ function renderCompras(lista: Compra[]) {
             <td class="compras-acciones">
               ${anulada
                 ? `<span class="etiqueta-anulada" title="Anulada por ${esc(compra.anuladaPor) || "—"}">Anulada</span>`
-                : `<button class="btn-anular-compra" data-id="${compra.id}">Anular</button>
-                   ${pendiente ? `<button class="btn-marcar-pagada" data-id="${compra.id}">Marcar pagada</button>` : ""}`}
+                : ES_ADMIN
+                  ? `<button class="btn-anular-compra" data-id="${compra.id}">Anular</button>
+                     ${pendiente ? `<button class="btn-marcar-pagada" data-id="${compra.id}">Marcar pagada</button>` : ""}`
+                  : ""}
             </td>
         `;
         tbody.appendChild(tr);
@@ -196,7 +205,7 @@ function renderCompras(lista: Compra[]) {
         btnMarcarPagada?.addEventListener("click", async (e) => {
             e.stopPropagation();
             const confirmado = await confirmar(
-                `Se va a registrar un egreso de $${(compra.total ?? 0).toFixed(2)} en caja, con fecha de hoy. ¿Marcar como pagada?`);
+                `Se va a registrar un egreso de ${formatearMoneda(compra.total ?? 0)} en caja, con fecha de hoy. ¿Marcar como pagada?`);
             if (!confirmado) return;
 
             try {
@@ -226,7 +235,7 @@ async function cargarProductos() {
     productos = await getProductos();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar productos", true);
+    mostrarToast((error as Error).message || "Error al cargar productos", true);
   }
 }
 
@@ -321,8 +330,8 @@ function renderDetalles() {
       <!-- DF-SEC-001: nombre del producto, escrito por quien lo carga. -->
       <td>${producto ? esc(producto.nombre) : "Producto"}</td>
       <td>${formatearCantidadConPaquete(d.cantidad, producto)}</td>
-      <td>$${d.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
-      <td>${(d.cantidad * d.precioCosto).toFixed(2)}</td>
+      <td>${formatearMoneda(d.precioCosto)} / ${producto ? unidadProducto(producto) : "u"}</td>
+      <td>${formatearMoneda(d.cantidad * d.precioCosto)}</td>
       <td>
         <button data-index="${index}" class="btn-quitar">Quitar</button>
       </td>
@@ -353,8 +362,8 @@ function renderTablaConfirmarPrecios(cotizacion: CompraCotizacion) {
     // DF-SEC-001: el nombre del producto viene de datos, siempre por esc().
     tr.innerHTML = `
       <td>${esc(l.productoNombre)}${l.cambioSignificativo ? " ⚠" : ""}</td>
-      <td>$${l.precioVentaActual.toFixed(2)}</td>
-      <td>$${l.precioVentaNuevo.toFixed(2)}</td>
+      <td>${formatearMoneda(l.precioVentaActual)}</td>
+      <td>${formatearMoneda(l.precioVentaNuevo)}</td>
     `;
     tablaConfirmarPrecios.appendChild(tr);
   });
@@ -423,7 +432,7 @@ formCompra.addEventListener("submit", async e => {
     cerrarModalRegistrarCompra();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al registrar compra", true);
+    mostrarToast((error as Error).message || "Error al registrar compra", true);
   } finally {
     btnGuardarCompra.disabled = false;
     btnGuardarCompra.textContent = textoOriginalBtnGuardar;
@@ -438,6 +447,13 @@ function abrirModalRegistrarCompra() {
 
 function cerrarModalRegistrarCompra() {
   modalRegistrarCompra.classList.add("hidden");
+}
+
+// DF-UX-004: registrar una compra es solo ADMIN del lado del backend
+// (/compras/** salvo GET, ver SecurityConfig) — se oculta el botón en vez de
+// dejar que un empleado lo vea y se lleve un 403 al confirmar.
+if (!ES_ADMIN) {
+  btnAbrirRegistrarCompra.classList.add("hidden");
 }
 
 btnAbrirRegistrarCompra.addEventListener("click", abrirModalRegistrarCompra);
@@ -474,7 +490,14 @@ const btnCerrarDetalleCompra = document.getElementById("btn-cerrar-detalle-compr
 
 // ---------------- Ver detalle de compra (modal) ----------------
 async function verDetalleCompra(id: number) {
-    const compra = await getCompraDetalle(id);
+    let compra;
+    try {
+        compra = await getCompraDetalle(id);
+    } catch (err) {
+        console.error(err);
+        mostrarToast((err as Error).message || "No se pudo obtener el detalle de la compra", true);
+        return;
+    }
 
     detalleCompraId.textContent = compra.id.toString();
     detalleCompraProveedor.textContent = compra.proveedor;
@@ -495,8 +518,8 @@ async function verDetalleCompra(id: number) {
     tr.innerHTML = `
         <td>${esc(nombre)}</td>
         <td>${formatearCantidadConPaquete(det.cantidad, producto)}</td>
-        <td>$${det.precioCosto.toFixed(2)} / ${producto ? unidadProducto(producto) : "u"}</td>
-        <td>$${subtotal.toFixed(2)}</td>
+        <td>${formatearMoneda(det.precioCosto)} / ${producto ? unidadProducto(producto) : "u"}</td>
+        <td>${formatearMoneda(subtotal)}</td>
     `;
     tablaDetalleCompra.appendChild(tr);
 });
@@ -505,7 +528,7 @@ async function verDetalleCompra(id: number) {
     // Congelado en el servidor (Compra.total) y no la suma de subtotales que
     // se ve acá: si el redondeo cambia en el futuro, el total de una compra
     // vieja no debe cambiar con retroactividad.
-    detalleCompraTotal.textContent = compra.total.toFixed(2);
+    detalleCompraTotal.textContent = formatearMoneda(compra.total);
 
     // Mostrar modal
     modalDetalleCompra.classList.remove("hidden");

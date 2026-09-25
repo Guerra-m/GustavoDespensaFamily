@@ -29,8 +29,17 @@ const btnModalConfirmar = document.getElementById("btn-modal-confirmar") as HTML
 let idAEliminar: number | null = null;
 
 async function cargarUsuarios() {
-  const usuarios = await getUsuarios();
-  renderTabla(usuarios);
+  // DF-UX-008: sin este try/catch, con el backend caído la tabla queda vacía
+  // sin ningún aviso — antes esto se llamaba a nivel de módulo sin atrapar
+  // el rechazo.
+  try {
+    const usuarios = await getUsuarios();
+    renderTabla(usuarios);
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="5">${esc((err as Error).message || "No se pudieron cargar los usuarios")}</td></tr>`;
+    mostrarToast((err as Error).message || "Error al cargar usuarios", true);
+  }
 }
 
 function renderTabla(usuarios: UsuarioDTO[]) {
@@ -86,9 +95,9 @@ function renderTabla(usuarios: UsuarioDTO[]) {
       try {
         await actualizarPermisos(id, permisos);
         mostrarToast("Permiso actualizado — se aplica en el próximo login de esa persona");
-      } catch {
+      } catch (err) {
         chk.checked = !chk.checked;
-        mostrarToast("No se pudo actualizar el permiso", true);
+        mostrarToast((err as Error).message || "No se pudo actualizar el permiso", true);
       } finally {
         chk.disabled = false;
       }
@@ -147,9 +156,9 @@ btnModalConfirmar.addEventListener("click", async () => {
     cerrarModal();
     mostrarToast("Usuario eliminado");
     cargarUsuarios();
-  } catch {
+  } catch (err) {
     cerrarModal();
-    mostrarToast("No se pudo eliminar el usuario", true);
+    mostrarToast((err as Error).message || "No se pudo eliminar el usuario", true);
   }
 });
 

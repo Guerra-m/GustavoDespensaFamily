@@ -111,7 +111,7 @@ async function cargarProductos() {
     productos = await getProductos();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar productos", true);
+    mostrarToast((error as Error).message || "Error al cargar productos", true);
   }
 }
 
@@ -121,7 +121,7 @@ async function cargarPromociones() {
     renderPromociones();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar promociones", true);
+    mostrarToast((error as Error).message || "Error al cargar promociones", true);
   }
 }
 
@@ -253,7 +253,7 @@ async function eliminarPromocion(id: number) {
     cargarPromociones();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al eliminar promoción", true);
+    mostrarToast((error as Error).message || "Error al eliminar promoción", true);
   }
 }
 
@@ -288,7 +288,7 @@ async function cargarCategorias() {
     categorias.forEach(c => selectCategoriaDescuento.add(new Option(c.nombre, c.id.toString())));
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar categorías", true);
+    mostrarToast((error as Error).message || "Error al cargar categorías", true);
   }
 }
 
@@ -350,7 +350,7 @@ async function cargarDescuentos() {
     renderDescuentos();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar descuentos", true);
+    mostrarToast((error as Error).message || "Error al cargar descuentos", true);
   }
 }
 
@@ -467,7 +467,7 @@ async function eliminarDescuento(id: number) {
     cargarDescuentos();
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al eliminar descuento", true);
+    mostrarToast((error as Error).message || "Error al eliminar descuento", true);
   }
 }
 

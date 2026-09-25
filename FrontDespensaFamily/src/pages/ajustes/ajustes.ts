@@ -53,7 +53,7 @@ async function cargarConfiguracion() {
     inputNombreNegocio.value = config.nombreNegocio;
   } catch (error) {
     console.error(error);
-    mostrarToast("Error al cargar la configuración", true);
+    mostrarToast((error as Error).message || "Error al cargar la configuración", true);
   }
 }
 

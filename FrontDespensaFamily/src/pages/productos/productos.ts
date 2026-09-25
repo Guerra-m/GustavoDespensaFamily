@@ -19,7 +19,7 @@ import {
 
 import { getCategorias } from "../../services/categorias.service";
 import { confirmar } from "../../services/confirm.service";
-import { formatearCantidad, resolverImagenUrl, esc } from "../../utils/format";
+import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../../utils/format";
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
 import { getConfiguracion } from "../../services/configuracion.service";
 
@@ -232,7 +232,7 @@ function crearCard(prod: Producto): HTMLDivElement {
     </div>
     <div class="producto-info">
       <div class="producto-nombre">${esc(prod.nombre)}</div>
-      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
+      <div class="producto-precio">${formatearMoneda(prod.precioVenta)} / ${obtenerUnidad(prod)}</div>
       <div class="producto-stock">Stock: ${formatearStockConPaquete(prod)}</div>
     </div>
   `;
@@ -241,7 +241,7 @@ function crearCard(prod: Producto): HTMLDivElement {
 
 // ---------- CARTEL DE PRECIO (ETIQUETA ESTILO GRILLA SIMPLE) ----------
 function construirEtiquetaHtml(prod: Producto): string {
-  const precio = prod.precioVenta.toFixed(2).replace(".", ",");
+  const precio = formatearMoneda(prod.precioVenta);
 
   return `
     <div class="etiqueta">
@@ -549,26 +549,40 @@ function cerrarTodosLosMenus() {
 
 // ---------- CARGAR CATEGORÍAS ----------
 async function cargarCategorias() {
-  categorias = await getCategorias();
-  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  try {
+    categorias = await getCategorias();
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  selectCrear.innerHTML = `<option value="">Seleccione categoría</option>`;
-  selectEditar.innerHTML = `<option value="">Seleccione categoría</option>`;
+    selectCrear.innerHTML = `<option value="">Seleccione categoría</option>`;
+    selectEditar.innerHTML = `<option value="">Seleccione categoría</option>`;
 
-  categorias.forEach(cat => {
-    selectCrear.add(new Option(cat.nombre, cat.id.toString()));
-    selectEditar.add(new Option(cat.nombre, cat.id.toString()));
-  });
+    categorias.forEach(cat => {
+      selectCrear.add(new Option(cat.nombre, cat.id.toString()));
+      selectEditar.add(new Option(cat.nombre, cat.id.toString()));
+    });
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al cargar categorías", true);
+  }
 }
 
 // ---------- CARGAR PRODUCTOS ----------
 async function cargarProductos() {
-  productos = await getProductos();
-  // Reaplica el filtro de búsqueda actual en vez de mostrar siempre todo:
-  // antes, crear/editar/eliminar volvía a traer los productos y perdía el
-  // texto ya tipeado en el buscador (la lista volvía a verse completa sin
-  // avisar, aunque el input seguía mostrando el texto de búsqueda).
-  aplicarFiltro();
+  // DF-UX-008: sin este try/catch, con el backend caído la grilla queda
+  // vacía sin ningún aviso — antes esto corría a nivel de módulo (línea de
+  // INIT) sin nada que atrapara el rechazo.
+  try {
+    productos = await getProductos();
+    // Reaplica el filtro de búsqueda actual en vez de mostrar siempre todo:
+    // antes, crear/editar/eliminar volvía a traer los productos y perdía el
+    // texto ya tipeado en el buscador (la lista volvía a verse completa sin
+    // avisar, aunque el input seguía mostrando el texto de búsqueda).
+    aplicarFiltro();
+  } catch (err) {
+    console.error(err);
+    productosGrid.innerHTML = `<div class="prod-sin-resultados">${esc((err as Error).message || "No se pudieron cargar los productos")}</div>`;
+    mostrarToast((err as Error).message || "Error al cargar productos", true);
+  }
 }
 
 // ---------- BUSCAR (filtra sobre el estado actual de `productos`) ----------
@@ -651,7 +665,7 @@ formCrear.addEventListener("submit", async e => {
     (formCrear.nombre as HTMLInputElement).focus();
   } catch (err) {
     console.error(err);
-    mostrarToast("Error al crear producto", true);
+    mostrarToast((err as Error).message || "Error al crear producto", true);
   }
 });
 
@@ -780,18 +794,23 @@ formEditar.addEventListener("submit", async e => {
     mostrarToast("Producto actualizado correctamente");
   } catch (err) {
     console.error(err);
-    mostrarToast("Error al actualizar producto", true);
+    mostrarToast((err as Error).message || "Error al actualizar producto", true);
   }
 });
 
 // ---------- ELIMINAR ----------
 async function eliminarProducto(id: number) {
   if (!(await confirmar("¿Eliminar producto?"))) return;
-  await deleteProducto(id);
-  seleccionados.delete(id);
-  actualizarBarraSeleccion();
-  cargarProductos();
-  mostrarToast("Producto eliminado");
+  try {
+    await deleteProducto(id);
+    seleccionados.delete(id);
+    actualizarBarraSeleccion();
+    cargarProductos();
+    mostrarToast("Producto eliminado");
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al eliminar producto", true);
+  }
 }
 
 // ---------- BUSCAR ----------
@@ -823,6 +842,10 @@ cargarProductos();
 getConfiguracion().then(config => {
   umbralStockBajo = config.umbralStockBajo;
   aplicarFiltro(); // re-renderiza con el umbral real (antes de esto se usó el default de 10)
+}).catch(err => {
+  // No es crítico: se sigue mostrando con el umbral por defecto (10).
+  console.error(err);
+  mostrarToast((err as Error).message || "No se pudo cargar la configuración de stock bajo", true);
 });
 sincronizarTipoYUnidad(formCrear);
 sincronizarTipoYUnidad(formEditar);
