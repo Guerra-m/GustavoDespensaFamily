@@ -42,27 +42,20 @@ test("venta de un pesable: redondeo al gramo y total correcto", async ({ page, c
   await expect(page.locator("#total")).toHaveText(`$${totalEsperado}`, { timeout: 5_000 });
 });
 
-// BUG REAL encontrado escribiendo este flujo (no se arregla, según lo
-// pedido -- se deja documentado y marcado como fallo esperado).
+// BUG ARREGLADO (era: el carrito mostraba la cantidad pesable con
+// `formatearCantidadConPaquete` sobre `item.cantidad`, el número CRUDO
+// tipeado por quien vende, en vez del valor ya redondeado al gramo que
+// devuelve `POST /ventas/cotizar`. `formatearCantidad` redondeaba con
+// `Number(cantidad.toFixed(3))`, que para 1,2345 daba "1.234" en vez de
+// "1.235" por el error de representación binaria de ese número -- mientras
+// que el backend redondea bien con BigDecimal.HALF_UP tanto para cobrar
+// como para descontar stock).
 //
-// El carrito muestra la cantidad pesable con `formatearCantidadConPaquete`
-// (ventas.ts/renderCarrito) sobre `item.cantidad`, que es el número CRUDO
-// que tipeó quien vende -- nunca el valor ya redondeado al gramo que
-// devuelve el backend en la cotización. `formatearCantidad` (utils/format.ts)
-// redondea con `Number(cantidad.toFixed(3))`, y `toFixed` de JavaScript no es
-// un redondeo decimal exacto: para 1,2345 puntualmente da "1.234" en vez de
-// "1.235", por el error de representación binaria de ese número (no es un
-// caso raro armado a mano -- 1,2345 kg es un peso perfectamente real de
-// bascula). El backend, en cambio, sí redondea bien: usa BigDecimal.HALF_UP
-// sobre el valor exacto (ver util Cantidades.java) tanto para cobrar como
-// para descontar stock.
-//
-// Resultado: el número que el vendedor ve en el carrito ("1,234 kg") no es
-// el que realmente se cobra y se descuenta del stock ("1,235 kg") -- una
-// diferencia de un gramo que no se nota en un producto suelto, pero sí
-// contradice lo que la pantalla dice estar cobrando.
-test.fail(
-  "BUG conocido: la cantidad pesable mostrada en el carrito no siempre coincide con la redondeada que se cobra (formatearCantidad usa Number.toFixed, no un redondeo decimal exacto)",
+// Ahora (DF-BUG-002, ver ventas.ts ~línea 454) el carrito pinta la cantidad
+// que ya devolvió `/ventas/cotizar`, la misma que se cobra y descuenta --
+// no vuelve a redondear el número crudo en el front.
+test(
+  "la cantidad pesable mostrada en el carrito coincide con la que se cobra (redondeo HALF_UP vía /ventas/cotizar)",
   async ({ page, context }) => {
     await login(page, ADMIN_USERNAME, ADMIN_PASSWORD);
 

@@ -69,37 +69,20 @@ test("anular una venta por la UI devuelve el stock y la marca ANULADA (verificad
   expect((await resProductoTrasAnular.json()).stock).toBe(10);
 });
 
-// BUG REAL encontrado escribiendo este flujo (no se arregla, según lo
-// pedido -- se deja documentado y marcado como fallo esperado).
+// BUG ARREGLADO (era: `cargarVentas()` en
+// FrontDespensaFamily/src/pages/ventas/ventas.ts armaba el <tr> del
+// histórico con `tr.querySelector(".btn-imprimir") as HTMLButtonElement`
+// -- sin "?." -- y para una venta ANULADA esa celda no tiene botón
+// "imprimir" (solo el <span class="etiqueta-anulada">), así que el
+// `.addEventListener` de la línea siguiente tiraba `TypeError: Cannot read
+// properties of null`, cortando el `.forEach` y dejando de pintar el resto
+// de las filas del histórico.
 //
-// `cargarVentas()` en FrontDespensaFamily/src/pages/ventas/ventas.ts arma
-// cada <tr> del historial así (fragmento real, ~línea 238-269):
-//
-//   const btnAnular = tr.querySelector(".btn-anular") as HTMLButtonElement | null;
-//   btnAnular?.addEventListener(...)                     // OK: usa "?."
-//
-//   const btnImprimir = tr.querySelector(".btn-imprimir") as HTMLButtonElement;
-//   btnImprimir.addEventListener(...)                    // BUG: sin "?."
-//
-// Para una venta ANULADA, la celda de "Acción" sólo tiene el <span
-// class="etiqueta-anulada">, sin botones -- ver el template unas líneas
-// arriba (if (anulada) ... else `<button class="btn-imprimir">...`). Eso
-// hace que `tr.querySelector(".btn-imprimir")` sea `null`, y la línea
-// siguiente tira `TypeError: Cannot read properties of null (reading
-// 'addEventListener')`.
-//
-// Como esto pasa DENTRO de un `.forEach` sobre las ventas de la página, el
-// error CORTA el forEach ahí mismo: ninguna fila después de la anulada (en
-// el orden que manda el backend, más nueva primero) se termina de agregar a
-// la tabla. No es solo un error en consola: el historial de ventas se queda
-// mostrando de golpe menos filas de las que dice el paginado (o ninguna, si
-// la anulada es la más nueva), sin ningún aviso para quien lo está mirando.
-//
-// Se reproduce con CUALQUIER venta anulada que aparezca en el listado, no
-// hace falta doble clic ni nada especial -- alcanza con volver a abrir (o
-// recargar) "Ventas Registradas" una vez que ya existe una anulada.
-test.fail(
-  "BUG conocido: 'Ventas Registradas' rompe su render al listar una venta anulada (ventas.ts, btnImprimir sin '?.')",
+// Ahora `ventas.ts` usa `btnImprimir?.addEventListener(...)` (ver línea
+// ~270), igual que ya hacía `btnAnular`. Este test verifica que, con una
+// venta anulada en el listado, el resto de las filas siguen apareciendo.
+test(
+  "'Ventas Registradas' lista bien una venta anulada (no corta el render del resto de las filas)",
   async ({ page, context }) => {
     await login(page, ADMIN_USERNAME, ADMIN_PASSWORD);
 
