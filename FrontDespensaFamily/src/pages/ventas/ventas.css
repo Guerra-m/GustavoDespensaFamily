@@ -916,23 +916,30 @@ hr {
   flex-direction: column;
 }
 
-/* DF-UX-006 ("arreglar el carrito"): antes eran dos renglones por ítem
+/* DF-UX-006/008 ("arreglar el carrito"): antes eran dos renglones por ítem
    (nombre+cantidad arriba, subtotal+"Quitar" abajo). Apilar los botones de
    32px+ que pide la auditoría (stepper, quitar) en dos renglones hacía que
    cada ítem pesara ~80px de alto aunque el contenido entrara en uno solo.
    Un renglón mide lo que mide el más alto de sus botones (~36-40px con
-   padding) en vez de la SUMA de los dos -- con eso entran 5-6 ítems sin
-   scroll donde antes entraban 2 y medio. flex-wrap es la red de seguridad
-   para nombres largos: el nombre corta a dos líneas (ver
-   .carrito-item-nombre) antes de forzar el wrap de toda la fila, pero si
-   aun así no entrara todo, cede el nombre primero (es el único con
-   flex-grow) y el resto (cantidad/subtotal/quitar, todos flex-shrink:0)
-   nunca se aprieta ni se corta. */
+   padding) en vez de la SUMA de los dos -- con eso entran varios ítems sin
+   scroll donde antes entraban 2 y medio.
+
+   Grid con columnas fijas y no flex-wrap: con flex-wrap, un producto por
+   paquete (ej. "papel higienico", con el desglose "0 paq + 2 u" pegado a la
+   cantidad) tenía un texto de cantidad más largo que rompía la fila --
+   subtotal y ✕ bajaban a un segundo renglón sin aviso, que es justo el tipo
+   de corte inesperado que se estaba arreglando. Con columnas de ancho fijo
+   (nombre 1fr | cantidad auto | subtotal auto con min-width | ✕ auto)
+   ninguna columna empuja a la de al lado sea cual sea el largo de su
+   contenido -- el desglose de paquete bajó a su propia línea chica debajo
+   del nombre (ver .carrito-item-paquete) en vez de alargar la columna de
+   cantidad. */
 .carrito-item {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
-  gap: 4px 6px;
+  column-gap: 6px;
+  row-gap: 2px;
   padding: 5px 8px;
   border-bottom: 1px solid #f1f3f5;
 }
@@ -941,11 +948,16 @@ hr {
   border-bottom: none;
 }
 
+.carrito-item-nombre-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .carrito-item-nombre {
   font-size: 12.5px;
   color: #2c3e50;
-  flex: 1 1 56px;
-  min-width: 56px;
   overflow-wrap: break-word;
   /* Nombre largo: dos líneas y corta, nunca rompe la fila ni empuja la
      cantidad/subtotal/quitar de al lado. */
@@ -955,19 +967,32 @@ hr {
   overflow: hidden;
 }
 
+/* Desglose en paquetes ("2 paq + 3 u"): antes iba pegado a la cantidad
+   corta entre los +/- ("2 u (0 paq + 2 u)"), un texto de largo variable que
+   rompía la fila en productos por paquete. Acá abajo, chico y gris, no
+   compite por ancho con ninguna columna del grid. Solo se dibuja cuando hay
+   al menos un paquete completo (ver renderCarrito en ventas.ts) -- "0 paq +
+   2 u" no dice nada que la cantidad corta no diga ya. */
+.carrito-item-paquete {
+  font-size: 10.5px;
+  color: var(--color-texto-secundario, #868e96);
+  white-space: nowrap;
+}
+
 .carrito-item-subtotal {
   font-weight: 700;
   color: #2c3e50;
   font-size: 12.5px;
-  flex-shrink: 0;
+  min-width: 54px;
+  text-align: right;
   white-space: nowrap;
 }
 
 /* "Sin stock suficiente": si aparece, ocupa su propio renglón dentro del
-   ítem (flex-basis 100%) en vez de apretarse entre la cantidad y el
+   ítem (las 4 columnas del grid) en vez de apretarse entre la cantidad y el
    subtotal. */
 .carrito-sin-stock {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
 }
 
 /* Subir o bajar de a 1 unidad sin borrar la línea y volver a escanear:
@@ -1160,6 +1185,18 @@ hr {
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
+/* DF-UX-008: `.toast` (definido una sola vez en style.css, DF-DEBT-004) usa
+   `top: 80px` para todas las pantallas. En Ventas ese valor cae adentro de
+   `.ventas-header` (que arranca en padding-top:40px de `.content` y mide
+   ~70-75px de alto con el botón "Escanear con el celular" y "Ventas
+   Registradas") -- un toast como "Se restauró el carrito..." tapaba
+   "Ventas Registradas". Se pisa acá por ID (mayor especificidad que la
+   `.toast` de style.css, sin tocar el valor para el resto de las
+   pantallas) bajándolo lo justo para que quede debajo del header del POS. */
+#toast {
+  top: 112px;
+}
+
 /* ZONA PRINCIPAL (IZQ + DER) */
 /* DF-UX-001: era `display: flex` con .registrar{flex:3} / .carrito{flex:1}.
    Ese 3:1 se calculaba sobre el ANCHO TOTAL disponible, así que en una
@@ -1176,6 +1213,17 @@ hr {
   gap: 20px;
   margin-top: 20px;
   align-items: start;
+}
+
+/* DF-UX-008: a partir de 1280px sobra ancho en el catálogo (que igual sigue
+   quedándose con el resto vía `1fr`) y el carrito seguía topeado a 340px --
+   angosto para nombres de producto largos, que terminaban recortados a dos
+   líneas más seguido de lo necesario. Un poco más de aire (380-420px) deja
+   leer más nombre sin sacarle espacio real al catálogo. */
+@media (min-width: 1280px) {
+  .ventas-main {
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 420px);
+  }
 }
 
 /* COLUMNA IZQUIERDA */

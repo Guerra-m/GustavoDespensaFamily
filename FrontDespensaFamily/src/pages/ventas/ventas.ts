@@ -20,7 +20,7 @@ import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatear
 import { filtrarProductos } from "../../utils/filtroProductos";
 import { crearNavegacionTeclado } from "./ventas.atajos";
 import { crearImpresorTicket, etiquetaMetodoPago } from "./ventas.ticket";
-import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete, formatearCantidadDeProducto, desglosePaquete } from "../../utils/producto";
 import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
@@ -462,30 +462,51 @@ function renderCarrito() {
     // DF-BUG-002 en utils/format.ts).
     const cantidadMostrada = linea?.cantidad ?? item.cantidad;
 
+    // DF-UX-008: antes la cantidad entre los +/- era formatearCantidadConPaquete
+    // (ej. "2 u (0 paq + 2 u)"), pensada para el texto suelto de antes. En la
+    // fila de grid nueva ese texto tan largo no entraba en la columna angosta
+    // de "cantidad" y empujaba el subtotal y la ✕ a un segundo renglón (el
+    // caso concreto: "papel higienico", que se vende en paquetes de 5).
+    // Ahora el stepper muestra solo la cantidad corta ("2 u") y el desglose
+    // de paquetes baja a una línea chica debajo del nombre (ver
+    // .carrito-item-paquete más abajo) -- ninguna columna del grid depende
+    // de un texto de largo variable.
+    const cantidadCorta = formatearCantidadDeProducto(cantidadMostrada, prod);
+    const desglose = desglosePaquete(cantidadMostrada, prod);
+    // Sin paquetes completos (0 paq + N u) el desglose no dice nada que la
+    // cantidad corta no diga ya -- se omite en vez de mostrar "0 paq + 2 u".
+    const desglosePaqueteHtml = desglose && desglose.paquetes > 0
+      ? `<div class="carrito-item-paquete">${desglose.paquetes} paq + ${desglose.sueltas} u</div>`
+      : "";
+
     // El +/- solo aparece en productos por unidad: en los por peso, tocar
     // "+1" no tiene sentido (la fracción mínima es el gramo) y lo que hace
     // falta ahí es re-tipear un peso exacto, no incrementar de a poco.
     const stepper = esProductoPesable(prod)
-      ? `<span class="carrito-cantidad-texto">${formatearCantidadConPaquete(cantidadMostrada, prod)}</span>`
+      ? `<span class="carrito-cantidad-texto">${cantidadCorta}</span>`
       : `<div class="carrito-stepper">
           <button class="btn-stepper" data-index="${index}" data-delta="-1" aria-label="Quitar una unidad">−</button>
-          <span class="carrito-cantidad-texto">${formatearCantidadConPaquete(cantidadMostrada, prod)}</span>
+          <span class="carrito-cantidad-texto">${cantidadCorta}</span>
           <button class="btn-stepper" data-index="${index}" data-delta="1" aria-label="Agregar una unidad">+</button>
         </div>`;
 
-    // DF-UX-006 ("arreglar el carrito"): antes eran dos renglones por ítem
-    // (nombre+cantidad arriba, subtotal+"Quitar" abajo) -- con los botones
-    // de 32px+ que pide la auditoría (stepper, quitar) apilados en dos
-    // renglones, cada ítem terminaba pesando ~80px de alto aunque el
-    // contenido cupiera en uno solo. Un renglón (nombre, cantidad, subtotal,
-    // ✕) mide lo que mide el más alto de sus botones (~40-44px) en vez de
-    // la suma de los dos -- así entran 5-6 ítems sin scroll donde antes
-    // entraban 2 y medio. El nombre corta a dos líneas si hace falta (ver
-    // .carrito-item-nombre) sin romper la fila ni empujar el resto.
+    // DF-UX-006/008 ("arreglar el carrito"): antes eran dos renglones por
+    // ítem (nombre+cantidad arriba, subtotal+"Quitar" abajo) -- con los
+    // botones de 32px+ que pide la auditoría (stepper, quitar) apilados en
+    // dos renglones, cada ítem terminaba pesando ~80px de alto aunque el
+    // contenido cupiera en uno solo. Un renglón en CSS grid con columnas
+    // fijas (nombre 1fr | cantidad auto | subtotal auto | ✕ auto, ver
+    // ventas.css) mide lo que mide el más alto de sus botones (~40-44px) en
+    // vez de la suma de los dos, y ninguna columna se corre de línea aunque
+    // el contenido de otra sea más largo (a diferencia del flex-wrap
+    // anterior, que rompía la fila con nombres de producto por paquete).
     const fila = document.createElement("div");
     fila.className = "carrito-item";
     fila.innerHTML = `
-      <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
+      <div class="carrito-item-nombre-col">
+        <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
+        ${desglosePaqueteHtml}
+      </div>
       ${stepper}
       <span class="carrito-item-subtotal">${subtotalTexto}</span>
       <button class="btn-quitar" data-index="${index}" aria-label="Quitar ${esc(prod.nombre)} del carrito" title="Quitar">✕</button>
