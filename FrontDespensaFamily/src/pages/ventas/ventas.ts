@@ -20,7 +20,7 @@ import { formatearCantidad, redondearCantidad, resolverImagenUrl, esc, formatear
 import { filtrarProductos } from "../../utils/filtroProductos";
 import { crearNavegacionTeclado } from "./ventas.atajos";
 import { crearImpresorTicket, etiquetaMetodoPago } from "./ventas.ticket";
-import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete } from "../../utils/producto";
+import { esProductoPesable, unidadProducto, fraccionMinima, formatearCantidadConPaquete, formatearCantidadDeProducto, desglosePaquete } from "../../utils/producto";
 import { mostrarToast } from "../../utils/toast";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
@@ -260,8 +260,14 @@ async function cargarVentas(page: number = paginaVentasActual) {
       }
     });
 
-    const btnImprimir = tr.querySelector(".btn-imprimir") as HTMLButtonElement;
-    btnImprimir.addEventListener("click", async (e) => {
+    // DF-BUG-003: en una venta ANULADA este botón no se dibuja (el <td> de
+    // arriba muestra la etiqueta "Anulada" en su lugar), así que querySelector
+    // da null acá. Antes esto hacía `as HTMLButtonElement` sin chequear y
+    // llamaba `.addEventListener` directo -- un TypeError a mitad del forEach
+    // que cortaba el render: ninguna venta después de la anulada llegaba a
+    // pintarse. `?.` evita depender de que el botón exista.
+    const btnImprimir = tr.querySelector(".btn-imprimir") as HTMLButtonElement | null;
+    btnImprimir?.addEventListener("click", async (e) => {
       e.stopPropagation();
       await imprimirTicket(v);
     });
@@ -299,6 +305,16 @@ function crearProductoCard(prod: Producto): HTMLDivElement {
       <div class="producto-stock">Stock: ${formatearCantidadConPaquete(prod.stock, prod)}</div>
     </div>
   `;
+  // DF-UX-007: `imagenUrl` puede apuntar a un archivo que ya no está (se
+  // borró del disco, o es de otra instalación restaurada de un backup). El
+  // <img> roto mostraba el ícono nativo del navegador MÁS el texto de `alt`
+  // (el nombre del producto) desbordado sobre la tarjeta de 130px -- se leía
+  // como texto superpuesto/roto. Sacar el <img> en el error dispara el
+  // placeholder que ya existe en CSS (`.producto-imagen:not(:has(img))`),
+  // el mismo cajón gris que se ve cuando el producto nunca tuvo imagen.
+  const img = card.querySelector<HTMLImageElement>(".producto-imagen img");
+  img?.addEventListener("error", () => img.remove(), { once: true });
+
   card.addEventListener("click", () => {
     if (esProductoPesable(prod)) {
       // Por peso: hace falta que el vendedor tipee la cantidad exacta, un
@@ -435,28 +451,65 @@ function renderCarrito() {
     const subtotalTexto = linea ? formatearMoneda(linea.subtotal) : "…";
     const avisoStock = linea?.stockInsuficiente ? `<div class="carrito-sin-stock">Sin stock suficiente</div>` : "";
 
+    // DF-BUG-002: mostrar acá lo mismo que ya cobró /ventas/cotizar. Antes se
+    // formateaba item.cantidad (el valor crudo tipeado, redondeado del lado
+    // del cliente) y con ciertos decimales eso no coincidía con la cantidad
+    // que el backend redondeó con BigDecimal HALF_UP para calcular el
+    // subtotal (ej: tipear 1,2345 kg mostraba "1,234" cuando el subtotal ya
+    // cobraba 1,235). Con cotización en mano, linea.cantidad ES la cantidad
+    // facturada -- se muestra esa. Sin cotización todavía (primera vuelta,
+    // sin red aún), formatearCantidadConPaquete ya redondea bien (ver
+    // DF-BUG-002 en utils/format.ts).
+    const cantidadMostrada = linea?.cantidad ?? item.cantidad;
+
+    // DF-UX-008: antes la cantidad entre los +/- era formatearCantidadConPaquete
+    // (ej. "2 u (0 paq + 2 u)"), pensada para el texto suelto de antes. En la
+    // fila de grid nueva ese texto tan largo no entraba en la columna angosta
+    // de "cantidad" y empujaba el subtotal y la ✕ a un segundo renglón (el
+    // caso concreto: "papel higienico", que se vende en paquetes de 5).
+    // Ahora el stepper muestra solo la cantidad corta ("2 u") y el desglose
+    // de paquetes baja a una línea chica debajo del nombre (ver
+    // .carrito-item-paquete más abajo) -- ninguna columna del grid depende
+    // de un texto de largo variable.
+    const cantidadCorta = formatearCantidadDeProducto(cantidadMostrada, prod);
+    const desglose = desglosePaquete(cantidadMostrada, prod);
+    // Sin paquetes completos (0 paq + N u) el desglose no dice nada que la
+    // cantidad corta no diga ya -- se omite en vez de mostrar "0 paq + 2 u".
+    const desglosePaqueteHtml = desglose && desglose.paquetes > 0
+      ? `<div class="carrito-item-paquete">${desglose.paquetes} paq + ${desglose.sueltas} u</div>`
+      : "";
+
     // El +/- solo aparece en productos por unidad: en los por peso, tocar
     // "+1" no tiene sentido (la fracción mínima es el gramo) y lo que hace
     // falta ahí es re-tipear un peso exacto, no incrementar de a poco.
     const stepper = esProductoPesable(prod)
-      ? `<span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>`
+      ? `<span class="carrito-cantidad-texto">${cantidadCorta}</span>`
       : `<div class="carrito-stepper">
           <button class="btn-stepper" data-index="${index}" data-delta="-1" aria-label="Quitar una unidad">−</button>
-          <span class="carrito-cantidad-texto">${formatearCantidadConPaquete(item.cantidad, prod)}</span>
+          <span class="carrito-cantidad-texto">${cantidadCorta}</span>
           <button class="btn-stepper" data-index="${index}" data-delta="1" aria-label="Agregar una unidad">+</button>
         </div>`;
 
+    // DF-UX-006/008 ("arreglar el carrito"): antes eran dos renglones por
+    // ítem (nombre+cantidad arriba, subtotal+"Quitar" abajo) -- con los
+    // botones de 32px+ que pide la auditoría (stepper, quitar) apilados en
+    // dos renglones, cada ítem terminaba pesando ~80px de alto aunque el
+    // contenido cupiera en uno solo. Un renglón en CSS grid con columnas
+    // fijas (nombre 1fr | cantidad auto | subtotal auto | ✕ auto, ver
+    // ventas.css) mide lo que mide el más alto de sus botones (~40-44px) en
+    // vez de la suma de los dos, y ninguna columna se corre de línea aunque
+    // el contenido de otra sea más largo (a diferencia del flex-wrap
+    // anterior, que rompía la fila con nombres de producto por paquete).
     const fila = document.createElement("div");
     fila.className = "carrito-item";
     fila.innerHTML = `
-      <div class="carrito-item-fila1">
+      <div class="carrito-item-nombre-col">
         <span class="carrito-item-nombre">${esc(prod.nombre)} ${indicadorDescuento(linea)}</span>
-        ${stepper}
+        ${desglosePaqueteHtml}
       </div>
-      <div class="carrito-item-fila2">
-        <span class="carrito-item-subtotal">${subtotalTexto}</span>
-        <button class="btn-quitar" data-index="${index}">Quitar</button>
-      </div>
+      ${stepper}
+      <span class="carrito-item-subtotal">${subtotalTexto}</span>
+      <button class="btn-quitar" data-index="${index}" aria-label="Quitar ${esc(prod.nombre)} del carrito" title="Quitar">✕</button>
       ${avisoStock}
     `;
     tablaDetalle.appendChild(fila);

@@ -57,7 +57,7 @@ const NAVBAR_HTML = `
   </ul>
 
   <div class="navbar-footer">
-    © 2025 Despensa Family
+    © <span id="navbar-anio"></span> Despensa Family
   </div>
 </nav>`;
 
@@ -84,6 +84,12 @@ function initNavbar() {
   const navbar = document.getElementById("navbar") as HTMLElement;
   const overlay = document.getElementById("navbarOverlay") as HTMLElement;
   const navLinks = document.querySelectorAll<HTMLAnchorElement>(".nav-links a");
+
+  // Año del pie de página: estaba escrito a mano ("© 2025"), así que quedaba
+  // mal apenas empezaba el año siguiente. new Date().getFullYear() no se
+  // desactualiza nunca.
+  const anioEl = document.getElementById("navbar-anio");
+  if (anioEl) anioEl.textContent = String(new Date().getFullYear());
 
   // Ocultar ítems restringidos para EMPLEADO
   //
