@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -78,7 +78,12 @@
 
     <label>
       Código de Barras
-      <input type="text" name="codigoBarras" />
+      <div class="input-con-boton">
+        <input type="text" name="codigoBarras" placeholder="Escribir o escanear..." />
+        <button type="button" class="btn-scan-campo" id="btn-scan-crear" title="Escanear con el celular">
+          📱 Escanear
+        </button>
+      </div>
     </label>
 
     <label>
@@ -223,7 +228,12 @@
 
         <label>
           Código de Barras
-          <input type="text" name="codigoBarras" />
+          <div class="input-con-boton">
+        <input type="text" name="codigoBarras" placeholder="Escribir o escanear..." />
+        <button type="button" class="btn-scan-campo" id="btn-scan-editar" title="Escanear con el celular">
+          📱 Escanear
+        </button>
+      </div>
         </label>
 
         <label>
@@ -307,6 +317,17 @@
 
 </div>
 
+
+  <!-- MODAL QR PARA ESCANEAR DESDE EL CELULAR -->
+  <div id="modal-scan-celular" class="modal hidden">
+    <div class="modal-content modal-scan-celular-content">
+      <h3>Escanear desde el celular</h3>
+      <p class="scan-celular-ayuda">Escaneá este código con tu celular (misma red wifi): cuando le saques foto al código de barras se va a completar acá automáticamente.</p>
+      <canvas id="scan-celular-qr"></canvas>
+      <p id="scan-celular-estado" class="scan-celular-estado">Generando código...</p>
+      <button id="btn-cerrar-scan-celular" type="button">Cerrar</button>
+    </div>
+  </div>
 </main>
 
 <script type="module" src="../../components/navbar/navbar.ts"></script>

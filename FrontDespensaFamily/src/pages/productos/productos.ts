@@ -28,6 +28,8 @@ import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../.
 import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
 import { getConfiguracion } from "../../services/configuracion.service";
 import { mostrarToast } from "../../utils/toast";
+import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
+import QRCode from "qrcode";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
@@ -829,3 +831,70 @@ sincronizarTipoYUnidad(formEditar);
 
 // Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
 habilitarCierreConEscape();
+
+// ---------- ESCANEO REMOTO DESDE EL CELULAR ----------
+const btnScanCrear = document.getElementById("btn-scan-crear") as HTMLButtonElement | null;
+const btnScanEditar = document.getElementById("btn-scan-editar") as HTMLButtonElement | null;
+const modalScanCelular = document.getElementById("modal-scan-celular") as HTMLDivElement | null;
+const btnCerrarScanCelular = document.getElementById("btn-cerrar-scan-celular") as HTMLButtonElement | null;
+const scanCelularQr = document.getElementById("scan-celular-qr") as HTMLCanvasElement | null;
+const scanCelularEstado = document.getElementById("scan-celular-estado") as HTMLParagraphElement | null;
+
+let eventSourceEscaneo: EventSource | null = null;
+let inputDestinoEscaneo: HTMLInputElement | null = null;
+
+function cerrarScanCelular() {
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+  modalScanCelular?.classList.add("hidden");
+  inputDestinoEscaneo = null;
+}
+
+async function abrirScanCelular(destino: HTMLInputElement) {
+  inputDestinoEscaneo = destino;
+  modalScanCelular?.classList.remove("hidden");
+
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+
+  if (scanCelularEstado) scanCelularEstado.textContent = "Generando código...";
+
+  try {
+    const { sesionId, url } = await crearSesionDeEscaneo();
+    if (scanCelularQr) {
+      await QRCode.toCanvas(scanCelularQr, url, { width: 260, margin: 1 });
+    }
+    if (scanCelularEstado) {
+      scanCelularEstado.textContent = "Esperando que el celular escanee un producto...";
+    }
+
+    eventSourceEscaneo = suscribirseAEscaneo(sesionId, codigo => {
+      if (inputDestinoEscaneo) {
+        inputDestinoEscaneo.value = codigo;
+        inputDestinoEscaneo.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      mostrarToast("Código escaneado: " + codigo);
+      cerrarScanCelular();
+      (formCrear.nombre as HTMLInputElement)?.focus();
+    });
+  } catch (err) {
+    console.error(err);
+    if (scanCelularEstado) {
+      scanCelularEstado.textContent = "No se pudo conectar con el escáner del celular.";
+    }
+  }
+}
+
+btnScanCrear?.addEventListener("click", () => {
+  abrirScanCelular(formCrear.codigoBarras as HTMLInputElement);
+});
+
+btnScanEditar?.addEventListener("click", () => {
+  abrirScanCelular(formEditar.codigoBarras as HTMLInputElement);
+});
+
+btnCerrarScanCelular?.addEventListener("click", cerrarScanCelular);
