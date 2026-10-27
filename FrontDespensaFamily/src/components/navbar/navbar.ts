@@ -36,7 +36,7 @@ const NAVBAR_HTML = `
 <nav class="navbar" id="navbar">
   <div class="navbar-header">
     <span class="logo"><span class="icon" style="--icono:url('/icons/store.svg')"></span></span>
-    <h1 id="navbar-nombre-negocio">Despensa Family</h1>
+    <h1 id="navbar-nombre-negocio"><span id="navbar-texto-negocio">Despensa Family</span></h1>
   </div>
 
   <ul class="nav-links">
@@ -57,7 +57,8 @@ const NAVBAR_HTML = `
   </ul>
 
   <div class="navbar-footer">
-    © <span id="navbar-anio"></span> Despensa Family
+    <div>© <span id="navbar-anio"></span> Despensa Family</div>
+    <div class="navbar-version" style="font-size: 11px; opacity: 0.6; margin-top: 4px;">v1.2.2</div>
   </div>
 </nav>`;
 
@@ -162,7 +163,7 @@ function initNavbar() {
   // Nombre del negocio configurable (ver pages/ajustes) — si falla (por
   // ejemplo, la página de login no tiene sesión) se queda con el nombre
   // por defecto ya escrito en el HTML, no rompe nada.
-  const nombreEl = document.getElementById("navbar-nombre-negocio");
+  const nombreEl = document.getElementById("navbar-texto-negocio") || document.getElementById("navbar-nombre-negocio");
   getConfiguracion()
     .then(config => {
       if (nombreEl && config.nombreNegocio) nombreEl.textContent = config.nombreNegocio;

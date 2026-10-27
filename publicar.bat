@@ -46,6 +46,16 @@ if not defined VERSION (
 echo Version a publicar: %VERSION%
 echo.
 
+REM --- JDK: auto-detectar si JAVA_HOME no esta seteado ----------------------
+if not defined JAVA_HOME (
+    for /d %%D in ("%USERPROFILE%\.jdks\*") do (
+        if not defined JAVA_HOME if exist "%%D\bin\javac.exe" set "JAVA_HOME=%%D"
+    )
+)
+if defined JAVA_HOME (
+    set "PATH=%JAVA_HOME%\bin;!PATH!"
+)
+
 REM --- Tests: no se publica algo que no pasa la suite -----------------------
 echo Corriendo los tests...
 REM Los tests van contra una carpeta de datos descartable. Sin esto usaban la
