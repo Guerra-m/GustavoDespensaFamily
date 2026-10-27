@@ -35,11 +35,19 @@ export function formatearCantidadDeProducto(cantidad: number, producto?: Product
   return `${formatearCantidad(cantidad)} ${unidadProducto(producto)}`;
 }
 
+/** Texto compacto del desglose en paquetes (ej. "1 paq + 2 u", "2 paq"), o null si no llega a 1 paquete entero. */
+export function textoDesglosePaquete(cantidad: number, producto?: Producto): string | null {
+  const desglose = desglosePaquete(cantidad, producto);
+  if (!desglose || desglose.paquetes === 0) return null;
+  if (desglose.sueltas === 0) return `${desglose.paquetes} paq`;
+  return `${desglose.paquetes} paq + ${desglose.sueltas} u`;
+}
+
 /** Igual a {@link formatearCantidadDeProducto}, pero agrega el desglose en
- * paquetes cuando el producto se vende así (ver {@link desglosePaquete}). */
+ * paquetes cuando el producto tiene 1 o más paquetes enteros (ver {@link desglosePaquete}). */
 export function formatearCantidadConPaquete(cantidad: number, producto?: Producto): string {
   const base = formatearCantidadDeProducto(cantidad, producto);
-  const desglose = desglosePaquete(cantidad, producto);
-  if (!desglose) return base;
-  return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
+  const texto = textoDesglosePaquete(cantidad, producto);
+  if (!texto) return base;
+  return `${base} (${texto})`;
 }

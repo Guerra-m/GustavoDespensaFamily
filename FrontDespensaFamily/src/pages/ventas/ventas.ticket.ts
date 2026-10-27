@@ -2,7 +2,7 @@
 // Impresión del ticket de venta, separada de ventas.ts (Fase 3, DF-DEBT-002).
 import { getDetalleVenta } from "../../services/ventas.service";
 import { formatearCantidad, esc, formatearMoneda, formatearFechaHora } from "../../utils/format";
-import { formatearCantidadConPaquete } from "../../utils/producto";
+import { formatearCantidadDeProducto, textoDesglosePaquete } from "../../utils/producto";
 import type { Producto } from "../../models/Producto";
 import type { Venta } from "../../models/Venta";
 import type { MetodoPago } from "../../models/MetodoPago";
@@ -66,11 +66,13 @@ export function crearImpresorTicket(deps: DepsImpresorTicket) {
         : d.promoDescripcion
           ? ` <span style="font-size:8px">(${esc(d.promoDescripcion)})</span>`
           : "";
+      const desglose = textoDesglosePaquete(d.cantidad, producto);
+      const desgloseHtml = desglose ? `<div style="font-size:8px;font-style:italic">(${esc(desglose)})</div>` : "";
 
       filas += `
         <tr>
-          <td>${esc(nombre)}${indicador}</td>
-          <td style="text-align:center">${formatearCantidadConPaquete(d.cantidad, producto)}</td>
+          <td>${esc(nombre)}${indicador}${desgloseHtml}</td>
+          <td style="text-align:center">${formatearCantidadDeProducto(d.cantidad, producto)}</td>
           <td style="text-align:right">${formatearMoneda(d.precioUnitario)}</td>
           <td style="text-align:right">${formatearMoneda(d.subtotal)}</td>
         </tr>
@@ -138,15 +140,16 @@ export function crearImpresorTicket(deps: DepsImpresorTicket) {
       /* Producto (más chico) */
 th:nth-child(1),
 td:nth-child(1) {
-  width: 38%;
+  width: 35%;
   word-break: break-word;
 }
 
 /* Cant (más pegado al producto) */
 th:nth-child(2),
 td:nth-child(2) {
-  width: 9%;
-  text-align: left;
+  width: 12%;
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* Precio: antes 20% con "$2.860,00" (9 caracteres) no entraba en una
