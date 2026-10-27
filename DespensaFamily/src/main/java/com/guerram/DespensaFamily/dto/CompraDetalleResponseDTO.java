@@ -1,8 +1,10 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -12,7 +14,14 @@ import java.util.List;
 @Builder
 public class CompraDetalleResponseDTO {
     private Long id;
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
+    private BigDecimal total;
+    private boolean pagada;
+    private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
     private String proveedor;
     private List<DetalleCompraDTO> detalles;
+    private String usuario;
+    private com.guerram.DespensaFamily.model.EstadoCompra estado;
+    private String anuladaPor;
+    private LocalDateTime fechaAnulacion;
 }

@@ -1,13 +1,16 @@
+/* Los colores de marca viven en style.css (--color-primario, etc.), que
+   carga antes en el <head> de cada página. Acá solo quedan los que son
+   propios de este componente. */
 :root {
-  --color-principal: #4fc3f7;
-  --color-principal-dark: #0288d1;
-  --color-blanco: #ffffff;
+  --color-principal: var(--color-primario, #4fc3f7);
+  --color-principal-dark: var(--color-primario-dark, #0288d1);
+  --color-blanco: var(--color-superficie, #ffffff);
   --color-hover: #81d4fa;
   --color-active: rgba(255,255,255,0.25);
-  --color-logout-hover: #ef5350;
+  --color-logout-hover: var(--color-peligro-claro, #ef5350);
   --navbar-width: 260px;
   --transition-speed: 0.3s;
-  --shadow: 0 2px 8px rgba(0,0,0,0.15);
+  --shadow: var(--sombra-md, 0 2px 8px rgba(0,0,0,0.15));
 }
 
 /* ===============================
@@ -131,6 +134,20 @@
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
+.logo .icon {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+/* Los íconos de los links (ver style.css) heredan el color del texto:
+   blancos sobre el celeste del sidebar, sin necesitar una versión aparte. */
+.nav-links li a .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .navbar-header h1 {
   font-size: 18px;
   font-weight: 600;
@@ -252,8 +269,78 @@
   }
 }
 
-@media (min-width: 769px) {
+/* min-width: 1024px, para calzar exacto con el max-width: 1023px de arriba
+   (antes era 769px: entre 769 y 1023 el menú ya se abre como overlay
+   deslizante -- por el media query anterior -- pero este forzaba la cortina
+   de fondo a invisible, así que tocar afuera del menú en ese rango no lo
+   cerraba y el contenido de atrás quedaba clickeable). */
+@media (min-width: 1024px) {
   .navbar-overlay {
     display: none !important;
+  }
+}
+/* ---------------------------------------------------------------------------
+   Aviso de actualización (components/actualizacion/aviso-actualizacion.ts)
+
+   Vive acá y no en su propio archivo porque el CSS se enlaza página por página
+   y navbar.css ya está en todas: un archivo nuevo obligaría a tocar los once
+   HTML para agregar un <link>.
+
+   Es una cinta arriba de todo y no un modal a propósito: avisa sin interrumpir.
+   Una actualización nunca puede tapar la pantalla de alguien que está cobrando.
+--------------------------------------------------------------------------- */
+
+.aviso-actualizacion {
+  display: none;
+}
+
+.aviso-actualizacion.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  position: sticky;
+  top: 0;
+  z-index: 900; /* Debajo del navbar abierto en móvil, arriba del contenido. */
+
+  padding: 0.6rem 1rem;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.aviso-actualizacion-notas {
+  opacity: 0.85;
+}
+
+.aviso-actualizacion-nota {
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.aviso-actualizacion button {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aviso-actualizacion button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+  .aviso-actualizacion.visible {
+    /* El botón de la hamburguesa está fijo arriba a la izquierda: sin este
+       margen la cinta le queda encima y tapa el menú. */
+    padding-left: 3.5rem;
   }
 }

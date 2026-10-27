@@ -3,6 +3,8 @@ package com.guerram.DespensaFamily.mapper;
 import com.guerram.DespensaFamily.dto.*;
 import com.guerram.DespensaFamily.model.*;
 
+import java.math.BigDecimal;
+
 public class Mapper {
 
     // ----------- PRODUCTO -------------
@@ -19,7 +21,10 @@ public class Mapper {
                 .codigoBarras(p.getCodigoBarras())
                 .categoriaId(p.getCategoria() != null ? p.getCategoria().getId() : null)
                 .proveedor(p.getProveedor())
-                .imagenUrl(p.getImagenUrl() != null ?"http://localhost:8080/imagenes/" + p.getImagenUrl()
+                // URL relativa: el jar sirve el frontend y las imagenes desde
+                // el mismo origen, asi que atarla a "localhost:8080" solo hacia
+                // que las fotos se rompieran al cambiar el puerto.
+                .imagenUrl(p.getImagenUrl() != null ? "/imagenes/" + p.getImagenUrl()
                         : null )
                 .tipoCantidad(p.getTipoCantidad())
                 .unidadMedida(p.getUnidadMedida())
@@ -49,7 +54,12 @@ public class Mapper {
                 .id(venta.getId())
                 .fechaHora(venta.getFechaHora())
                 .total(venta.getTotal())
+                .metodoPago(venta.getMetodoPago())
+                .cliente(venta.getCliente())
                 .estado(venta.getEstado())
+                .usuario(venta.getUsuario())
+                .anuladaPor(venta.getAnuladaPor())
+                .fechaAnulacion(venta.getFechaAnulacion())
                 .build();
     }
 
@@ -64,6 +74,8 @@ public class Mapper {
                 .precioUnitario(dv.getPrecioUnitario())
                 .precioCosto(dv.getPrecioCosto())
                 .subtotal(dv.getSubtotal())
+                .descuentoPorcentaje(dv.getDescuentoPorcentaje())
+                .promoDescripcion(dv.getPromoDescripcion())
                 .productoId(dv.getProducto() != null ? dv.getProducto().getId() : null)
                 .ventaId(dv.getVenta() != null ? dv.getVenta().getId() : null)
                 .build();
@@ -77,7 +89,14 @@ public class Mapper {
         return CompraDTO.builder()
                 .id(compra.getId())
                 .fechaHora(compra.getFechaHora())
+                .total(compra.getTotal())
+                .pagada(compra.isPagada())
+                .metodoPago(compra.getMetodoPago())
                 .proveedor(compra.getProveedor())
+                .usuario(compra.getUsuario())
+                .estado(compra.getEstado())
+                .anuladaPor(compra.getAnuladaPor())
+                .fechaAnulacion(compra.getFechaAnulacion())
                 .build();
     }
 
@@ -119,7 +138,7 @@ public class Mapper {
                 .imagenUrl(dto.getImagenUrl())
                 .tipoCantidad(dto.getTipoCantidad() != null ? dto.getTipoCantidad() : "UNIDAD")
                 .unidadMedida(dto.getUnidadMedida() != null ? dto.getUnidadMedida() : "u")
-                .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : 1.0)
+                .fraccionMinima(dto.getFraccionMinima() != null ? dto.getFraccionMinima() : BigDecimal.ONE)
                 .unidadesPorPaquete(dto.getUnidadesPorPaquete())
                 .build();
 
@@ -176,7 +195,12 @@ public class Mapper {
                 .id(venta.getId())
                 .fechaHora(venta.getFechaHora())
                 .total(venta.getTotal())
+                .metodoPago(venta.getMetodoPago())
+                .cliente(venta.getCliente())
                 .estado(venta.getEstado())
+                .usuario(venta.getUsuario())
+                .anuladaPor(venta.getAnuladaPor())
+                .fechaAnulacion(venta.getFechaAnulacion())
                 .detalles(
                         venta.getDetalles()
                                 .stream()
@@ -191,7 +215,14 @@ public class Mapper {
         return CompraDetalleResponseDTO.builder()
                 .id(compra.getId())
                 .fechaHora(compra.getFechaHora())
+                .total(compra.getTotal())
+                .pagada(compra.isPagada())
+                .metodoPago(compra.getMetodoPago())
                 .proveedor(compra.getProveedor())
+                .usuario(compra.getUsuario())
+                .estado(compra.getEstado())
+                .anuladaPor(compra.getAnuladaPor())
+                .fechaAnulacion(compra.getFechaAnulacion())
                 .detalles(
                         compra.getDetalles()
                                 .stream()
@@ -209,6 +240,8 @@ public class Mapper {
                 .username(usuario.getUsername())
                 .nombre(usuario.getNombre())
                 .rol(usuario.getRol())
+                .puedeGestionarProductos(usuario.isPuedeGestionarProductos())
+                .puedeVerCaja(usuario.isPuedeVerCaja())
                 .build();
     }
     public static Usuario toEntity(UsuarioDTO dto) {

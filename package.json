@@ -1,0 +1,9 @@
+{
+  "name": "despensafamily",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Wrapper de la raíz para comandos del monorepo. Backend en DespensaFamily/, frontend en FrontDespensaFamily/, E2E en e2e/.",
+  "scripts": {
+    "e2e": "npm --prefix e2e test"
+  }
+}

@@ -26,6 +26,12 @@
 
       <div id="toast" class="toast hidden"></div>
 
+      <div class="compras-toolbar">
+        <button type="button" id="btn-abrir-registrar-compra">
+          <span class="icon" style="--icono:url('/icons/plus.svg')"></span> Registrar Compra
+        </button>
+      </div>
+
       <!-- ================= COMPRAS REGISTRADAS ================= -->
       <section>
   <h2>Compras registradas</h2>
@@ -36,7 +42,11 @@
         <tr>
           <th>ID</th>
           <th>Proveedor</th>
-          <th>Fecha</th>
+          <th>Fecha y hora</th>
+          <th>Total</th>
+          <th>Pago</th>
+          <th>Registró</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -44,76 +54,130 @@
   </div>
 </section>
 
-
-      <section>
-        <h2>Registrar Compra</h2>
-
-        <form id="form-compra">
-
-          <label>
-            Proveedor
-            <input type="text" id="proveedor" required />
-          </label>
-
-          <div class="detalle-compra">
-
-            <div class="producto-buscar-container">
-              <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" />
-              <div id="dropdown-productos" class="dropdown-productos hidden"></div>
-            </div>
-
-            <input
-              type="number"
-              id="cantidad"
-              placeholder="Cantidad"
-              min="0.001"
-              step="0.001"
-            />
-
-            <input
-              type="number"
-              id="precioCosto"
-              placeholder="Precio costo"
-              min="0"
-              step="0.01"
-            />
-
-            <button type="button" id="btn-agregar">
-              Agregar
-            </button>
-          </div>
-
-          <!-- TABLA DE DETALLES DE LA NUEVA COMPRA -->
-           <div class="tabla-scroll" style="max-height: 250px;">
-          <table id="tabla-detalles">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio costo</th>
-                <th>Subtotal</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          </div>
-
-          <button type="submit" class="btn-guardar">
-            Registrar Compra
-          </button>
-
-        </form>
-      </section>
-
     </div>
   </main>
+
+<!-- Modal Registrar Compra -->
+<div id="modal-registrar-compra" class="modal hidden">
+  <div class="modal-content modal-content-compra">
+    <h2>Registrar Compra</h2>
+
+    <form id="form-compra">
+
+      <label>
+        Proveedor
+        <input type="text" id="proveedor" required />
+      </label>
+
+      <div class="detalle-compra">
+
+        <div class="producto-buscar-container">
+          <input type="text" id="input-buscar-producto" placeholder="Buscar producto..." autocomplete="off" />
+          <div id="dropdown-productos" class="dropdown-productos hidden"></div>
+        </div>
+
+        <input
+          type="number"
+          id="cantidad"
+          placeholder="Cantidad"
+          min="0.001"
+          step="0.001"
+        />
+
+        <input
+          type="number"
+          id="precioCosto"
+          placeholder="Precio costo"
+          min="0"
+          step="0.01"
+        />
+
+        <button type="button" id="btn-agregar">
+          Agregar
+        </button>
+      </div>
+
+      <!-- TABLA DE DETALLES DE LA NUEVA COMPRA -->
+       <div class="tabla-scroll" style="max-height: 250px;">
+      <table id="tabla-detalles">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio costo</th>
+            <th>Subtotal</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+
+      <!-- Cómo se paga esta compra. "Pagada" viene tildado por default: es
+           el caso más común (se le paga al proveedor al recibir la
+           mercadería). Destildar es lo que deja la compra "a cuenta" —
+           entra el stock pero no sale plata de caja todavía (ver
+           CompraService, Fase 11 del mapa de cambios). -->
+      <div class="compra-pago">
+        <label class="compra-pagada-check">
+          <input type="checkbox" id="checkbox-pagada" checked />
+          Ya se le pagó al proveedor
+        </label>
+        <label>
+          Método de pago
+          <select id="select-metodo-pago-compra">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TARJETA">Tarjeta</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="OTRO">Otro</option>
+          </select>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-guardar">
+        Registrar Compra
+      </button>
+
+    </form>
+
+    <button type="button" id="btn-cerrar-registrar-compra">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal Confirmar Precios (DF-RISK-001): precio actual -> precio nuevo por
+     línea antes de registrar la compra, resaltando cambios de más del 50%. -->
+<div id="modal-confirmar-precios" class="modal hidden">
+  <div class="modal-content">
+    <h2>Confirmar precios de venta</h2>
+    <p>Así quedaría el precio de venta de cada producto si se registra esta compra:</p>
+
+    <div class="tabla-scroll" style="max-height: 300px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio actual</th>
+            <th>Precio nuevo</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-confirmar-precios"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-acciones">
+      <button type="button" id="btn-cancelar-precios">Cancelar</button>
+      <button type="button" id="btn-confirmar-precios">Confirmar y registrar compra</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Detalle de Compra -->
 <div id="modal-detalle-compra" class="modal hidden">
   <div class="modal-content">
     <h2>Detalle de Compra <span id="detalle-compra-id"></span></h2>
     <p><strong>Proveedor:</strong> <span id="detalle-compra-proveedor"></span></p>
     <p><strong>Fecha:</strong> <span id="detalle-compra-fecha"></span></p>
+    <p><strong>Pago:</strong> <span id="detalle-compra-pago"></span></p>
 
     <div class="tabla-scroll" style="max-height: none;">
       <table>

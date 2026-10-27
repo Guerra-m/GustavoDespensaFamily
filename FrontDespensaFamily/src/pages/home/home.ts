@@ -1,3 +1,4 @@
+import { esc, formatearFechaHora, formatearMoneda } from "../../utils/format";
 import { checkAdmin } from "../../services/auth.service";
 checkAdmin();
 
@@ -6,11 +7,12 @@ import { getCompras, getCompraDetalle } from "../../services/compras.service";
 import { getProductos } from "../../services/productos.service";
 import { getProductosMasVendidos, getResumenVentas, getMovimientos, getProductosBajoStock } from "../../services/reportes.service";
 import Chart from "chart.js/auto";
+import { mostrarToast } from "../../utils/toast";
 
-// ---------------- DOM ----------------
 const kpiVentas = document.getElementById("kpi-ventas") as HTMLParagraphElement;
 const kpiCompras = document.getElementById("kpi-compras") as HTMLParagraphElement;
 const kpiStockBajo = document.getElementById("kpi-stock-bajo") as HTMLParagraphElement;
+const kpiCardStockBajo = document.getElementById("kpi-card-stock-bajo") as HTMLAnchorElement;
 const kpiProductos = document.getElementById("kpi-productos") as HTMLParagraphElement;
 
 const tablaUltimasVentas = document.querySelector("#tabla-ultimas-ventas tbody") as HTMLTableSectionElement;
@@ -40,16 +42,21 @@ async function cargarKPIs() {
 
     // Ventas hoy
     const resumenHoy = await getResumenVentas("dia");
-    kpiVentas.textContent = `$${resumenHoy.totalVentas.toLocaleString()}`;
+    kpiVentas.textContent = formatearMoneda(resumenHoy.totalVentas);
 
-    // Compras hoy
+    // Compras registradas hoy: TODAS las activas (pagadas o no) -- distinto
+    // de "Compras pagadas" de Rentabilidad, que solo cuenta lo que salio de
+    // caja de verdad (DF-UX-010).
     const movimientosComprasHoy = await getMovimientos(hoyStr, hoyStr, "COMPRA");
     const totalComprasHoy = movimientosComprasHoy.reduce((acc, m) => acc + m.subtotal, 0);
-    kpiCompras.textContent = `$${totalComprasHoy.toLocaleString()}`;
+    kpiCompras.textContent = formatearMoneda(totalComprasHoy);
 
-    // Stock bajo
+    // Stock bajo: se resalta la tarjeta en naranja solo cuando hay algo
+    // que atender — si no, compite visualmente con métricas que no piden
+    // ninguna acción.
     const bajoStock = await getProductosBajoStock();
     kpiStockBajo.textContent = `${bajoStock.length}`;
+    kpiCardStockBajo.classList.toggle("kpi-card--alerta", bajoStock.length > 0);
 
     // Productos totales
     kpiProductos.textContent = `${productos.length}`;
@@ -59,29 +66,36 @@ async function cargarKPIs() {
     kpiCompras.textContent = "Error";
     kpiStockBajo.textContent = "Error";
     kpiProductos.textContent = "Error";
+    mostrarToast("No se pudieron cargar los indicadores del inicio", true);
   }
 }
 
 // Cargar últimas ventas y compras
 async function cargarUltimas() {
-  // Últimas 5 ventas
-  const ultimasVentas = ventas.slice(-5).reverse();
-  tablaUltimasVentas.innerHTML = "";
-  ultimasVentas.forEach(v => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${v.id}</td><td>${v.fechaHora}</td><td>$${v.total.toLocaleString()}</td>`;
-    tablaUltimasVentas.appendChild(tr);
-  });
+  try {
+    // Últimas 5 ventas
+    const ultimasVentas = ventas.slice(-5).reverse();
+    tablaUltimasVentas.innerHTML = "";
+    ultimasVentas.forEach(v => {
+      const tr = document.createElement("tr");
+      if (v.estado === "ANULADA") tr.classList.add("venta-anulada");
+      tr.innerHTML = `<td>${v.id}</td><td>${formatearFechaHora(v.fechaHora)}</td><td>${formatearMoneda(v.total)}</td>`;
+      tablaUltimasVentas.appendChild(tr);
+    });
 
-  // Últimas 5 compras
-  const ultimasCompras = compras.slice(-5).reverse();
-  tablaUltimasCompras.innerHTML = "";
-  for (const c of ultimasCompras) {
-    const detalle = await getCompraDetalle(c.id!);
-    const total = detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.id}</td><td>${c.proveedor}</td><td>$${total.toLocaleString()}</td>`;
-    tablaUltimasCompras.appendChild(tr);
+    // Últimas 5 compras
+    const ultimasCompras = compras.slice(-5).reverse();
+    tablaUltimasCompras.innerHTML = "";
+    for (const c of ultimasCompras) {
+      const detalle = await getCompraDetalle(c.id!);
+      const total = detalle.detalles.reduce((acc, d) => acc + d.cantidad * d.precioCosto, 0);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${c.id}</td><td>${esc(c.proveedor)}</td><td>${formatearMoneda(total)}</td>`;
+      tablaUltimasCompras.appendChild(tr);
+    }
+  } catch (err) {
+    console.error(err);
+    mostrarToast("No se pudieron cargar las últimas ventas y compras", true);
   }
 }
 
@@ -95,7 +109,9 @@ function renderVentasChart() {
     diasMap[key] = 0;
   }
 
-  ventas.forEach(v => {
+  // Las anuladas ahora vienen en el listado (antes el backend las filtraba):
+  // hay que descartarlas acá o el gráfico contaría plata que se devolvió.
+  ventas.filter(v => v.estado !== "ANULADA").forEach(v => {
     const fecha = v.fechaHora.split("T")[0];
     if (diasMap[fecha] !== undefined) diasMap[fecha] += v.total;
   });
@@ -157,6 +173,7 @@ async function renderTopProductosChart() {
     });
   } catch (err) {
     console.error(err);
+    mostrarToast("No se pudo cargar el top de productos más vendidos", true);
   }
 }
 
@@ -164,7 +181,12 @@ async function renderTopProductosChart() {
 async function initHome() {
   await cargarKPIs();
   await cargarUltimas();
-  renderVentasChart();
+  try {
+    renderVentasChart();
+  } catch (err) {
+    console.error(err);
+    mostrarToast("No se pudo dibujar el gráfico de ventas", true);
+  }
   await renderTopProductosChart();
 }
 

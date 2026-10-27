@@ -18,6 +18,8 @@
   <!-- NAVBAR -->
   <div id="navbar-container"></div>
 
+  <div id="toast" class="toast hidden"></div>
+
   <!-- CONTENIDO -->
   <main class="content">
     <!-- Título -->
@@ -27,30 +29,33 @@
   <div class="kpi-container">
     <div class="kpi-card">
       <h3>Ventas Hoy</h3>
-      <p id="kpi-ventas">$0</p>
+      <p id="kpi-ventas">…</p>
     </div>
     <div class="kpi-card">
-      <h3>Compras Hoy</h3>
-      <p id="kpi-compras">$0</p>
+      <h3>Compras registradas hoy</h3>
+      <p id="kpi-compras">…</p>
     </div>
-    <div class="kpi-card">
+    <!-- Es un link a Reportes (donde vive el detalle de bajo stock) y no un
+         div: es la única tarjeta de esta fila que pide una acción, no solo
+         informa. -->
+    <a class="kpi-card" id="kpi-card-stock-bajo" href="../reportes/reportes.html">
       <h3>Stock Bajo</h3>
-      <p id="kpi-stock-bajo">0</p>
-    </div>
+      <p id="kpi-stock-bajo">…</p>
+    </a>
     <div class="kpi-card">
       <h3>Productos Totales</h3>
-      <p id="kpi-productos">0</p>
+      <p id="kpi-productos">…</p>
     </div>
   </div>
 
   <!-- 📊 Gráficos -->
   <section class="graficos">
     <div class="grafico-box">
-      <h2>📈 Ventas últimos 7 días</h2>
+      <h2 class="titulo-ventas-7-dias">Ventas últimos 7 días</h2>
       <canvas id="ventas-chart" width="400" height="200"></canvas>
     </div>
     <div class="grafico-box">
-      <h2>🏆 Top productos vendidos (últimos 30 días)</h2>
+      <h2 class="titulo-top-productos">Top productos vendidos (últimos 30 días)</h2>
       <canvas id="top-productos-chart" width="400" height="200"></canvas>
     </div>
   </section>

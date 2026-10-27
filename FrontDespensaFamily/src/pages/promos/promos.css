@@ -1,19 +1,14 @@
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 .promos-container {
   max-width: 1000px;
   margin: 0 auto;
 }
 
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -23,9 +18,14 @@ h1 {
   gap: 12px;
 }
 
-h1::before {
-  content: '🏷️';
-  font-size: 36px;
+.content h1::before {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/tag.svg') center / contain no-repeat;
+  mask: url('/icons/tag.svg') center / contain no-repeat;
 }
 
 h2 {
@@ -38,14 +38,17 @@ h2 {
   gap: 10px;
 }
 
-#form-crear-promo h2::before {
-  content: '➕';
-  font-size: 26px;
-}
+#form-crear-promo h2::before { --icono: url('/icons/plus.svg'); }
 
-.modal-content h2::before {
-  content: '✏️';
-  font-size: 26px;
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono, url('/icons/pencil.svg')) center / contain no-repeat;
+  mask: var(--icono, url('/icons/pencil.svg')) center / contain no-repeat;
 }
 
 /* TABLA */
@@ -68,7 +71,7 @@ h2 {
 }
 
 #tabla-promos thead {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }
 
 #tabla-promos th {
@@ -115,12 +118,12 @@ button:not(.menu-toggle):hover {
 }
 
 button.editar {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
 }
 
 button.eliminar {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
 }
 
@@ -166,14 +169,14 @@ form input {
 
 form input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
 form button[type="submit"] {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -231,28 +234,7 @@ form button[type="submit"] {
   color: #6c757d;
 }
 
-/* TOAST */
-.toast {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: #43a047;
-  color: #fff;
-  padding: 14px 22px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  z-index: 2500;
-}
-
-.toast.hidden {
-  display: none;
-}
-
-.toast.error {
-  background: #e53935;
-}
+/* TOAST: definido una sola vez en style.css (.toast) — Fase 3, DF-DEBT-004. */
 
 /* MODAL */
 .modal {
@@ -299,19 +281,13 @@ form button[type="submit"] {
 }
 
 /* RESPONSIVE */
-@media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-}
-
 @media (max-width: 768px) {
   .content {
     padding: 20px;
     padding-top: 80px;
   }
 
-  h1 {
+  .content h1 {
     font-size: 24px;
   }
 
@@ -327,4 +303,47 @@ form button[type="submit"] {
     padding: 24px;
     width: 95%;
   }
+}
+
+@media (max-width: 480px) {
+  .content h1 {
+    font-size: 20px;
+  }
+
+  .content h1::before {
+    width: 24px;
+    height: 24px;
+  }
+
+  #tabla-promos {
+    font-size: 12px;
+  }
+
+  #tabla-promos th,
+  #tabla-promos td {
+    padding: 8px 6px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  form input,
+  form select {
+    font-size: 14px;
+  }
+}
+
+.promos-separador {
+  margin: 32px 0;
+  border: none;
+  border-top: 1px solid #e9ecef;
+}
+
+.promos-ayuda {
+  color: var(--color-texto-secundario, #666);
+  font-size: 14px;
+  margin-top: -8px;
+  margin-bottom: 16px;
 }

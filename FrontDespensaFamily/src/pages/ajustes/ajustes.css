@@ -1,0 +1,195 @@
+/* CONTENEDOR PRINCIPAL */
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
+
+.ajustes-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.content h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.content h1::before {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/wallet.svg') center / contain no-repeat;
+  mask: url('/icons/wallet.svg') center / contain no-repeat;
+}
+
+.ajuste-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.ajuste-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.ajuste-ayuda {
+  color: #6c757d;
+  font-size: 13px;
+  margin-bottom: 20px;
+  max-width: 600px;
+}
+
+.ajuste-fila {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ajuste-fila label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.ajuste-fila input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.ajuste-fila input:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
+}
+
+.ajuste-fila button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.ajuste-fila button:hover {
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
+  transform: translateY(-2px);
+}
+
+.ajuste-fila button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#btn-aplicar-ganancia {
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
+}
+
+#btn-aplicar-ganancia:hover {
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
+}
+
+.ajuste-resultado {
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--color-exito);
+  font-size: 14px;
+}
+
+.ajuste-resultado.hidden {
+  display: none;
+}
+
+.ajuste-resultado.error {
+  color: var(--color-peligro);
+}
+
+.ia-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #e9ecef;
+  color: #495057;
+}
+
+.ia-badge.configurada {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--color-exito-dark, #1e8449);
+}
+
+.ia-badge.no-configurada {
+  background: rgba(230, 126, 34, 0.15);
+  color: #b9770e;
+}
+
+#btn-quitar-clave-ia.ajuste-boton-secundario {
+  background: #ffffff;
+  color: var(--color-peligro, #c0392b);
+  border: 2px solid var(--color-peligro, #c0392b);
+}
+
+#btn-quitar-clave-ia.ajuste-boton-secundario:hover {
+  background: rgba(192, 57, 43, 0.08);
+  transform: translateY(-2px);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .content {
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  .content h1 {
+    font-size: 24px;
+  }
+
+  .ajuste-card {
+    padding: 20px;
+  }
+
+  .ajuste-fila {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .content h1 {
+    font-size: 20px;
+  }
+
+  .content h1::before {
+    width: 24px;
+    height: 24px;
+  }
+}

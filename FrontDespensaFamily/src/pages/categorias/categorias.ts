@@ -1,5 +1,12 @@
-import { checkAuth } from "../../services/auth.service";
+import { habilitarCierreConEscape } from "../../utils/modales";
+import { esc } from "../../utils/format";
+import { checkAuth, puedeGestionarProductos } from "../../services/auth.service";
 checkAuth();
+
+// Crear, editar o eliminar categorías es del dueño, o de un empleado con
+// PERM_STOCK prendido (ver Usuario.java). El backend ya lo exige
+// (SecurityConfig); esto solo evita mostrar controles que van a 403.
+const PUEDE_GESTIONAR = puedeGestionarProductos();
 
 import type { Categoria } from "../../models/Categoria";
 import {
@@ -11,9 +18,10 @@ import {
 import { getProductos, updateProducto } from "../../services/productos.service";
 import type { Producto } from "../../models/Producto";
 import { confirmar } from "../../services/confirm.service";
+import { mostrarToast } from "../../utils/toast";
 
 // DOM
-const tbody = document.querySelector("#tabla-categorias tbody") as HTMLTableSectionElement;
+const grid = document.getElementById("categorias-grid") as HTMLDivElement;
 const formCrear = document.getElementById("form-crear-categoria") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar-categoria") as HTMLFormElement;
 const modal = document.getElementById("modal-editar") as HTMLDivElement;
@@ -21,34 +29,59 @@ const btnCancelar = document.getElementById("btn-cancelar") as HTMLButtonElement
 
 // Estado
 let categorias: Categoria[] = [];
+let productos: Producto[] = [];
 let categoriaActual: Categoria | null = null;
+
+function contarProductos(categoriaId: number): number {
+  return productos.filter(p => p.categoriaId === categoriaId).length;
+}
 
 // Render
 function renderCategorias() {
-  tbody.innerHTML = "";
+  grid.innerHTML = "";
+
+  if (categorias.length === 0) {
+    grid.innerHTML = `<div class="categorias-sin-resultados">No hay categorías creadas todavía</div>`;
+    return;
+  }
 
   categorias.forEach(cat => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${cat.id}</td>
-      <td>${cat.nombre}</td>
-      <td>${cat.descripcion || ""}</td>
-      <td>
-        <button class="editar" data-id="${cat.id}">Editar</button>
-        <button class="eliminar" data-id="${cat.id}">Eliminar</button>
-      </td>
+    const cantidad = contarProductos(cat.id!);
+    const card = document.createElement("div");
+    card.className = "categoria-card";
+    card.innerHTML = `
+      ${PUEDE_GESTIONAR ? `<div class="categoria-acciones">
+        <button class="btn-editar-cat" data-id="${cat.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>
+        <button class="btn-eliminar-cat" data-id="${cat.id}" title="Eliminar"><span class="icon" style="--icono:url('/icons/trash-2.svg')"></span></button>
+      </div>` : ""}
+      <div class="categoria-nombre">${esc(cat.nombre)}</div>
+      <!-- DF-SEC-001: reproducido en vivo con <img src=x onerror=...> en la descripcion. -->
+      <div class="categoria-descripcion">${cat.descripcion ? esc(cat.descripcion) : "Sin descripción"}</div>
+      <div class="categoria-contador">${cantidad} producto${cantidad === 1 ? "" : "s"}</div>
     `;
-    tbody.appendChild(tr);
+    grid.appendChild(card);
   });
 
   agregarEventos();
 }
 
+if (!PUEDE_GESTIONAR) {
+  formCrear.classList.add("hidden");
+}
+
 // Cargar
 async function cargarCategorias() {
-  categorias = await getCategorias();
-  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  renderCategorias();
+  // DF-UX-008: antes esto corría sin catch a nivel de módulo (línea de
+  // INIT); con el backend caído la grilla quedaba vacía sin ningún aviso.
+  try {
+    [categorias, productos] = await Promise.all([getCategorias(), getProductos()]);
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    renderCategorias();
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="categorias-sin-resultados">${esc((err as Error).message || "No se pudieron cargar las categorías")}</div>`;
+    mostrarToast((err as Error).message || "Error al cargar categorías", true);
+  }
 }
 
 // Crear
@@ -61,10 +94,15 @@ formCrear.addEventListener("submit", async e => {
   descripcion: fd.get("descripcion") as string || undefined
 };
 
-
-  await createCategoria(nueva);
-  formCrear.reset();
-  cargarCategorias();
+  try {
+    await createCategoria(nueva);
+    formCrear.reset();
+    mostrarToast("Categoría creada correctamente");
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al crear categoría", true);
+  }
 });
 
 // Abrir editar
@@ -93,46 +131,62 @@ formEditar.addEventListener("submit", async e => {
     descripcion: fd.get("descripcion") as string || undefined
   };
 
-  await updateCategoria(categoriaActual.id!, actualizada);
+  try {
+    await updateCategoria(categoriaActual.id!, actualizada);
 
-  if (porcentaje !== null && porcentaje !== "") {
-    await actualizarGananciaProductos(
-      categoriaActual.id!,
-      Number(porcentaje)
-    );
+    if (porcentaje !== null && porcentaje !== "") {
+      await actualizarGananciaProductos(
+        categoriaActual.id!,
+        Number(porcentaje)
+      );
+    }
+
+    mostrarToast("Categoría actualizada correctamente");
+    modal.classList.add("hidden");
+    categoriaActual = null;
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al actualizar categoría", true);
   }
-
-  modal.classList.add("hidden");
-  categoriaActual = null;
-  cargarCategorias();
 });
 
 
 // Eliminar
 async function eliminarCategoria(id: number) {
   if (!(await confirmar("¿Eliminar categoría?"))) return;
-  await deleteCategoria(id);
-  cargarCategorias();
+  try {
+    await deleteCategoria(id);
+    mostrarToast("Categoría eliminada");
+    cargarCategorias();
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al eliminar categoría", true);
+  }
 }
 async function actualizarGananciaProductos(
   categoriaId: number,
   porcentajeGanancia: number
 ) {
-  const productos = await getProductos();
+  const productosVigentes = await getProductos();
 
-  const productosCategoria = productos.filter(
+  const productosCategoria = productosVigentes.filter(
     p => p.categoriaId === categoriaId
   );
 
   for (const producto of productosCategoria) {
+    // Sin costo en la respuesta (quien pide no ve costos, DF-SEC-003) no hay
+    // de dónde calcular: mejor no tocarlo que pisarle el costo con 0.
+    const costo = producto.precioCosto;
+    if (costo === undefined) continue;
     const precioVentaNuevo =
-  producto.precioCosto +
-  (producto.precioCosto * porcentajeGanancia) / 100;
+  costo +
+  (costo * porcentajeGanancia) / 100;
 
 const productoActualizado = {
   ...producto,
   porcentajeGanancia,
-  precioVenta: +precioVentaNuevo.toFixed(2)
+  precioVenta: Number(precioVentaNuevo.toFixed(2))
 };
 
 
@@ -145,15 +199,15 @@ const productoActualizado = {
 }
 
 
-// Eventos tabla
+// Eventos de las cards
 function agregarEventos() {
-  document.querySelectorAll(".editar").forEach(btn => {
+  document.querySelectorAll(".btn-editar-cat").forEach(btn => {
     btn.addEventListener("click", () =>
       abrirEditar(Number((btn as HTMLElement).dataset.id))
     );
   });
 
-  document.querySelectorAll(".eliminar").forEach(btn => {
+  document.querySelectorAll(".btn-eliminar-cat").forEach(btn => {
     btn.addEventListener("click", () =>
       eliminarCategoria(Number((btn as HTMLElement).dataset.id))
     );
@@ -168,3 +222,6 @@ btnCancelar.addEventListener("click", () => {
 
 // Init
 cargarCategorias();
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();

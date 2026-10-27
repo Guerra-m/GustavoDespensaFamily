@@ -2,7 +2,99 @@
    vacío y cada página copiaba su propio .toast/.hidden — de acá en más,
    lo que es realmente común vive acá una sola vez. */
 
+/* ============================================================
+   TOKENS DE DISEÑO
+   ============================================================
+   Se cargan primero en cada página (menos login, que tiene su propia
+   estética de bienvenida) para que todo lo demás pueda usar estas
+   variables en vez de repetir el mismo azul o el mismo radio a mano en
+   12 archivos distintos.
+
+   Los valores no son nuevos: son los colores y radios que ya estaban
+   repetidos en navbar.css, ventas.css, productos.css, etc. Este archivo
+   les pone nombre, no les cambia el significado.
+   ============================================================ */
+:root {
+  /* Marca */
+  --color-primario: #4fc3f7;
+  --color-primario-dark: #0288d1;
+  --color-primario-oscuro: #01579b;
+
+  /* Estado */
+  --color-exito: #43a047;
+  --color-exito-claro: #66bb6a;
+  --color-exito-dark: #388e3c;
+  --color-peligro: #e53935;
+  --color-peligro-claro: #ef5350;
+  --color-peligro-dark: #d32f2f;
+  --color-advertencia: #ff6b00;
+  --color-advertencia-claro: #fff3e0;
+
+  /* Neutros */
+  --color-texto: #2c3e50;
+  --color-texto-tenue: #64748b;
+  --color-borde: #e2e8f0;
+  --color-fondo: #f4f6f8;
+  --color-superficie: #ffffff;
+
+  /* Tipografía */
+  --fuente-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* Espaciado (escala de 4px) */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 20px;
+  --espacio-6: 24px;
+  --espacio-8: 32px;
+
+  /* Radios */
+  --radio-sm: 8px;
+  --radio-md: 12px;
+  --radio-lg: 16px;
+  --radio-pill: 999px;
+
+  /* Sombras */
+  --sombra-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --sombra-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --sombra-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
 .hidden { display: none !important; }
+
+/* ============================================================
+   ICONOS
+   ============================================================
+   Reemplazan los emoji que se usaban como iconos (🏠💰📦🖨️...): un emoji
+   se ve distinto según la fuente del sistema y no tiene la seriedad de un
+   ícono de verdad. Los SVG viven en /public/icons (lucide-static, trazo
+   monocromático) y se aplican como máscara: así heredan el color del
+   texto (currentColor) en vez de quedar pegados a un color fijo, y sirven
+   igual en claro/oscuro sin tener dos versiones del archivo.
+
+   Uso, para un <span> suelto:
+     <span class="icon" style="--icono: url('/icons/house.svg')"></span>
+   o, dentro de un ::before que ya existe (necesita su propio content:'';
+   la clase .icon no sirve ahí, ver la nota debajo):
+     .algo::before { content: ''; ...mask: var(--icono); }
+     .algo::before { --icono: url('/icons/house.svg'); }
+
+   Nota: .icon NO lleva `content: ''`, aunque un ::before sí lo necesite
+   para existir. Ese mismo `content` puesto en un elemento real (no un
+   ::before) hace que Chromium lo trate como contenido reemplazado (como
+   una <img>): adentro de un flex container el ancho explícito se ignora
+   y el span queda en 0px aunque el alto sí se respete — así se encontró,
+   con el lápiz de "Editar" invisible en Productos. */
+.icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.2em;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
+}
 
 /* ── TOAST ── */
 .toast {
@@ -41,8 +133,55 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario, #4fc3f7) 0%, var(--color-primario-dark, #0288d1) 100%);
   color: white;
+}
+
+/* ── ESTADO VACÍO DE TABLA ──
+   Antes cada página lo resolvía (o no) por su cuenta: el dashboard mostraba
+   "No hay datos disponibles" en Últimas Compras, pero la tabla de Compras
+   registradas quedaba directamente en blanco, sin ningún mensaje. Puesto acá
+   una sola vez, alcanza con que la página deje el <tbody> vacío (ya es lo que
+   hacen todas cuando no hay filas) para que el mensaje aparezca solo. */
+.tabla-scroll tbody:empty::after {
+  content: 'No hay datos disponibles';
+  display: block;
+  text-align: center;
+  padding: 40px;
+  color: #adb5bd;
+  font-style: italic;
+}
+
+/* ── BADGE DE ESTADO ── */
+/* Antes vivía duplicado en usuarios.css (.badge-admin/.badge-empleado); acá
+   queda la base para que cualquier página la reuse con su propio color
+   (ver .badge-estado--activo, usado en Promos en vez de "✅" vs "—"). */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radio-pill);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radio-pill);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.badge-estado--activo {
+  background: #e8f5e9;
+  color: var(--color-exito-dark);
+}
+
+.badge-estado--inactivo {
+  background: #f1f3f5;
+  color: var(--color-texto-tenue);
 }
 
 /* ── MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo) ──
@@ -108,6 +247,224 @@
   color: white;
 }
 
+/* ── WIDGET DEL ASISTENTE IA (compartido: página propia + pestaña de
+   Crear Producto) — ver components/asistente-ia/asistenteIaWidget.ts ── */
+.ia-preview-imagen {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 16px;
+  display: block;
+  object-fit: contain;
+}
+
+.ia-preview-imagen.hidden {
+  display: none;
+}
+
+.ia-seccion-preview.hidden {
+  display: none;
+}
+
+.ia-preview-acciones {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+#tabla-preview,
+#ia-tabla-preview {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#tabla-preview thead,
+#ia-tabla-preview thead {
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+}
+
+#tabla-preview th,
+#ia-tabla-preview th {
+  padding: 12px;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+#tabla-preview td,
+#ia-tabla-preview td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid #f1f3f5;
+  font-size: 13px;
+}
+
+#tabla-preview tbody tr:last-child td,
+#ia-tabla-preview tbody tr:last-child td {
+  border-bottom: none;
+}
+
+#tabla-preview tr.fila-creada,
+#ia-tabla-preview tr.fila-creada {
+  background: #f1f8f4;
+}
+
+#tabla-preview tr.fila-error,
+#ia-tabla-preview tr.fila-error {
+  background: #fdf2f2;
+}
+
+#tabla-preview input,
+#tabla-preview select,
+#ia-tabla-preview input,
+#ia-tabla-preview select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+#tabla-preview input:disabled,
+#tabla-preview select:disabled,
+#ia-tabla-preview input:disabled,
+#ia-tabla-preview select:disabled {
+  background: #f8f9fa;
+  color: #868e96;
+  border-color: #f1f3f5;
+}
+
+#tabla-preview input:focus,
+#tabla-preview select:focus,
+#ia-tabla-preview input:focus,
+#ia-tabla-preview select:focus {
+  outline: none;
+  border-color: var(--color-primario);
+}
+
+.estado-ok { color: var(--color-exito); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.estado-error { color: var(--color-peligro); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.estado-advertencia { color: var(--color-advertencia); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.estado-pendiente { color: #868e96; font-weight: 600; font-size: 13px; white-space: nowrap; }
+
+.btn-quitar-fila {
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-quitar-fila:hover {
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
+}
+
 #confirm-modal-aceptar:hover {
   background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+}
+
+/* ---------------------------------------------------------------
+   Ventas anuladas
+   Ahora el listado las trae (antes el backend las filtraba y la venta
+   desaparecía del historial). Se muestran tachadas y apagadas: tienen que
+   verse que estuvieron, sin confundirse con una venta vigente.
+   --------------------------------------------------------------- */
+tr.venta-anulada td {
+  color: var(--color-texto-secundario, #868e96);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-peligro, #e03131);
+}
+
+tr.venta-anulada td:last-child {
+  text-decoration: none;
+}
+
+.etiqueta-anulada {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-peligro-suave, #ffe3e3);
+  color: var(--color-peligro, #c92a2a);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* Compra pagada vs. a cuenta (ver CompraService, Fase 11). Mismos tokens que
+   .etiqueta-anulada, en verde/naranja en vez de rojo. */
+.etiqueta-pagada {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-exito-suave, #e6f7ea);
+  color: var(--color-exito-dark, #388e3c);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etiqueta-pendiente {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-advertencia-claro, #fff3e0);
+  color: var(--color-advertencia-dark, #c05600);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   LAYOUT BASE — el contenedor de las pantallas con barra lateral
+   ============================================================
+   `.content` es el <main> de toda pantalla que convive con la barra
+   lateral fija. Hasta ahora este bloque estaba copiado, idéntico, en el
+   CSS de doce páginas, así que el layout dependía de que cada pantalla
+   nueva se acordara de repetirlo. Caja y Empleados no lo hicieron: su
+   contenido arrancaba en x=8 con la barra ocupando hasta x=260, o sea
+   252 px tapados — el título decía "ja" en vez de "Caja" y en Empleados
+   no se veía la columna con el nombre de la persona a la que se le paga.
+
+   Definirlo acá es el arreglo de fondo: la pantalla que se cree mañana
+   ya nace con el layout correcto sin tener que acordarse de nada. Las
+   doce páginas que lo declaran siguen ganando —su hoja se carga después
+   y los valores son los mismos—, así que esto no cambia ni un píxel de
+   lo que ya andaba.
+
+   El margen sale de la MISMA variable que le da el ancho a la barra
+   (--navbar-width, en navbar.css). Antes eran dos 260 sueltos que nadie
+   ataba: tocar el ancho de la barra dejaba el contenido desalineado.
+   ============================================================ */
+.content {
+  margin-left: var(--navbar-width, 260px);
+  padding: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Mismo corte que usa la barra para esconderse (navbar.css): cuando deja
+   de ocupar lugar, el contenido no tiene que reservárselo. */
+@media (max-width: 1023px) {
+  .content {
+    margin-left: 0;
+  }
 }

@@ -8,10 +8,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.TransactionSystemException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,6 +63,56 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "Error interno del servidor"));
     }
 
+    // Login fallido: siempre 401 y siempre el mismo cuerpo, exista o no el
+    // usuario. Antes esto pasaba por la heuristica de mensajes de abajo, que
+    // devolvia 404 para "Usuario no encontrado" y 401 para "Contraseña
+    // incorrecta" — la diferencia sola alcanzaba para enumerar cuentas.
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> handleCredenciales(CredencialesInvalidasException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // 429 con Retry-After: es la respuesta estandar para "esperá", y le dice
+    // al frontend cuanto sin que tenga que interpretar el texto del mensaje.
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<Map<String, String>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(Math.max(1, ex.getEspera().toSeconds())))
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // La clave de Gemini la fijo una variable de entorno de Windows: no se
+    // puede pisar desde la app. 409 porque el pedido es valido pero choca con
+    // el estado actual del servidor, no con datos invalidos del cliente.
+    @ExceptionHandler(ClaveIaPorVariableDeEntornoException.class)
+    public ResponseEntity<Map<String, String>> handleClaveIaPorVariableDeEntorno(ClaveIaPorVariableDeEntornoException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // DF-DEBT-003. Las tres de abajo son las excepciones tipadas: el status
+    // lo decide el TIPO, no un texto. Quedan antes de handleRuntime (que
+    // sigue existiendo, ver mas abajo, como red de contencion para lo que
+    // todavia no esta migrado).
+    @ExceptionHandler(NoEncontradoException.class)
+    public ResponseEntity<Map<String, String>> handleNoEncontrado(NoEncontradoException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReglaDeNegocioException.class)
+    public ResponseEntity<Map<String, String>> handleReglaDeNegocio(ReglaDeNegocioException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ServicioExternoNoDisponibleException.class)
+    public ResponseEntity<Map<String, String>> handleServicioExternoNoDisponible(ServicioExternoNoDisponibleException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleValidacion(ConstraintViolationException ex) {
         String detalle = ex.getConstraintViolations().stream()
@@ -66,6 +124,97 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    // DF-BUG-006. Las cuatro de abajo son errores del pedido, no del
+    // servidor. Antes las dos primeras (que no son RuntimeException) caian
+    // al manejo por defecto de Spring, que manda el error a /error; como
+    // /error no estaba permitido, el cliente recibia un 403 vacio que
+    // parecia un problema de permisos. Las otras dos si llegaban a
+    // handleRuntime, pero con el mensaje crudo de Jackson o de conversion
+    // —nombres de clase incluidos, com.guerram...MetodoPago— (API-08).
+    // Mismo formato que handleValidacion: {error, detalle}.
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleBodyInvalido(MethodArgumentNotValidException ex) {
+        String detalle = ex.getBindingResult().getFieldErrors().stream()
+                .map(GlobalExceptionHandler::mensajeDeCampo)
+                .distinct()
+                .collect(Collectors.joining("; "));
+        return datosInvalidos(detalle.isEmpty() ? "Revisá los datos enviados" : detalle);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroFaltante(MissingServletRequestParameterException ex) {
+        return datosInvalidos("Falta el parámetro obligatorio '" + ex.getParameterName() + "'");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroConFormatoInvalido(MethodArgumentTypeMismatchException ex) {
+        return datosInvalidos("El parámetro '" + ex.getName() + "' tiene un formato inválido");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleCuerpoIlegible(HttpMessageNotReadableException ex) {
+        InvalidFormatException formato = causaDeTipo(ex, InvalidFormatException.class);
+        if (formato != null) {
+            String campo = formato.getPath().stream()
+                    .map(JacksonException.Reference::getPropertyName)
+                    .filter(nombre -> nombre != null)
+                    .collect(Collectors.joining("."));
+            String detalle = "El valor '" + formato.getValue() + "' no es válido"
+                    + (campo.isEmpty() ? "" : " para '" + campo + "'");
+            Class<?> tipo = formato.getTargetType();
+            if (tipo != null && tipo.isEnum()) {
+                detalle += ". Valores posibles: " + Arrays.stream(tipo.getEnumConstants())
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+            }
+            return datosInvalidos(detalle);
+        }
+        return datosInvalidos("El cuerpo del pedido no es un JSON válido");
+    }
+
+    private static String mensajeDeCampo(FieldError error) {
+        // Si el DTO trae su propio mensaje (message = "..."), ya esta en
+        // castellano y se usa tal cual. Si es el de la libreria, depende del
+        // idioma de la JVM ("must not be blank"): se arma uno propio.
+        String plantilla = null;
+        if (error.contains(ConstraintViolation.class)) {
+            plantilla = error.unwrap(ConstraintViolation.class).getMessageTemplate();
+        }
+        boolean mensajePropio = plantilla != null && !plantilla.startsWith("{");
+        if (mensajePropio) {
+            return error.getDefaultMessage();
+        }
+        String codigo = error.getCode() == null ? "" : error.getCode();
+        return switch (codigo) {
+            case "NotBlank", "NotNull", "NotEmpty" -> "El campo '" + error.getField() + "' es obligatorio";
+            default -> "El campo '" + error.getField() + "' no es válido";
+        };
+    }
+
+    private static <T extends Throwable> T causaDeTipo(Throwable ex, Class<T> tipo) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (tipo.isInstance(t)) {
+                return tipo.cast(t);
+            }
+        }
+        return null;
+    }
+
+    private static ResponseEntity<Map<String, Object>> datosInvalidos(String detalle) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "Datos inválidos");
+        body.put("detalle", detalle);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // DF-DEBT-003: red de contencion, no el camino principal. Los services ya
+    // tiran NoEncontradoException/ReglaDeNegocioException/
+    // ServicioExternoNoDisponibleException (los handlers de arriba), que se
+    // resuelven por tipo. Esto sigue existiendo para cualquier
+    // RuntimeException que se escape sin tipar (una libreria de terceros, un
+    // caso nuevo que todavia no se migro) — mismo comportamiento de siempre,
+    // por texto, para no dejar ese caso sin manejar.
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         HttpStatus status = resolverStatus(ex.getMessage());
@@ -82,11 +231,21 @@ public class GlobalExceptionHandler {
 
     // Heurística best-effort sobre el mensaje (en español, como ya usan todos
     // los service de este proyecto) para no devolver siempre 400 a secas.
+    // Solo se ejecuta para lo que NO llega tipado (ver comentario arriba).
     private HttpStatus resolverStatus(String mensaje) {
         if (mensaje == null) return HttpStatus.BAD_REQUEST;
         String m = mensaje.toLowerCase();
         if (m.contains("no encontrado") || m.contains("no encontrada")) return HttpStatus.NOT_FOUND;
-        if (m.contains("incorrecta") || m.contains("incorrecto")) return HttpStatus.UNAUTHORIZED;
+        // Ningun mensaje de negocio se mapea a 401 (DF-BUG-007). El 401
+        // significa "no hay sesion valida" y el frontend, ante cualquier
+        // 401, borra la sesion y manda al login: "Contraseña actual
+        // incorrecta" en Mi Perfil sacaba al usuario sin mostrarle nada. El
+        // login fallido tiene su propio 401 (CredencialesInvalidasException),
+        // y el interceptor lo exceptua a proposito.
+        if (m.contains("no esta configurado") || m.contains("no se pudo conectar")
+                || m.contains("limite gratuito") || m.contains("tardó demasiado")) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
         return HttpStatus.BAD_REQUEST;
     }
 }

@@ -46,3 +46,26 @@ DespensaFamily/src/main/resources/static/
 # Herramientas locales de Claude Code
 .claude/skills/*/node_modules/
 .claude/skills/*/screenshots/
+
+# Capturas de pantalla sueltas del frontend: son material de trabajo de las
+# revisiones de UI (comparar antes/despues), no fuente del proyecto.
+FrontDespensaFamily/*.png
+
+# Certificados locales (mkcert) para HTTPS de desarrollo — atados a esta
+# máquina/IP y con clave privada, nunca se versionan
+DespensaFamily/certs/
+
+# Empaquetado: artefactos generados (el .ico y los scripts SI se versionan)
+empaquetado/entrada/
+empaquetado/build/
+empaquetado/dist/
+empaquetado/escritorio/node_modules/
+
+# Lo que arma publicar.bat para subir a la release: se regenera en cada
+# publicacion y pesa 66 MB.
+empaquetado/publicacion/
+empaquetado/*-setup.exe
+
+# Catalogo real del negocio (2183+ productos, Excel). Dato de produccion,
+# no fixture de test: nunca se commitea.
+listaDeProductos/

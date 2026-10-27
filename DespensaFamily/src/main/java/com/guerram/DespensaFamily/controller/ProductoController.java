@@ -1,12 +1,17 @@
 package com.guerram.DespensaFamily.controller;
 
+import com.guerram.DespensaFamily.dto.ActualizarStockPrecioDTO;
+import com.guerram.DespensaFamily.config.PermisosDeLectura;
 import com.guerram.DespensaFamily.dto.ProductoDTO;
+import com.guerram.DespensaFamily.dto.ProductoParaVentaDTO;
+import com.guerram.DespensaFamily.util.OptimisticRetry;
 import com.guerram.DespensaFamily.service.ProductoService;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.ObjectMapper;
@@ -42,14 +47,23 @@ public class ProductoController {
 
 
 
+    // DF-SEC-003: los tres GET devuelven el producto sin costo, margen ni
+    // proveedor a quien no gestiona el catalogo (ver PermisosDeLectura). El
+    // recorte es del servidor: "el frontend no lo muestra" no alcanza (API-04).
     @GetMapping
-    public List<ProductoDTO> listarProductos() {
-        return productoService.listarProductos();
+    public List<?> listarProductos(Authentication quien) {
+        return segunQuien(productoService.listarProductos(), quien);
     }
 
     @GetMapping("/{id}")
-    public ProductoDTO buscarPorId(@PathVariable Long id) {
-        return productoService.buscarPorId(id);
+    public Object buscarPorId(@PathVariable Long id, Authentication quien) {
+        ProductoDTO producto = productoService.buscarPorId(id);
+        return PermisosDeLectura.veCostos(quien) ? producto : ProductoParaVentaDTO.de(producto);
+    }
+
+    private static List<?> segunQuien(List<ProductoDTO> productos, Authentication quien) {
+        if (PermisosDeLectura.veCostos(quien)) return productos;
+        return productos.stream().map(ProductoParaVentaDTO::de).toList();
     }
     @PutMapping(
             value = "/{id}",
@@ -65,7 +79,7 @@ public class ProductoController {
         ProductoDTO dto = mapper.readValue(productoJson, ProductoDTO.class);
         validarProducto(dto);
 
-        return productoService.actualizarProducto(id, dto, imagen);
+        return OptimisticRetry.ejecutar(() -> productoService.actualizarProducto(id, dto, imagen));
     }
 
     private void validarProducto(ProductoDTO dto) {
@@ -77,14 +91,21 @@ public class ProductoController {
 
 
 
+    // Cuerpo JSON, no query params. El frontend siempre llamo a esto con PUT y
+    // un JSON, mientras el backend esperaba PATCH con ?precioVenta=…: nunca
+    // coincidieron, asi que el endpoint no funcionaba desde la aplicacion
+    // (daba 403 por metodo no mapeado). Se deja en PATCH, que es el verbo
+    // correcto para una actualizacion parcial, y se corrige el frontend.
+    //
+    // Con OptimisticRetry porque toca el stock de un producto que puede
+    // estar vendiendose al mismo tiempo desde la otra caja.
     @PatchMapping("/{id}/stock-precio")
     public ProductoDTO actualizarStockPrecio(
             @PathVariable Long id,
-            @RequestParam(required = false) Double precioVenta,
-            @RequestParam(required = false) Double precioCosto,
-            @RequestParam(required = false) Integer stock
+            @RequestBody ActualizarStockPrecioDTO cambios
     ) {
-        return productoService.actualizarPrecioYStock(id, precioVenta, precioCosto, stock);
+        return OptimisticRetry.ejecutar(() -> productoService.actualizarPrecioYStock(
+                id, cambios.getPrecioVenta(), cambios.getPrecioCosto(), cambios.getStock()));
     }
 
     @DeleteMapping("/{id}")
@@ -93,11 +114,12 @@ public class ProductoController {
     }
 
     @GetMapping("/buscar")
-    public List<ProductoDTO> buscar(
+    public List<?> buscar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String codigoBarras,
-            @RequestParam(required = false) Long categoriaId
+            @RequestParam(required = false) Long categoriaId,
+            Authentication quien
     ) {
-        return productoService.buscarProductos(nombre, codigoBarras, categoriaId);
+        return segunQuien(productoService.buscarProductos(nombre, codigoBarras, categoriaId), quien);
     }
 }

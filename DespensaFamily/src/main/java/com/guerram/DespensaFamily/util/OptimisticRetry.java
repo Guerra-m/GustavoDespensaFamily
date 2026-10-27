@@ -36,7 +36,16 @@ import java.util.function.Supplier;
 // bean (por eso el retry vive acá, un nivel arriba).
 public final class OptimisticRetry {
 
-    private static final int MAX_INTENTOS = 3;
+    private static final int MAX_INTENTOS = 8;
+
+    // Backoff con jitter entre reintentos: sin esto, dos hilos que chocaron
+    // porque leyeron la misma version vuelven a leer y a chocar casi al
+    // instante (la lectura del segundo intento es tan rapida que cae dentro
+    // de la misma ventana de la escritura que todavia esta compitiendo).
+    // Confirmado con un test de 20 ventas simultaneas sobre el mismo
+    // producto (VentaConcurrenciaTest): con 3 intentos y sin espera, el
+    // retry se agotaba y una venta terminaba en error real para el usuario.
+    private static final long ESPERA_BASE_MS = 5;
 
     private OptimisticRetry() {
     }
@@ -49,9 +58,19 @@ public final class OptimisticRetry {
             } catch (RuntimeException ex) {
                 if (!esConflictoDeConcurrencia(ex)) throw ex; // error de negocio real, no reintentar
                 ultimoError = ex;
+                esperarAntesDeReintentar(intento);
             }
         }
         throw ultimoError;
+    }
+
+    private static void esperarAntesDeReintentar(int intento) {
+        long jitterMs = (long) (Math.random() * ESPERA_BASE_MS * intento);
+        try {
+            Thread.sleep(jitterMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     // Recorre la cadena de causas: cubre tanto el caso directo

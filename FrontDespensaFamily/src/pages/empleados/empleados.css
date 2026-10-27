@@ -1,0 +1,301 @@
+.empleados-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--espacio-6, 24px) var(--espacio-4, 16px);
+}
+
+.empleados-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4, 16px);
+  margin-bottom: var(--espacio-6, 24px);
+}
+
+.empleados-header h1 { margin: 0; }
+
+.empleados-header button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ================= GRILLA SEMANAL ================= */
+
+.empleados-grilla-seccion {
+  margin-bottom: var(--espacio-8, 32px);
+}
+
+.empleados-grilla-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--espacio-3, 12px);
+  margin-bottom: var(--espacio-2, 8px);
+}
+
+.empleados-grilla-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.empleados-semana-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3, 12px);
+  font-size: 13px;
+}
+
+.empleados-semana-nav button {
+  padding: 6px 12px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-texto-tenue, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.empleados-semana-nav button:hover {
+  border-color: var(--color-primario);
+  color: var(--color-primario-dark);
+}
+
+#empleados-semana-label {
+  font-weight: 700;
+  color: var(--color-texto, #2c3e50);
+  white-space: nowrap;
+}
+
+.empleados-ayuda {
+  font-size: 12px;
+  color: var(--color-texto-tenue, #64748b);
+  margin: 0 0 var(--espacio-3, 12px);
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde, #e2e8f0);
+  border-radius: 12px;
+}
+
+#tabla-grilla,
+#tabla-empleados {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-superficie, #fff);
+  font-size: 13px;
+}
+
+#tabla-grilla th,
+#tabla-empleados th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--color-fondo, #f4f6f8);
+  color: var(--color-texto-tenue, #64748b);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+#tabla-grilla td,
+#tabla-empleados td {
+  padding: 8px 10px;
+  border-top: 1px solid var(--color-borde, #e2e8f0);
+  white-space: nowrap;
+}
+
+.empleados-nombre-col {
+  font-weight: 600;
+  color: var(--color-texto, #2c3e50);
+}
+
+/* Casillero de dia: clickeable, marcado = verde. Sin booleano visual
+   distinto de "existe o no" — mismo criterio que el modelo (DiaTrabajado). */
+.dia-celda {
+  text-align: center;
+}
+
+.dia-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: transparent;
+}
+
+.dia-toggle:hover {
+  border-color: var(--color-primario);
+}
+
+.dia-toggle.marcado {
+  background: var(--color-exito-suave, #e6f7ea);
+  border-color: var(--color-exito-dark, #388e3c);
+  color: var(--color-exito-dark, #388e3c);
+}
+
+.empleados-vacio {
+  text-align: center;
+  color: var(--color-texto-tenue, #64748b);
+  padding: var(--espacio-6, 24px);
+}
+
+/* ================= LISTADO ================= */
+
+.empleados-lista-seccion h2 {
+  font-size: 18px;
+  margin: 0 0 var(--espacio-3, 12px);
+}
+
+.etiqueta-activo {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-exito-suave, #e6f7ea);
+  color: var(--color-exito-dark, #388e3c);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.etiqueta-inactivo {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-fondo, #f4f6f8);
+  color: var(--color-texto-tenue, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.empleados-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-pagar-empleado {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-desactivar-empleado {
+  padding: 6px 12px;
+  border: 1px solid var(--color-peligro, #e53935);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-peligro-dark, #d32f2f);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-desactivar-empleado:hover { background: #fdecea; }
+
+/* ================= MODAL ================= */
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal.hidden { display: none; }
+
+.modal-content {
+  box-sizing: border-box;
+  background: #fff;
+  padding: var(--espacio-6, 24px);
+  width: 92%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+  margin: 0 0 var(--espacio-4, 16px);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espacio-4, 16px);
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--espacio-4, 16px);
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto-tenue, #64748b);
+}
+
+.form-grid .campo-ancho { grid-column: 1 / -1; }
+
+.form-grid input,
+.form-grid select {
+  padding: 10px 12px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-texto, #2c3e50);
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  outline: none;
+  border-color: var(--color-primario);
+}
+
+#form-empleado button[type="submit"],
+#form-pagar button[type="submit"] {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: var(--espacio-2, 8px);
+}
+
+#form-empleado button[type="button"],
+#form-pagar button[type="button"] {
+  padding: 10px 20px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-texto-tenue, #64748b);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .empleados-header { flex-direction: column; align-items: stretch; }
+}

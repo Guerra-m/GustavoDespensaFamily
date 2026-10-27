@@ -1,9 +1,11 @@
 package com.guerram.DespensaFamily.dto;
 
+import java.math.BigDecimal;
+
 import com.guerram.DespensaFamily.model.EstadoVenta;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -13,8 +15,13 @@ import java.util.List;
 @Builder
 public class VentaDetalleResponseDTO {
     private Long id;
-    private LocalDate fechaHora;
-    private double total;
+    private LocalDateTime fechaHora;
+    private BigDecimal total;
+    private com.guerram.DespensaFamily.model.MetodoPago metodoPago;
+    private String cliente;
     private List<DetalleVentaDTO> detalles;
     private EstadoVenta estado;
+    private String usuario;
+    private String anuladaPor;
+    private LocalDateTime fechaAnulacion;
 }

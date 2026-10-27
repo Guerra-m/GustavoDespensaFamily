@@ -1,5 +1,11 @@
-import { checkAuth } from "../../services/auth.service";
+import { habilitarCierreConEscape } from "../../utils/modales";
+import { checkAuth, puedeGestionarProductos } from "../../services/auth.service";
 checkAuth();
+
+// Crear, editar o eliminar productos es del dueño, o de un empleado con
+// PERM_STOCK prendido (ver Usuario.java). El backend ya lo exige
+// (SecurityConfig); esto solo evita mostrar controles que van a 403.
+const PUEDE_GESTIONAR = puedeGestionarProductos();
 
 import type { Producto } from "../../models/Producto";
 import type { Categoria } from "../../models/Categoria";
@@ -12,17 +18,29 @@ import {
 } from "../../services/productos.service";
 
 import { getCategorias } from "../../services/categorias.service";
+import {
+  unidadProducto as obtenerUnidad,
+  fraccionMinima as obtenerFraccionMinima,
+  desglosePaquete
+} from "../../utils/producto";
 import { confirmar } from "../../services/confirm.service";
+import { formatearCantidad, formatearMoneda, resolverImagenUrl, esc } from "../../utils/format";
+import { inicializarAsistenteIaWidget } from "../../components/asistente-ia/asistenteIaWidget";
+import { getConfiguracion } from "../../services/configuracion.service";
+import { mostrarToast } from "../../utils/toast";
+import { crearSesionDeEscaneo, suscribirseAEscaneo } from "../../services/escaneo.service";
+import QRCode from "qrcode";
 
 // ---------- ELEMENTOS DEL DOM ----------
 const productosGrid = document.getElementById("productos-grid") as HTMLDivElement;
 const productosGridWrapper = document.getElementById("productos-grid-wrapper") as HTMLDivElement | null;
 const indiceCategorias = document.getElementById("productos-indice") as HTMLDivElement;
-const toast = document.getElementById("toast") as HTMLDivElement;
 
 const formCrear = document.getElementById("form-crear") as HTMLFormElement;
 const formEditar = document.getElementById("form-editar") as HTMLFormElement;
 const inputBuscar = document.getElementById("input-buscar") as HTMLInputElement;
+const btnFiltroStockBajo = document.getElementById("btn-filtro-stock-bajo") as HTMLButtonElement;
+let filtroStockBajoActivo = false;
 
 const selectCrear = formCrear.querySelector(
   "select[name='categoriaId']"
@@ -83,30 +101,10 @@ let productos: Producto[] = [];
 let categorias: Categoria[] = [];
 let productoActual: Producto | null = null;
 let seleccionados = new Set<number>();
-
-// ---------- UTIL ----------
-function mostrarToast(mensaje: string, error = false) {
-  toast.textContent = mensaje;
-  toast.classList.remove("hidden");
-  toast.classList.toggle("error", error);
-  setTimeout(() => toast.classList.add("hidden"), 2500);
-}
+let umbralStockBajo = 10; // valor por defecto hasta que cargue la configuración real
 
 function calcularPrecioVenta(precioCosto: number, porcentaje: number): number {
   return +(precioCosto + (precioCosto * porcentaje) / 100).toFixed(2);
-}
-
-function esProductoPesable(producto: Producto): boolean {
-  return producto.tipoCantidad === "PESO";
-}
-
-function obtenerUnidad(producto: Producto): "u" | "kg" {
-  return producto.unidadMedida || (esProductoPesable(producto) ? "kg" : "u");
-}
-
-function obtenerFraccionMinima(producto: Producto): number {
-  if (producto.fraccionMinima && producto.fraccionMinima > 0) return producto.fraccionMinima;
-  return esProductoPesable(producto) ? 0.001 : 1;
 }
 
 function sincronizarTipoYUnidad(form: HTMLFormElement) {
@@ -143,15 +141,8 @@ function sincronizarTipoYUnidad(form: HTMLFormElement) {
   aplicarValores();
 }
 
-// ---------- DESGLOSE PAQUETE/SUELTAS ----------
-function desglosePaquete(cantidad: number, producto?: Producto): { paquetes: number; sueltas: number } | null {
-  const upp = producto?.unidadesPorPaquete;
-  if (!upp || upp < 2 || esProductoPesable(producto!)) return null;
-  return { paquetes: Math.floor(cantidad / upp), sueltas: cantidad % upp };
-}
-
 function formatearStockConPaquete(producto: Producto): string {
-  const base = `${producto.stock} ${obtenerUnidad(producto)}`;
+  const base = `${formatearCantidad(producto.stock)} ${obtenerUnidad(producto)}`;
   const desglose = desglosePaquete(producto.stock, producto);
   if (!desglose) return base;
   return `${base} (${desglose.paquetes} paq + ${desglose.sueltas} u)`;
@@ -199,28 +190,28 @@ inputPorcentajeEditar.addEventListener("input", () =>
 function crearCard(prod: Producto): HTMLDivElement {
   const card = document.createElement("div");
   card.className = "producto-card";
-  if (prod.stock < 10) card.classList.add("stock-bajo");
+  if (prod.stock < umbralStockBajo) card.classList.add("stock-bajo");
 
   card.innerHTML = `
     <label class="producto-check">
       <input type="checkbox" class="chk-seleccionar" data-id="${prod.id}" ${seleccionados.has(prod.id!) ? "checked" : ""} title="Seleccionar para imprimir cartel">
     </label>
     <div class="producto-acciones">
-      <button class="btn-editar-rapido" data-id="${prod.id}" title="Editar">✏️</button>
+      ${PUEDE_GESTIONAR ? `<button class="btn-editar-rapido" data-id="${prod.id}" title="Editar"><span class="icon" style="--icono:url('/icons/pencil.svg')"></span></button>` : ""}
       <div class="producto-menu-container">
-        <button class="btn-menu" data-id="${prod.id}"></button>
+        <button class="btn-menu" data-id="${prod.id}" aria-label="Más opciones" title="Más opciones"></button>
         <div class="producto-menu-dropdown">
           <button class="btn-imprimir-menu" data-id="${prod.id}">Imprimir cartel</button>
-          <button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>
+          ${PUEDE_GESTIONAR ? `<button class="btn-eliminar-menu" data-id="${prod.id}">Eliminar</button>` : ""}
         </div>
       </div>
     </div>
     <div class="producto-imagen">
-      ${prod.imagenUrl ? `<img src="${prod.imagenUrl}" alt="${prod.nombre}" loading="lazy">` : ''}
+      ${prod.imagenUrl ? `<img src="${resolverImagenUrl(prod.imagenUrl)}" alt="${esc(prod.nombre)}" loading="lazy">` : ''}
     </div>
     <div class="producto-info">
-      <div class="producto-nombre">${prod.nombre}</div>
-      <div class="producto-precio">$${prod.precioVenta.toFixed(2)} / ${obtenerUnidad(prod)}</div>
+      <div class="producto-nombre">${esc(prod.nombre)}</div>
+      <div class="producto-precio">${formatearMoneda(prod.precioVenta)} / ${obtenerUnidad(prod)}</div>
       <div class="producto-stock">Stock: ${formatearStockConPaquete(prod)}</div>
     </div>
   `;
@@ -229,13 +220,13 @@ function crearCard(prod: Producto): HTMLDivElement {
 
 // ---------- CARTEL DE PRECIO (ETIQUETA ESTILO GRILLA SIMPLE) ----------
 function construirEtiquetaHtml(prod: Producto): string {
-  const precio = prod.precioVenta.toFixed(2).replace(".", ",");
+  const precio = formatearMoneda(prod.precioVenta);
 
   return `
     <div class="etiqueta">
-      <div class="etiqueta-nombre">${prod.nombre}</div>
+      <div class="etiqueta-nombre">${esc(prod.nombre)}</div>
       <div class="etiqueta-precio">${precio}</div>
-      ${prod.codigoBarras ? `<div class="etiqueta-codigo">${prod.codigoBarras}</div>` : ""}
+      ${prod.codigoBarras ? `<div class="etiqueta-codigo">${esc(prod.codigoBarras)}</div>` : ""}
     </div>
   `;
 }
@@ -334,7 +325,7 @@ function limpiarSeleccion() {
 function salirModoSeleccion() {
   productosGrid.classList.remove("modo-seleccion");
   btnModoSeleccion.classList.remove("activo");
-  btnModoSeleccion.textContent = "🖨️ Seleccionar para imprimir";
+  btnModoSeleccion.innerHTML = `<span class="icon" style="--icono:url('/icons/printer.svg')"></span> Seleccionar para imprimir`;
   limpiarSeleccion();
 }
 
@@ -531,119 +522,79 @@ function cerrarTodosLosMenus() {
 }
 
 // ---------- EVENTOS DEL MENÚ ----------
-function agregarEventosMenu() {
-  // Crear overlay para cerrar menús SI NO EXISTE
-  let overlay = document.querySelector('.producto-menu-overlay') as HTMLDivElement;
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'producto-menu-overlay';
-    document.body.appendChild(overlay);
-    
-    // Evento del overlay (solo una vez)
-   overlay.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement;
-
-  // Si el clic NO es dentro de ningún dropdown, cerramos
-  if (!target.closest('.producto-menu-dropdown') && !target.closest('.btn-menu')) {
-    cerrarTodosLosMenus();
-  }
-});
-  }
-
-  // Botones de menú (tres puntos)
-  document.querySelectorAll('.btn-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Cerrar otros menús abiertos
-      document.querySelectorAll('.producto-menu-dropdown.active').forEach(menu => {
-        if (menu !== btn.nextElementSibling) {
-          menu.classList.remove('active');
-        }
-      });
-      
-      // Toggle este menú
-      const dropdown = btn.nextElementSibling as HTMLDivElement;
-      const estaActivo = dropdown.classList.contains('active');
-      
-      if (estaActivo) {
-        dropdown.classList.remove('active');
-        overlay.classList.remove('active');
-      } else {
-        dropdown.classList.add('active');
-        overlay.classList.add('active');
-      }
-    });
-  });
-
-  // Botones de editar en el menú
-  document.querySelectorAll('.btn-editar-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = Number((btn as HTMLElement).dataset.id);
-      cerrarTodosLosMenus();
-      abrirEditarProducto(id);
-    });
-  });
-
-  // Botones de eliminar en el menú
-  document.querySelectorAll('.btn-eliminar-menu').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = Number((btn as HTMLElement).dataset.id);
-      cerrarTodosLosMenus();
-      eliminarProducto(id);
-    });
-  });
-}
 
 // ---------- CERRAR MENÚS ----------
 
 
 // ---------- CARGAR CATEGORÍAS ----------
 async function cargarCategorias() {
-  categorias = await getCategorias();
-  categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  try {
+    categorias = await getCategorias();
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  selectCrear.innerHTML = `<option value="">Seleccione categoría</option>`;
-  selectEditar.innerHTML = `<option value="">Seleccione categoría</option>`;
+    selectCrear.innerHTML = `<option value="">Seleccione categoría</option>`;
+    selectEditar.innerHTML = `<option value="">Seleccione categoría</option>`;
 
-  categorias.forEach(cat => {
-    selectCrear.add(new Option(cat.nombre, cat.id.toString()));
-    selectEditar.add(new Option(cat.nombre, cat.id.toString()));
-  });
+    categorias.forEach(cat => {
+      selectCrear.add(new Option(cat.nombre, cat.id.toString()));
+      selectEditar.add(new Option(cat.nombre, cat.id.toString()));
+    });
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al cargar categorías", true);
+  }
 }
 
 // ---------- CARGAR PRODUCTOS ----------
 async function cargarProductos() {
-  productos = await getProductos();
-  // Reaplica el filtro de búsqueda actual en vez de mostrar siempre todo:
-  // antes, crear/editar/eliminar volvía a traer los productos y perdía el
-  // texto ya tipeado en el buscador (la lista volvía a verse completa sin
-  // avisar, aunque el input seguía mostrando el texto de búsqueda).
-  aplicarFiltro();
+  // DF-UX-008: sin este try/catch, con el backend caído la grilla queda
+  // vacía sin ningún aviso — antes esto corría a nivel de módulo (línea de
+  // INIT) sin nada que atrapara el rechazo.
+  try {
+    productos = await getProductos();
+    // Reaplica el filtro de búsqueda actual en vez de mostrar siempre todo:
+    // antes, crear/editar/eliminar volvía a traer los productos y perdía el
+    // texto ya tipeado en el buscador (la lista volvía a verse completa sin
+    // avisar, aunque el input seguía mostrando el texto de búsqueda).
+    aplicarFiltro();
+  } catch (err) {
+    console.error(err);
+    productosGrid.innerHTML = `<div class="prod-sin-resultados">${esc((err as Error).message || "No se pudieron cargar los productos")}</div>`;
+    mostrarToast((err as Error).message || "Error al cargar productos", true);
+  }
 }
 
 // ---------- BUSCAR (filtra sobre el estado actual de `productos`) ----------
 function aplicarFiltro() {
   const q = inputBuscar.value.toLowerCase().trim();
 
-  if (!q) {
-    renderProductos([...productos].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    return;
+  let lista = productos;
+  if (filtroStockBajoActivo) {
+    lista = lista.filter(p => p.stock < umbralStockBajo);
   }
-
-  renderProductos(
-    productos.filter(p =>
+  if (q) {
+    lista = lista.filter(p =>
       p.nombre.toLowerCase().includes(q) ||
       p.codigoBarras?.includes(q) ||
       categorias.find(c => c.id === p.categoriaId)?.nombre.toLowerCase().includes(q)
-    )
-  );
+    );
+  } else {
+    lista = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  renderProductos(lista);
 }
+
+if (!PUEDE_GESTIONAR) {
+  btnCrearProducto.classList.add("hidden");
+}
+
+btnFiltroStockBajo.addEventListener("click", () => {
+  filtroStockBajoActivo = !filtroStockBajoActivo;
+  btnFiltroStockBajo.classList.toggle("activo", filtroStockBajoActivo);
+  btnFiltroStockBajo.setAttribute("aria-pressed", String(filtroStockBajoActivo));
+  aplicarFiltro();
+});
 
 // ---------- CREAR ----------
 formCrear.addEventListener("submit", async e => {
@@ -693,7 +644,7 @@ formCrear.addEventListener("submit", async e => {
     (formCrear.nombre as HTMLInputElement).focus();
   } catch (err) {
     console.error(err);
-    mostrarToast("Error al crear producto", true);
+    mostrarToast((err as Error).message || "Error al crear producto", true);
   }
 });
 
@@ -749,6 +700,37 @@ btnCerrarCrear.addEventListener("click", () => {
   modalCrear.classList.add("hidden");
 });
 
+// ---------------- PESTAÑAS DEL MODAL CREAR (Rápida / Con IA) ----------------
+const tabBotones = modalCrear.querySelectorAll<HTMLButtonElement>(".tab-btn");
+const tabPaneles = modalCrear.querySelectorAll<HTMLDivElement>("[data-tab-panel]");
+
+tabBotones.forEach(btn => {
+  btn.addEventListener("click", () => {
+    tabBotones.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    tabPaneles.forEach(panel => {
+      panel.classList.toggle("hidden", panel.dataset.tabPanel !== btn.dataset.tab);
+    });
+  });
+});
+
+// ---------------- PESTAÑA "CON IA" ----------------
+inicializarAsistenteIaWidget(
+  {
+    textarea: document.getElementById("ia-input-texto") as HTMLTextAreaElement,
+    inputImagen: document.getElementById("ia-input-imagen") as HTMLInputElement,
+    previewImagen: document.getElementById("ia-preview-imagen") as HTMLImageElement,
+    btnAnalizar: document.getElementById("ia-btn-analizar") as HTMLButtonElement,
+    seccionPreview: document.getElementById("ia-seccion-preview") as HTMLDivElement,
+    tabla: document.getElementById("ia-tabla-preview") as HTMLTableElement,
+    btnConfirmar: document.getElementById("ia-btn-confirmar-todos") as HTMLButtonElement,
+    btnCancelar: document.getElementById("ia-btn-cancelar-preview") as HTMLButtonElement,
+    mostrarToast
+  },
+  () => categorias,
+  () => cargarProductos()
+);
+
 // ---------- GUARDAR EDICIÓN ----------
 formEditar.addEventListener("submit", async e => {
   e.preventDefault();
@@ -791,18 +773,23 @@ formEditar.addEventListener("submit", async e => {
     mostrarToast("Producto actualizado correctamente");
   } catch (err) {
     console.error(err);
-    mostrarToast("Error al actualizar producto", true);
+    mostrarToast((err as Error).message || "Error al actualizar producto", true);
   }
 });
 
 // ---------- ELIMINAR ----------
 async function eliminarProducto(id: number) {
   if (!(await confirmar("¿Eliminar producto?"))) return;
-  await deleteProducto(id);
-  seleccionados.delete(id);
-  actualizarBarraSeleccion();
-  cargarProductos();
-  mostrarToast("Producto eliminado");
+  try {
+    await deleteProducto(id);
+    seleccionados.delete(id);
+    actualizarBarraSeleccion();
+    cargarProductos();
+    mostrarToast("Producto eliminado");
+  } catch (err) {
+    console.error(err);
+    mostrarToast((err as Error).message || "Error al eliminar producto", true);
+  }
 }
 
 // ---------- BUSCAR ----------
@@ -831,5 +818,83 @@ function recalcularVenta(
 // ---------- INIT ----------
 cargarCategorias();
 cargarProductos();
+getConfiguracion().then(config => {
+  umbralStockBajo = config.umbralStockBajo;
+  aplicarFiltro(); // re-renderiza con el umbral real (antes de esto se usó el default de 10)
+}).catch(err => {
+  // No es crítico: se sigue mostrando con el umbral por defecto (10).
+  console.error(err);
+  mostrarToast((err as Error).message || "No se pudo cargar la configuración de stock bajo", true);
+});
 sincronizarTipoYUnidad(formCrear);
 sincronizarTipoYUnidad(formEditar);
+
+// Escape cierra el modal visible en esta pantalla (misma logica en todas las pantallas con modal).
+habilitarCierreConEscape();
+
+// ---------- ESCANEO REMOTO DESDE EL CELULAR ----------
+const btnScanCrear = document.getElementById("btn-scan-crear") as HTMLButtonElement | null;
+const btnScanEditar = document.getElementById("btn-scan-editar") as HTMLButtonElement | null;
+const modalScanCelular = document.getElementById("modal-scan-celular") as HTMLDivElement | null;
+const btnCerrarScanCelular = document.getElementById("btn-cerrar-scan-celular") as HTMLButtonElement | null;
+const scanCelularQr = document.getElementById("scan-celular-qr") as HTMLCanvasElement | null;
+const scanCelularEstado = document.getElementById("scan-celular-estado") as HTMLParagraphElement | null;
+
+let eventSourceEscaneo: EventSource | null = null;
+let inputDestinoEscaneo: HTMLInputElement | null = null;
+
+function cerrarScanCelular() {
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+  modalScanCelular?.classList.add("hidden");
+  inputDestinoEscaneo = null;
+}
+
+async function abrirScanCelular(destino: HTMLInputElement) {
+  inputDestinoEscaneo = destino;
+  modalScanCelular?.classList.remove("hidden");
+
+  if (eventSourceEscaneo) {
+    eventSourceEscaneo.close();
+    eventSourceEscaneo = null;
+  }
+
+  if (scanCelularEstado) scanCelularEstado.textContent = "Generando código...";
+
+  try {
+    const { sesionId, url } = await crearSesionDeEscaneo();
+    if (scanCelularQr) {
+      await QRCode.toCanvas(scanCelularQr, url, { width: 260, margin: 1 });
+    }
+    if (scanCelularEstado) {
+      scanCelularEstado.textContent = "Esperando que el celular escanee un producto...";
+    }
+
+    eventSourceEscaneo = suscribirseAEscaneo(sesionId, codigo => {
+      if (inputDestinoEscaneo) {
+        inputDestinoEscaneo.value = codigo;
+        inputDestinoEscaneo.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      mostrarToast("Código escaneado: " + codigo);
+      cerrarScanCelular();
+      (formCrear.nombre as HTMLInputElement)?.focus();
+    });
+  } catch (err) {
+    console.error(err);
+    if (scanCelularEstado) {
+      scanCelularEstado.textContent = "No se pudo conectar con el escáner del celular.";
+    }
+  }
+}
+
+btnScanCrear?.addEventListener("click", () => {
+  abrirScanCelular(formCrear.codigoBarras as HTMLInputElement);
+});
+
+btnScanEditar?.addEventListener("click", () => {
+  abrirScanCelular(formEditar.codigoBarras as HTMLInputElement);
+});
+
+btnCerrarScanCelular?.addEventListener("click", cerrarScanCelular);

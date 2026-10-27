@@ -21,20 +21,8 @@
 
       <h1>Gestión de Categorías</h1>
 
-      <!-- TABLA -->
-      <div class="tabla-scroll">
-        <table id="tabla-categorias">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <!-- GRID -->
+      <div id="categorias-grid" class="categorias-grid"></div>
 
       <!-- FORM CREAR -->
       <form id="form-crear-categoria">
@@ -74,6 +62,7 @@
 
     </div>
   </main>
+  <div id="toast" class="toast hidden"></div>
   <script type="module" src="../../components/navbar/navbar.ts"></script>
   <script type="module" src="./categorias.ts"></script>
 </body>

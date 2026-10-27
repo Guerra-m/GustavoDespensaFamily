@@ -1,12 +1,7 @@
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px; /* Espacio para el navbar */
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 /* Título principal */
 .content h1 {
@@ -20,8 +15,13 @@
 }
 
 .content h1::before {
-  content: '📊';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/layout-dashboard.svg') center / contain no-repeat;
+  mask: url('/icons/layout-dashboard.svg') center / contain no-repeat;
 }
 
 /* KPIs en grid */
@@ -52,7 +52,7 @@
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(90deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(90deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }
 
 .kpi-card:hover {
@@ -75,10 +75,54 @@
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* .kpi-card ahora también puede ser un <a> (la de Stock Bajo, que lleva a
+   Reportes): sin esto heredaría el subrayado y el color azul de link. */
+a.kpi-card {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Única tarjeta con jerarquía distinta: es la única que pide una acción, y
+   solo cuando de verdad hay algo que atender (ver home.ts, se activa sólo
+   con bajoStock.length > 0). El resto del dashboard informa; ésta alerta. */
+.kpi-card--alerta {
+  border-color: rgba(255, 107, 0, 0.35);
+  background: linear-gradient(135deg, #fff8f0 0%, var(--color-advertencia-claro, #fff3e0) 100%);
+}
+
+.kpi-card--alerta::before {
+  background: var(--color-advertencia);
+}
+
+.kpi-card--alerta h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-advertencia);
+}
+
+.kpi-card--alerta h3::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/triangle-alert.svg') center / contain no-repeat;
+  mask: url('/icons/triangle-alert.svg') center / contain no-repeat;
+}
+
+.kpi-card--alerta p {
+  background: none;
+  -webkit-text-fill-color: var(--color-advertencia);
+  color: var(--color-advertencia);
 }
 
 /* Secciones */
@@ -105,8 +149,18 @@ section h2 {
 
 /* Iconos para títulos de secciones */
 section h2::before {
-  font-size: 24px;
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
 }
+
+.titulo-ventas-7-dias::before { --icono: url('/icons/trending-up.svg'); }
+.titulo-top-productos::before { --icono: url('/icons/trophy.svg'); }
 
 /* Grid de gráficos lado a lado */
 .graficos {
@@ -136,13 +190,8 @@ section h2::before {
   border-bottom: 2px solid #e9ecef;
 }
 
-.ultimas-ventas h2::before {
-  content: '💰';
-}
-
-.ultimas-compras h2::before {
-  content: '🛒';
-}
+.ultimas-ventas h2::before { --icono: url('/icons/wallet.svg'); }
+.ultimas-compras h2::before { --icono: url('/icons/shopping-bag.svg'); }
 
 /* Canvas del gráfico */
 canvas {
@@ -180,7 +229,7 @@ canvas {
 .ultimas th {
   padding: 16px;
   text-align: left;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: #ffffff;
   font-weight: 600;
   font-size: 14px;
@@ -234,7 +283,6 @@ canvas {
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
 @media (max-width: 1023px) {
   .content {
-    margin-left: 0;
     padding: 30px;
   }
 }

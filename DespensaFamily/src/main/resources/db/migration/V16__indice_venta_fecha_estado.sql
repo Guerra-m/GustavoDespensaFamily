@@ -1,0 +1,12 @@
+-- DF-PERF-002 de la auditoria del 23/09: los reportes de rango de fechas
+-- (movimientos, ganancia por fecha, ventas por categoria, resumen, top de
+-- mas vendidos) filtran TODOS por "venta.fecha_hora BETWEEN ... AND
+-- venta.estado = 'ACTIVA'", y no habia ningun indice sobre esas dos
+-- columnas: cada consulta hacia un full table scan de venta.
+--
+-- El orden (fecha_hora, estado) y no al reves: todas las consultas acotan
+-- primero por rango de fecha (siempre presente) y despues filtran por
+-- estado (siempre el mismo valor, 'ACTIVA') -- un indice compuesto sirve
+-- para el rango de fecha solo, y todavia mas para el rango+estado juntos,
+-- sin necesitar un segundo indice separado.
+create index if not exists ix_venta_fecha_hora_estado on venta(fecha_hora, estado);

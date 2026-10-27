@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.guerram</groupId>
 	<artifactId>DespensaFamily</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.2.2</version>
 	<name>DespensaFamily</name>
 	<description>Aplicación para control de stock.</description>
 	<url/>
@@ -39,6 +39,33 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 
+		<!-- Base embebida en archivo: es la que usa la app instalada. -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Migraciones de esquema versionadas. Reemplazan a ddl-auto=update,
+		     que ya dejo una base sin arrancar: Hibernate se corto a mitad de
+		     camino y despues no habia forma de saber en que estado quedo.
+		     H2 no necesita modulo aparte: en Flyway 11 su soporte viene
+		     adentro de flyway-core. -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<!-- Spring Boot 4 partio las autoconfiguraciones en modulos por
+		     tecnologia. Sin este, flyway-core queda en el classpath pero nadie
+		     lo arranca: la aplicacion levanta como si Flyway no existiera y las
+		     migraciones no corren. No da ningun error, que es lo peligroso. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-flyway</artifactId>
+		</dependency>
+
+		<!-- Se mantiene para poder volver a MySQL desde application.properties
+		     y para migrar datos de la base vieja. -->
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
@@ -85,9 +112,24 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<!-- @WithMockUser: permite probar la matriz de permisos por rol sin
+		     tener que fabricar un JWT real en cada test. -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
+		<!-- Nombre fijo del jar, sin la version adentro. Es lo que hace posible
+		     que el launcher reemplace el jar por uno nuevo sin tocar nada mas:
+		     el .cfg que genera jpackage apunta al archivo por nombre, asi que si
+		     el nombre cambiara con cada version habria que reescribir tambien
+		     ese archivo en cada actualizacion. La version viaja adentro del jar
+		     (build-info), no en el nombre. -->
+		<finalName>DespensaFamily</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -112,6 +154,17 @@
 						</exclude>
 					</excludes>
 				</configuration>
+				<executions>
+					<!-- Graba la version del pom adentro del jar
+					     (META-INF/build-info.properties). Sin esto la aplicacion
+					     no tiene forma de saber que version es, y el aviso de
+					     actualizacion no puede comparar contra nada. -->
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

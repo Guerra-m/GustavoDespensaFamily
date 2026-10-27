@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caja | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <link rel="stylesheet" href="../../style.css" />
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <link rel="stylesheet" href="./caja.css" />
+</head>
+<body>
+
+  <div id="navbar-container"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <main class="content">
+    <div class="caja-container">
+
+      <div class="caja-header">
+        <h1>Caja</h1>
+        <!-- Solo el dueño carga gastos y retiros: es plata que sale sin
+             comprobante propio en el sistema (ver SecurityConfig). -->
+        <button type="button" id="btn-nuevo-movimiento" class="caja-solo-admin hidden">
+          Registrar movimiento
+        </button>
+        <button type="button" id="btn-arqueo" class="caja-solo-admin hidden caja-btn-secundario">
+          Contar cajón
+        </button>
+      </div>
+
+      <!-- ================= SALDO ================= -->
+      <section class="caja-saldo-hero">
+        <div class="caja-saldo-principal">
+          <span class="caja-saldo-etiqueta">Caja actual</span>
+          <span class="caja-saldo-monto" id="saldo-total">$0</span>
+        </div>
+        <div class="caja-saldo-desglose">
+          <div>
+            <span class="caja-saldo-desglose-etiqueta">Efectivo en el cajón</span>
+            <span class="caja-saldo-desglose-monto" id="efectivo-en-caja">$0</span>
+          </div>
+          <div>
+            <span class="caja-saldo-desglose-etiqueta">Cobrado electrónico</span>
+            <span class="caja-saldo-desglose-monto" id="saldo-electronico">$0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= RESUMEN DE HOY ================= -->
+      <section class="caja-resumen-dia">
+        <div class="caja-stat">
+          <h3>Ventas netas de hoy</h3>
+          <p id="ventas-netas-hoy" class="caja-stat-ingreso">$0</p>
+        </div>
+        <div class="caja-stat">
+          <h3>Ingresos de hoy</h3>
+          <p id="ingresos-hoy" class="caja-stat-ingreso">$0</p>
+        </div>
+        <div class="caja-stat">
+          <!-- DF-UX-006: ya no mezcla anulaciones -- solo gastos, retiros,
+               compras y ajustes reales. Las anulaciones se muestran aparte. -->
+          <h3>Egresos de hoy <small>(sin anulaciones)</small></h3>
+          <p id="egresos-hoy" class="caja-stat-egreso">$0</p>
+        </div>
+        <div class="caja-stat">
+          <h3>Anulaciones de hoy</h3>
+          <p id="anulaciones-hoy" class="caja-stat-egreso">$0</p>
+        </div>
+        <div class="caja-stat">
+          <h3>Resultado</h3>
+          <p id="resultado-hoy">$0</p>
+        </div>
+      </section>
+
+      <!-- ================= MOVIMIENTOS RECIENTES ================= -->
+      <section class="caja-movimientos">
+        <h2>Movimientos recientes</h2>
+        <div class="tabla-scroll">
+          <table id="tabla-movimientos">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Concepto</th>
+                <th>Categoría</th>
+                <th>Método</th>
+                <th>Monto</th>
+                <th>Usuario</th>
+                <th class="caja-solo-admin hidden">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-movimientos"></tbody>
+          </table>
+        </div>
+        <p id="movimientos-vacio" class="caja-vacio hidden">
+          Todavía no hay movimientos registrados.
+        </p>
+      </section>
+
+      <!-- Historial completo: expone gastos y retiros del negocio, solo el
+           dueño (ver SecurityConfig: GET /caja/movimientos es ADMIN). -->
+      <section class="caja-historial caja-solo-caja hidden">
+        <h2>Historial e ingresos/egresos</h2>
+
+        <div class="caja-filtros">
+          <label>
+            Desde
+            <input type="date" id="filtro-desde" />
+          </label>
+          <label>
+            Hasta
+            <input type="date" id="filtro-hasta" />
+          </label>
+          <label>
+            Tipo
+            <select id="filtro-tipo">
+              <option value="">Todos</option>
+              <option value="INGRESO">Ingreso</option>
+              <option value="EGRESO">Egreso</option>
+            </select>
+          </label>
+          <label>
+            Categoría
+            <select id="filtro-categoria">
+              <option value="">Todas</option>
+              <option value="VENTA">Venta</option>
+              <option value="COMPRA">Compra</option>
+              <option value="GASTO">Gasto</option>
+              <option value="RETIRO">Retiro</option>
+              <option value="APORTE">Aporte</option>
+              <option value="AJUSTE">Ajuste</option>
+              <option value="SUELDO">Sueldo</option>
+            </select>
+          </label>
+          <label>
+            Método
+            <select id="filtro-metodo">
+              <option value="">Todos</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </label>
+          <button type="button" id="btn-buscar-historial">Buscar</button>
+        </div>
+
+        <div class="tabla-scroll">
+          <table id="tabla-historial">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th>Categoría</th>
+                <th>Método</th>
+                <th>Monto</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-historial"></tbody>
+          </table>
+        </div>
+        <p id="historial-vacio" class="caja-vacio hidden">
+          No hay movimientos con esos filtros.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODAL: registrar gasto/retiro/aporte/ajuste ================= -->
+  <div id="modal-movimiento" class="modal hidden">
+    <div class="modal-content">
+      <h2>Registrar movimiento</h2>
+
+      <form id="form-movimiento">
+        <fieldset class="form-grid">
+          <label>
+            Tipo
+            <select name="tipo" id="select-tipo" required>
+              <option value="EGRESO">Sale plata (egreso)</option>
+              <option value="INGRESO">Entra plata (ingreso)</option>
+            </select>
+          </label>
+
+          <label>
+            Categoría
+            <select name="categoria" id="select-categoria" required></select>
+          </label>
+
+          <label>
+            Monto
+            <input type="number" name="monto" min="0.01" step="0.01" required />
+          </label>
+
+          <label>
+            Método de pago
+            <select name="metodoPago" required>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </label>
+
+          <label class="campo-ancho">
+            Descripción
+            <input type="text" name="descripcion" maxlength="500" placeholder="Ej: Factura de luz de agosto" required />
+          </label>
+        </fieldset>
+
+        <button type="submit">Registrar</button>
+        <button type="button" id="btn-cancelar-movimiento">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: arqueo ================= -->
+  <div id="modal-arqueo" class="modal hidden">
+    <div class="modal-content">
+      <h2>Contar el cajón</h2>
+      <p class="caja-arqueo-ayuda">
+        Efectivo esperado según la caja: <strong id="arqueo-esperado">$0</strong>.
+        Contá el cajón y escribí cuánto hay de verdad.
+      </p>
+
+      <form id="form-arqueo">
+        <fieldset class="form-grid">
+          <label class="campo-ancho">
+            Efectivo contado
+            <input type="number" name="efectivoContado" min="0" step="0.01" required autofocus />
+          </label>
+          <label class="campo-ancho">
+            Descripción (opcional)
+            <input type="text" name="descripcion" maxlength="500" placeholder="Ej: faltaba en el cambio de turno" />
+          </label>
+        </fieldset>
+
+        <div id="arqueo-resultado" class="caja-arqueo-resultado hidden"></div>
+
+        <button type="submit">Registrar</button>
+        <button type="button" id="btn-cancelar-arqueo">Cerrar</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./caja.ts"></script>
+</body>
+</html>

@@ -40,3 +40,18 @@ export interface GananciaPorFecha {
   totalVentas: number;
   ganancia: number;
 }
+
+/** Fase 8/9: rentabilidad, separada del flujo de caja. */
+export interface Rentabilidad {
+  ventasTotales: number;
+  costoMercaderiaVendida: number;
+  gananciaBruta: number;
+  margenPorcentaje: number;
+  /** Reposición de stock — no es un costo del período. */
+  comprasTotales: number;
+  /** Solo categoría GASTO: RETIRO y APORTE son movimientos de capital. */
+  gastosTotales: number;
+  /** false = nadie cargó gastos en el período; el resultado neto no es un dato confiable. */
+  gastosCargados: boolean;
+  resultadoNeto: number;
+}

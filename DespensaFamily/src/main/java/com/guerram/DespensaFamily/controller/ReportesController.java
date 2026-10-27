@@ -4,6 +4,7 @@ import com.guerram.DespensaFamily.dto.reportes.GananciaPorFechaDTO;
 import com.guerram.DespensaFamily.dto.reportes.MovimientoDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoBajoStockDTO;
 import com.guerram.DespensaFamily.dto.reportes.ProductoMasVendidoDTO;
+import com.guerram.DespensaFamily.dto.reportes.RentabilidadDTO;
 import com.guerram.DespensaFamily.dto.reportes.ResumenVentasDTO;
 import com.guerram.DespensaFamily.dto.reportes.VentasPorCategoriaDTO;
 import com.guerram.DespensaFamily.service.ReportesService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,7 +27,7 @@ public class ReportesController {
 
     @GetMapping("/productos-bajo-stock")
     public List<ProductoBajoStockDTO> productosBajoStock(
-            @RequestParam(required = false) Double limite
+            @RequestParam(required = false) BigDecimal limite
     ) {
         return reportesService.productosConBajoStock(limite);
     }
@@ -37,12 +39,16 @@ public class ReportesController {
         return reportesService.resumenVentas(periodo);
     }
 
+    /** DF-PERF-002: 'top' es opcional -- sin el, el service aplica un default razonable. */
     @GetMapping("/productos-mas-vendidos")
     public List<ProductoMasVendidoDTO> productosMasVendidos(
             @RequestParam LocalDate desde,
-            @RequestParam LocalDate hasta
+            @RequestParam LocalDate hasta,
+            @RequestParam(required = false) Integer top
     ) {
-        return reportesService.productosMasVendidos(desde, hasta);
+        return top != null
+                ? reportesService.productosMasVendidosTop(desde, hasta, top)
+                : reportesService.productosMasVendidos(desde, hasta);
     }
 
     @GetMapping("/ventas-por-categoria")
@@ -59,6 +65,14 @@ public class ReportesController {
             @RequestParam LocalDate hasta
     ) {
         return reportesService.gananciaPorFecha(desde, hasta);
+    }
+
+    @GetMapping("/rentabilidad")
+    public RentabilidadDTO rentabilidad(
+            @RequestParam LocalDate desde,
+            @RequestParam LocalDate hasta
+    ) {
+        return reportesService.rentabilidad(desde, hasta);
     }
 
     @GetMapping("/movimientos")

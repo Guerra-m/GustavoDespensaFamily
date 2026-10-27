@@ -101,7 +101,7 @@ button {
 }
 
 .btn-quitar:hover {
-  background-color: #d32f2f;
+  background-color: var(--color-peligro-dark);
 }
 /* Modal general */
 .modal {
@@ -145,14 +145,9 @@ button {
     margin-top: 10px;
 }
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 .compras-container {
   max-width: 1200px;
@@ -160,7 +155,7 @@ button {
 }
 
 /* TÍTULOS */
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -172,8 +167,13 @@ h1 {
 
 
 .content h1::before {
-  content: '💰';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/shopping-bag.svg') center / contain no-repeat;
+  mask: url('/icons/shopping-bag.svg') center / contain no-repeat;
 }
 
 
@@ -187,14 +187,42 @@ h2 {
   gap: 10px;
 }
 
-section:first-of-type h2::before {
-  content: '📋';
-  font-size: 26px;
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
 }
 
-section:last-of-type h2::before {
-  content: '➕';
-  font-size: 26px;
+section h2::before { --icono: url('/icons/clipboard-list.svg'); }
+#modal-registrar-compra .modal-content h2::before { --icono: url('/icons/plus.svg'); }
+
+/* BARRA DEL BOTÓN "REGISTRAR COMPRA" */
+.compras-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+#btn-abrir-registrar-compra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#btn-abrir-registrar-compra:hover {
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 /* SECCIONES */
@@ -207,29 +235,9 @@ section {
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* ── TOAST ── */
-.toast {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: #43a047;
-  color: #fff;
-  padding: 14px 22px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  z-index: 2500;
-  animation: slideInToast 0.3s ease;
-}
-
-.toast.error { background: #e53935; }
-.toast.hidden { display: none; }
-
-@keyframes slideInToast {
-  from { transform: translateX(120px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
+/* TOAST: definido una sola vez en style.css (.toast) — Fase 3, DF-DEBT-004.
+   Esta hoja tenía una copia con top:auto/bottom:28px que competía con el
+   top:80px de style.css. */
 
 /* TABLAS */
 table {
@@ -244,7 +252,7 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
 }
 
 th {
@@ -330,20 +338,27 @@ label input {
 
 label input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
-/* DETALLE DE COMPRA */
+/* DETALLE DE COMPRA — grilla de 2 columnas, pensada para el ancho fijo
+   del modal (no del viewport): buscador arriba a lo ancho, cantidad y
+   precio lado a lado, "Agregar" abajo a lo ancho. */
 .detalle-compra {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .producto-buscar-container {
   position: relative;
+  grid-column: 1 / -1;
+}
+
+#btn-agregar {
+  grid-column: 1 / -1;
 }
 
 /* Reemplaza el <select> de 2000+ <option> por un input con autocompletado
@@ -402,7 +417,7 @@ label input:focus {
 .detalle-compra select:focus,
 .detalle-compra input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -441,14 +456,14 @@ button:not(.menu-toggle):active {
 }
 
 #btn-agregar {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   color: white;
   padding: 12px 20px;
   box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
 
 #btn-agregar:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 .btn-guardar {
@@ -456,17 +471,17 @@ button:not(.menu-toggle):active {
   margin-top: 20px;
   padding: 14px;
   font-size: 16px;
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
 }
 
 .btn-guardar:hover {
-  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
 }
 
 .btn-quitar {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  background: linear-gradient(135deg, var(--color-peligro-claro) 0%, var(--color-peligro) 100%);
   color: white;
   padding: 8px 16px;
   font-size: 13px;
@@ -474,7 +489,7 @@ button:not(.menu-toggle):active {
 }
 
 .btn-quitar:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  background: linear-gradient(135deg, var(--color-peligro) 0%, var(--color-peligro-dark) 100%);
 }
 
 /* TABLA DE DETALLES (dentro del form) */
@@ -548,9 +563,32 @@ button:not(.menu-toggle):active {
   gap: 10px;
 }
 
-.modal-content h2::before {
-  content: '📄';
-  font-size: 26px;
+.modal-content h2::before { --icono: url('/icons/file-text.svg'); }
+
+/* Modal de "Registrar Compra": un poco más ancho que el genérico (700px)
+   porque adentro vive la grilla de detalle de 2 columnas + tabla. */
+.modal-content-compra {
+  max-width: 820px;
+}
+
+.modal-content-compra form {
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#btn-cerrar-registrar-compra {
+  width: 100%;
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+  color: white;
+  padding: 14px;
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(120, 144, 156, 0.3);
+}
+
+#btn-cerrar-registrar-compra:hover {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
 }
 
 .modal-content p {
@@ -569,7 +607,7 @@ button:not(.menu-toggle):active {
   font-weight: 700;
   font-size: 20px;
   margin-top: 20px;
-  color: #43a047;
+  color: var(--color-exito);
 }
 
 .modal-content table {
@@ -608,28 +646,17 @@ button:not(.menu-toggle):active {
 .modal-content::-webkit-scrollbar-thumb:hover {
   background: #868e96;
 }
-@media (max-width: 1300px) {
-.detalle-compra input{
-  width: 80%;
-}
-}
 /* RESPONSIVE */
 /* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
    navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
-@media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-}
-
 @media (max-width: 768px) {
   .content {
     padding: 20px;
     padding-top: 80px;
   }
 
-  h1 {
+  .content h1 {
     font-size: 24px;
   }
 
@@ -674,12 +701,13 @@ button:not(.menu-toggle):active {
 }
 
 @media (max-width: 480px) {
-  h1 {
+  .content h1 {
     font-size: 20px;
   }
 
   h1::before {
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 
   table {
@@ -754,5 +782,106 @@ table {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+}
+
+/* ================= PAGO (Fase 11: compra pagada o a cuenta) ================= */
+
+.compra-pago {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4, 16px);
+  flex-wrap: wrap;
+  margin: var(--espacio-3, 12px) 0;
+  padding: var(--espacio-3, 12px);
+  background: var(--color-fondo, #f4f6f8);
+  border-radius: 10px;
+}
+
+.compra-pagada-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto, #2c3e50);
+  cursor: pointer;
+}
+
+.compra-pagada-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.compra-pago select {
+  padding: 8px 12px;
+  border: 2px solid var(--color-borde, #e9ecef);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.compras-acciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-marcar-pagada {
+  padding: 5px 10px;
+  border: 1px solid var(--color-exito-dark, #388e3c);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-exito-dark, #388e3c);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-marcar-pagada:hover {
+  background: var(--color-exito-suave, #e6f7ea);
+}
+
+/* ---------------------------------------------------------------
+   Confirmar precios antes de registrar la compra (DF-RISK-001).
+   --------------------------------------------------------------- */
+.modal-acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modal-acciones button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--color-borde, #e9ecef);
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#btn-confirmar-precios {
+  border-color: var(--color-primario, #2f6fed);
+  background: var(--color-primario, #2f6fed);
+  color: #fff;
+}
+
+/* Cambio de más del 50%: la auditoría pide resaltarlo antes de confirmar
+   (un cero de más en el costo multiplica por 10 el precio). */
+tr.fila-cambio-grande {
+  background: var(--color-peligro-suave, #ffe3e3);
+}
+
+tr.fila-cambio-grande td {
+  color: var(--color-peligro, #c92a2a);
+  font-weight: 600;
+}
+
+/* DF-BUG-005: aviso de que un precio se conservó porque cambió después de
+   la compra que se está anulando. */
+.aviso-precio-conservado {
+  color: var(--color-advertencia-dark, #c05600);
+  font-size: 13px;
+  margin-top: 4px;
 }

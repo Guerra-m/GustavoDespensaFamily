@@ -1,5 +1,7 @@
 package com.guerram.DespensaFamily.service;
 
+import com.guerram.DespensaFamily.config.NoEncontradoException;
+import com.guerram.DespensaFamily.config.ReglaDeNegocioException;
 import com.guerram.DespensaFamily.dto.PromocionDTO;
 import com.guerram.DespensaFamily.model.Producto;
 import com.guerram.DespensaFamily.model.Promocion;
@@ -26,7 +28,7 @@ public class PromocionService {
 
     public PromocionDTO crear(PromocionDTO dto) {
         Producto producto = productoRepository.findById(dto.getProductoId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         validar(dto, producto, null);
 
@@ -42,10 +44,10 @@ public class PromocionService {
 
     public PromocionDTO actualizar(Long id, PromocionDTO dto) {
         Promocion promocion = promocionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Promoción no encontrada"));
+                .orElseThrow(() -> new NoEncontradoException("Promoción no encontrada"));
 
         Producto producto = productoRepository.findById(dto.getProductoId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new NoEncontradoException("Producto no encontrado"));
 
         validar(dto, producto, id);
 
@@ -59,7 +61,7 @@ public class PromocionService {
 
     public void eliminar(Long id) {
         if (!promocionRepository.existsById(id)) {
-            throw new RuntimeException("Promoción no encontrada");
+            throw new NoEncontradoException("Promoción no encontrada");
         }
         promocionRepository.deleteById(id);
     }
@@ -70,16 +72,16 @@ public class PromocionService {
 
     private void validar(PromocionDTO dto, Producto producto, Long idActual) {
         if (!"UNIDAD".equals(producto.getTipoCantidad())) {
-            throw new RuntimeException("Las promociones solo aplican a productos por unidad");
+            throw new ReglaDeNegocioException("Las promociones solo aplican a productos por unidad");
         }
         if (dto.getCantidadPaga() >= dto.getCantidadLleva()) {
-            throw new RuntimeException("La cantidad a pagar debe ser menor a la cantidad que se lleva");
+            throw new ReglaDeNegocioException("La cantidad a pagar debe ser menor a la cantidad que se lleva");
         }
         if (dto.isActivo()) {
             promocionRepository.findByProductoIdAndActivoTrue(dto.getProductoId())
                     .filter(existente -> !existente.getId().equals(idActual))
                     .ifPresent(existente -> {
-                        throw new RuntimeException("Ya existe una promoción activa para este producto, desactivala primero");
+                        throw new ReglaDeNegocioException("Ya existe una promoción activa para este producto, desactivala primero");
                     });
         }
     }

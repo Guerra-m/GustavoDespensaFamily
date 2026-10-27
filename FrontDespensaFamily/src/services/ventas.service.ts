@@ -1,5 +1,9 @@
+import type { VentaDetalleResponse } from "../models/VentaDetalleResponse";
 import type { Venta } from "../models/Venta";
 import type { VentaRequest } from "../models/VentaRequest";
+import type { Cotizacion } from "../models/Cotizacion";
+import type { DetalleVentaRequest } from "../models/DetalleVentaRequest";
+import type { Pagina } from "../models/Pagina";
 import { getAuthHeaders } from "./auth.service";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/ventas`;
@@ -10,10 +14,39 @@ export async function getVentas(): Promise<Venta[]> {
   return res.json();
 }
 
-export async function createVenta(venta: VentaRequest): Promise<Venta> {
+// DF-PERF-001: /ventas sin paginar mandaba 562 KB con 3.055 ventas
+// (~13 MB/año). Endpoint NUEVO (GET /ventas/pagina) -- no reemplaza
+// getVentas(), que sigue sirviendo a quien necesita la lista completa
+// (home.ts). Sin PERM_CAJA el backend ignora desde/hasta y devuelve solo
+// las ventas propias del día (DF-SEC-003) -- este servicio no necesita
+// saber nada de permisos, la respuesta ya viene filtrada.
+export async function getVentasPaginado(
+  page: number,
+  size: number,
+  desde?: string,
+  hasta?: string
+): Promise<Pagina<Venta>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (desde) params.set("desde", desde);
+  if (hasta) params.set("hasta", hasta);
+
+  const res = await fetch(`${BASE_URL}/pagina?${params.toString()}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Error al obtener ventas");
+  return res.json();
+}
+
+// DF-BUG-003: idempotencyKey es opcional a propósito — sin ella esto se
+// comporta exactamente igual que antes (ver VentaController). El caller
+// (ventas.ts) manda un UUID por intento de confirmar para que un doble clic
+// o un reintento por red no generen dos ventas.
+export async function createVenta(venta: VentaRequest, idempotencyKey?: string): Promise<Venta> {
   const res = await fetch(BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    headers: {
+      "Content-Type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      ...getAuthHeaders()
+    },
     body: JSON.stringify(venta)
   });
   if (!res.ok) {
@@ -29,7 +62,28 @@ export async function createVenta(venta: VentaRequest): Promise<Venta> {
   return res.json();
 }
 
-export async function getDetalleVenta(ventaId: number): Promise<any> {
+// DF-BUG-001: lo que cobraría registrarVenta con este carrito ahora mismo,
+// calculado en el servidor (VentaService.cotizar) — comparte el mismo método
+// que la venta real, así que el total que ve el carrito es siempre el que
+// después se cobra.
+export async function cotizarVenta(detalles: DetalleVentaRequest[]): Promise<Cotizacion> {
+  const res = await fetch(`${BASE_URL}/cotizar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ detalles })
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const mensaje = body?.error || "No se pudo calcular el total";
+    throw new Error(mensaje);
+  }
+  return res.json();
+}
+
+// Tipado en vez de Promise<any>: los dos lugares que lo consumen recorren
+// `detalles`, y con `any` el tipo del renglón se perdía (los parámetros de
+// esos forEach quedaban implícitamente `any`).
+export async function getDetalleVenta(ventaId: number): Promise<VentaDetalleResponse> {
   const res = await fetch(`${import.meta.env.VITE_API_URL}/ventas/${ventaId}/detalle`, {
     headers: getAuthHeaders()
   });

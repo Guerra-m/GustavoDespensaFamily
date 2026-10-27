@@ -9,22 +9,17 @@
 
 
 /* CONTENEDOR PRINCIPAL */
-.content {
-  margin-left: 260px;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
+/* El layout base de `.content` (margen para el navbar, padding, fondo) vive
+   una sola vez en style.css -- acá sólo quedan los ajustes propios de esta
+   pantalla. */
 
 .categorias-container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 /* TÍTULOS */
-h1 {
+.content h1 {
   font-size: 32px;
   font-weight: 700;
   color: #2c3e50;
@@ -36,8 +31,13 @@ h1 {
 
 
 .content h1::before {
-  content: '💰';
-  font-size: 36px;
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: currentColor;
+  -webkit-mask: url('/icons/layers.svg') center / contain no-repeat;
+  mask: url('/icons/layers.svg') center / contain no-repeat;
 }
 
 
@@ -51,82 +51,116 @@ h2 {
   gap: 10px;
 }
 
-#form-crear-categoria h2::before {
-  content: '➕';
-  font-size: 26px;
+#form-crear-categoria h2::before { --icono: url('/icons/plus.svg'); }
+
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icono, url('/icons/pencil.svg')) center / contain no-repeat;
+  mask: var(--icono, url('/icons/pencil.svg')) center / contain no-repeat;
 }
 
-.modal-content h2::before {
-  content: '✏️';
-  font-size: 26px;
-}
-
-/* TABLA */
-.tabla-scroll {
-  overflow-x: auto;
-  border-radius: 12px;
+/* GRID DE CATEGORÍAS */
+.categorias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
   margin-bottom: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-#tabla-categorias {
-  width: 100%;
-  min-width: 480px;
-  border-collapse: separate;
-  border-spacing: 0;
+.categorias-sin-resultados {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #868e96;
+  font-style: italic;
+}
+
+.categoria-card {
+  position: relative;
   background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-left: 4px solid var(--color-primario);
   border-radius: 12px;
-  overflow: hidden;
+  padding: 18px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
 }
 
-#tabla-categorias thead {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+.categoria-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
-#tabla-categorias th {
-  padding: 16px;
-  text-align: center;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none;
+.categoria-acciones {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
 }
 
-#tabla-categorias th:first-child {
-  border-radius: 12px 0 0 0;
-}
-
-#tabla-categorias th:last-child {
-  border-radius: 0 12px 0 0;
-}
-
-#tabla-categorias td {
-  padding: 14px 16px;
-  text-align: center;
-  border-bottom: 1px solid #f1f3f5;
-  color: #495057;
-  font-size: 14px;
-  border-left: none;
-  border-right: none;
-}
-
-#tabla-categorias tbody tr {
+.btn-editar-cat,
+.btn-eliminar-cat {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
   transition: all 0.2s ease;
 }
 
-#tabla-categorias tbody tr:hover {
-  background-color: #f8f9fa;
-  transform: scale(1.005);
+.btn-editar-cat {
+  color: var(--color-primario-dark);
 }
 
-#tabla-categorias tbody tr:last-child td {
-  border-bottom: none;
+.btn-eliminar-cat {
+  color: var(--color-peligro);
 }
 
-/* BOTONES EN TABLA */
-button:not(.menu-toggle) {
+.btn-editar-cat:hover,
+.btn-eliminar-cat:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.categoria-nombre {
+  font-size: 17px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 6px;
+  padding-right: 70px; /* deja lugar a los botones de acción */
+}
+
+.categoria-descripcion {
+  font-size: 13px;
+  color: #868e96;
+  margin-bottom: 14px;
+  min-height: 18px;
+}
+
+.categoria-contador {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primario-dark);
+  background: #e3f2fd;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* BOTONES GENERALES DE LA PÁGINA (form crear) */
+button:not(.menu-toggle):not(.btn-editar-cat):not(.btn-eliminar-cat) {
   padding: 8px 16px;
   margin: 2px;
   cursor: pointer;
@@ -138,33 +172,13 @@ button:not(.menu-toggle) {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-button:not(.menu-toggle):hover {
+button:not(.menu-toggle):not(.btn-editar-cat):not(.btn-eliminar-cat):hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-button:not(.menu-toggle):active {
+button:not(.menu-toggle):not(.btn-editar-cat):not(.btn-eliminar-cat):active {
   transform: translateY(0);
-}
-
-button.editar {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
-}
-
-button.editar:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
-}
-
-button.eliminar {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
-}
-
-button.eliminar:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
 }
 
 /* FORMULARIO CREAR */
@@ -200,7 +214,7 @@ form input {
 
 form input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: var(--color-primario);
   box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.1);
 }
 
@@ -211,7 +225,7 @@ form input::placeholder {
 form button[type="submit"] {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  background: linear-gradient(135deg, var(--color-exito-claro) 0%, var(--color-exito) 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -224,7 +238,7 @@ form button[type="submit"] {
 }
 
 form button[type="submit"]:hover {
-  background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+  background: linear-gradient(135deg, var(--color-exito) 0%, var(--color-exito-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
 }
@@ -312,12 +326,12 @@ form button[type="submit"]:active {
 }
 
 .modal-content button[type="submit"] {
-  background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
   margin-bottom: 8px;
 }
 
 .modal-content button[type="submit"]:hover {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, #0277bd 100%);
 }
 
 #btn-cancelar {
@@ -337,19 +351,13 @@ form button[type="submit"]:active {
 /* 1023px, no 1024: tiene que coincidir exacto con el breakpoint de
    navbar.css que esconde/muestra el sidebar, o hay una franja de ancho
    donde el sidebar ya está visible pero el contenido no le dejó margen. */
-@media (max-width: 1023px) {
-  .content {
-    margin-left: 0;
-  }
-}
-
 @media (max-width: 768px) {
   .content {
     padding: 20px;
     padding-top: 80px;
   }
 
-  h1 {
+  .content h1 {
     font-size: 24px;
   }
 
@@ -361,13 +369,9 @@ form button[type="submit"]:active {
     padding: 0;
   }
 
-  #tabla-categorias {
-    font-size: 13px;
-  }
-
-  #tabla-categorias th,
-  #tabla-categorias td {
-    padding: 10px 8px;
+  .categorias-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
   }
 
   form {
@@ -381,21 +385,17 @@ form button[type="submit"]:active {
 }
 
 @media (max-width: 480px) {
-  h1 {
+  .content h1 {
     font-size: 20px;
   }
 
   h1::before {
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 
-  #tabla-categorias {
-    font-size: 12px;
-  }
-
-  #tabla-categorias th,
-  #tabla-categorias td {
-    padding: 8px 6px;
+  .categorias-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   button {
@@ -412,23 +412,4 @@ form button[type="submit"]:active {
     font-size: 14px;
     padding: 12px;
   }
-}
-.navbar-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  color: #ffffff; /* ← Agregá esta línea */
-}
-button.eliminar {
-  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
-  transition: all 0.2s ease; /* 🔹 clave */
-}
-
-button.eliminar:hover {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
-  box-shadow: 0 6px 14px rgba(211, 47, 47, 0.5);
-  transform: translateY(-2px);
 }

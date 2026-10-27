@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -31,8 +31,9 @@
       <!-- Buscador -->
       <div class="productos-toolbar">
         <input type="text" id="input-buscar" placeholder="Buscar producto por nombre, código o categoría..." />
-        <button type="button" id="btn-crear-producto">➕ Crear Producto</button>
-        <button type="button" id="btn-modo-seleccion">🖨️ Seleccionar para imprimir</button>
+        <button type="button" id="btn-filtro-stock-bajo" class="btn-filtro-toggle" aria-pressed="false">⚠ Stock bajo</button>
+        <button type="button" id="btn-crear-producto"><span class="icon" style="--icono:url('/icons/plus.svg')"></span> Crear Producto</button>
+        <button type="button" id="btn-modo-seleccion"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Seleccionar para imprimir</button>
       </div>
 
       <!-- Grid de productos con scroll -->
@@ -47,7 +48,7 @@
   <!-- Barra flotante de selección para imprimir carteles -->
   <div id="barra-seleccion" class="barra-seleccion hidden">
     <span id="contador-seleccion">0 seleccionados</span>
-    <button type="button" id="btn-imprimir-seleccionados">🖨️ Imprimir carteles</button>
+    <button type="button" id="btn-imprimir-seleccionados"><span class="icon" style="--icono:url('/icons/printer.svg')"></span> Imprimir carteles</button>
     <button type="button" id="btn-cancelar-seleccion">Cancelar</button>
   </div>
 
@@ -57,6 +58,13 @@
   <div id="modal-crear" class="modal hidden">
     <div class="modal-content">
       <h2>Crear Producto</h2>
+
+      <div class="modal-crear-tabs">
+        <button type="button" class="tab-btn active" data-tab="rapida">Carga rápida</button>
+        <button type="button" class="tab-btn" data-tab="ia">Con IA</button>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="rapida">
       <p class="modal-crear-ayuda">💡 Después de crear, el formulario se limpia y el modal queda abierto para seguir cargando — tocá "Cerrar" cuando termines.</p>
 
       <form id="form-crear">
@@ -70,7 +78,12 @@
 
     <label>
       Código de Barras
-      <input type="text" name="codigoBarras" />
+      <div class="input-con-boton">
+        <input type="text" name="codigoBarras" placeholder="Escribir o escanear..." />
+        <button type="button" class="btn-scan-campo" id="btn-scan-crear" title="Escanear con el celular">
+          📱 Escanear
+        </button>
+      </div>
     </label>
 
     <label>
@@ -149,6 +162,52 @@
 
   <button type="submit">Crear</button>
       </form>
+      </div>
+
+      <div class="tab-panel hidden" data-tab-panel="ia">
+        <p class="modal-crear-ayuda">💡 Escribí una lista de productos, subí una foto, o ambos. Vas a poder revisar y corregir todo antes de confirmar.</p>
+
+        <label class="ia-campo">
+          Texto (opcional)
+          <textarea id="ia-input-texto" rows="3" placeholder="Ej: Coca Cola 2.25L, Sprite 2.25L, Fanta 2.25L"></textarea>
+        </label>
+
+        <label class="ia-campo ia-campo-imagen">
+          Foto (opcional)
+          <input type="file" id="ia-input-imagen" accept="image/jpeg,image/png,image/webp" />
+        </label>
+
+        <img id="ia-preview-imagen" class="ia-preview-imagen hidden" alt="Vista previa" />
+
+        <button type="button" id="ia-btn-analizar">
+          <span class="icon" style="--icono:url('/icons/trending-up.svg')"></span> Analizar
+        </button>
+
+        <div id="ia-seccion-preview" class="ia-seccion-preview hidden">
+          <div class="tabla-scroll">
+            <table id="ia-tabla-preview">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Código de barras</th>
+                  <th>Precio</th>
+                  <th>Stock inicial</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="ia-preview-acciones">
+            <button type="button" id="ia-btn-confirmar-todos">Confirmar y crear productos</button>
+            <button type="button" id="ia-btn-cancelar-preview">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <button type="button" id="btn-cerrar-crear">Cerrar</button>
     </div>
   </div>
@@ -169,7 +228,12 @@
 
         <label>
           Código de Barras
-          <input type="text" name="codigoBarras" />
+          <div class="input-con-boton">
+        <input type="text" name="codigoBarras" placeholder="Escribir o escanear..." />
+        <button type="button" class="btn-scan-campo" id="btn-scan-editar" title="Escanear con el celular">
+          📱 Escanear
+        </button>
+      </div>
         </label>
 
         <label>
@@ -253,6 +317,17 @@
 
 </div>
 
+
+  <!-- MODAL QR PARA ESCANEAR DESDE EL CELULAR -->
+  <div id="modal-scan-celular" class="modal hidden">
+    <div class="modal-content modal-scan-celular-content">
+      <h3>Escanear desde el celular</h3>
+      <p class="scan-celular-ayuda">Escaneá este código con tu celular (misma red wifi): cuando le saques foto al código de barras se va a completar acá automáticamente.</p>
+      <canvas id="scan-celular-qr"></canvas>
+      <p id="scan-celular-estado" class="scan-celular-estado">Generando código...</p>
+      <button id="btn-cerrar-scan-celular" type="button">Cerrar</button>
+    </div>
+  </div>
 </main>
 
 <script type="module" src="../../components/navbar/navbar.ts"></script>

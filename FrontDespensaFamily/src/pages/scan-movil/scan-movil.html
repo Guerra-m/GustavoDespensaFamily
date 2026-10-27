@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escanear | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="./scan-movil.css" />
+</head>
+<body>
+  <main class="scan-movil">
+    <h1>Escanear producto</h1>
+    <p id="estado" class="scan-movil-estado">Conectando con la caja...</p>
+
+    <!-- Contenedor para escaneo continuo en vivo (solo contexto seguro) -->
+    <div id="reader"></div>
+
+    <!-- Contenedor para captura de foto (compatible con HTTP en cualquier celular) -->
+    <div id="contenedor-foto" class="scan-movil-foto hidden">
+      <input type="file" id="input-foto" accept="image/*" capture="environment" class="hidden-input" />
+      <button type="button" id="btn-foto" class="scan-movil-boton-foto">
+        <span class="btn-icono">📷</span>
+        <span>Sacar foto al código</span>
+      </button>
+      <p class="scan-movil-ayuda">Apuntá de cerca y con buena luz al código de barras.</p>
+    </div>
+
+    <div id="ultimo-codigo" class="scan-movil-ultimo hidden">
+      <span>Último código escaneado</span>
+      <strong id="ultimo-codigo-valor"></strong>
+    </div>
+  </main>
+  <script type="module" src="./scan-movil.ts"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+.caja-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--espacio-6, 24px) var(--espacio-4, 16px);
+}
+
+.caja-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4, 16px);
+  margin-bottom: var(--espacio-6, 24px);
+}
+
+.caja-header h1 { margin: 0; }
+
+.caja-header button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ================= SALDO ================= */
+
+/* La caja registradora es el centro visual de la pantalla: un número grande
+   y nada más alrededor, como el visor de una caja de verdad — no un dashboard
+   financiero corporativo con una tarjeta más entre otras. */
+.caja-saldo-hero {
+  background: linear-gradient(135deg, var(--color-primario-dark) 0%, var(--color-primario-oscuro) 100%);
+  color: #fff;
+  border-radius: 18px;
+  padding: var(--espacio-8, 32px) var(--espacio-6, 24px);
+  margin-bottom: var(--espacio-5, 20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-6, 24px);
+  box-shadow: 0 12px 32px rgba(1, 87, 155, 0.25);
+}
+
+.caja-saldo-principal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.caja-saldo-etiqueta {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.caja-saldo-monto {
+  font-size: clamp(36px, 8vw, 56px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.caja-saldo-desglose {
+  display: flex;
+  gap: var(--espacio-8, 32px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.caja-saldo-desglose > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.caja-saldo-desglose-etiqueta {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.caja-saldo-desglose-monto {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================= RESUMEN DE HOY ================= */
+
+.caja-resumen-dia {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--espacio-4, 16px);
+  margin-bottom: var(--espacio-6, 24px);
+}
+
+.caja-stat {
+  background: var(--color-superficie, #fff);
+  border: 1px solid var(--color-borde, #e2e8f0);
+  border-radius: 12px;
+  padding: var(--espacio-4, 16px);
+  text-align: center;
+}
+
+.caja-stat h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-texto-tenue, #64748b);
+}
+
+.caja-stat p {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto, #2c3e50);
+}
+
+.caja-stat-ingreso { color: var(--color-exito-dark, #388e3c) !important; }
+.caja-stat-egreso { color: var(--color-peligro-dark, #d32f2f) !important; }
+
+/* ================= MOVIMIENTOS ================= */
+
+.caja-movimientos h2 {
+  font-size: 18px;
+  margin: 0 0 var(--espacio-3, 12px);
+}
+
+.tabla-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde, #e2e8f0);
+  border-radius: 12px;
+}
+
+#tabla-movimientos {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-superficie, #fff);
+  font-size: 13px;
+}
+
+#tabla-movimientos th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--color-fondo, #f4f6f8);
+  color: var(--color-texto-tenue, #64748b);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+#tabla-movimientos td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-borde, #e2e8f0);
+  white-space: nowrap;
+}
+
+/* Diferenciación visual clara entre ingreso y egreso (pedido explícito),
+   sin salirse de los colores semánticos que ya usa el resto de la app. */
+.caja-monto-ingreso { color: var(--color-exito-dark, #388e3c); font-weight: 700; }
+.caja-monto-egreso { color: var(--color-peligro-dark, #d32f2f); font-weight: 700; }
+
+.caja-etiqueta-revertido {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue, #64748b);
+  background: var(--color-fondo, #f4f6f8);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.btn-revertir-movimiento {
+  padding: 5px 10px;
+  border: 1px solid var(--color-peligro, #e53935);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-peligro-dark, #d32f2f);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-revertir-movimiento:hover { background: #fdecea; }
+
+.caja-vacio {
+  text-align: center;
+  color: var(--color-texto-tenue, #64748b);
+  padding: var(--espacio-6, 24px);
+}
+
+.caja-solo-admin.hidden { display: none !important; }
+
+/* ================= MODAL ================= */
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal.hidden { display: none; }
+
+.modal-content {
+  box-sizing: border-box;
+  background: #fff;
+  padding: var(--espacio-6, 24px);
+  width: 92%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+  margin: 0 0 var(--espacio-4, 16px);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espacio-4, 16px);
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--espacio-4, 16px);
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto-tenue, #64748b);
+}
+
+.form-grid .campo-ancho {
+  grid-column: 1 / -1;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 10px 12px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-texto, #2c3e50);
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  outline: none;
+  border-color: var(--color-primario);
+}
+
+#form-movimiento button[type="submit"] {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: var(--espacio-2, 8px);
+}
+
+#form-movimiento button[type="button"] {
+  padding: 10px 20px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-texto-tenue, #64748b);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .caja-resumen-dia { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .caja-saldo-desglose { gap: var(--espacio-5, 20px); }
+}
+
+/* ================= HISTORIAL CON FILTROS (Fase 7) ================= */
+
+.caja-historial {
+  margin-top: var(--espacio-6, 24px);
+}
+
+.caja-historial h2 {
+  font-size: 18px;
+  margin: 0 0 var(--espacio-3, 12px);
+}
+
+.caja-filtros {
+  display: flex;
+  gap: var(--espacio-3, 12px);
+  flex-wrap: wrap;
+  align-items: end;
+  margin-bottom: var(--espacio-4, 16px);
+  padding: var(--espacio-3, 12px);
+  background: var(--color-fondo, #f4f6f8);
+  border-radius: 10px;
+}
+
+.caja-filtros label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto-tenue, #64748b);
+}
+
+.caja-filtros input,
+.caja-filtros select {
+  padding: 8px 10px;
+  border: 2px solid var(--color-borde, #e2e8f0);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.caja-filtros button {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  height: 36px;
+}
+
+/* ================= ARQUEO (Fase 6) ================= */
+
+.caja-btn-secundario {
+  background: #fff !important;
+  color: var(--color-primario-dark, #0288d1) !important;
+  border: 2px solid var(--color-primario-dark, #0288d1) !important;
+}
+
+.caja-arqueo-ayuda {
+  font-size: 13px;
+  color: var(--color-texto-tenue, #64748b);
+  margin: 0 0 var(--espacio-4, 16px);
+}
+
+.caja-arqueo-resultado {
+  margin: 0 0 var(--espacio-4, 16px);
+  padding: var(--espacio-3, 12px);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.caja-arqueo-resultado.hidden { display: none; }
+
+.caja-arqueo-resultado.caja-arqueo-exacto {
+  background: var(--color-exito-suave, #e6f7ea);
+  color: var(--color-exito-dark, #388e3c);
+}
+
+.caja-arqueo-resultado.caja-arqueo-diferencia {
+  background: var(--color-advertencia-claro, #fff3e0);
+  color: var(--color-advertencia-dark, #c05600);
+}

@@ -8,6 +8,10 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, 'index.html'),
         login: resolve(__dirname, 'src/pages/login/login.html'),
+        asistenteIa: resolve(__dirname, 'src/pages/asistente-ia/asistente-ia.html'),
+        ajustes: resolve(__dirname, 'src/pages/ajustes/ajustes.html'),
+        caja: resolve(__dirname, 'src/pages/caja/caja.html'),
+        empleados: resolve(__dirname, 'src/pages/empleados/empleados.html'),
         home: resolve(__dirname, 'src/pages/home/home.html'),
         categorias: resolve(__dirname, 'src/pages/categorias/categorias.html'),
         compras: resolve(__dirname, 'src/pages/compras/compras.html'),
@@ -17,6 +21,7 @@ export default defineConfig({
         reportes: resolve(__dirname, 'src/pages/reportes/reportes.html'),
         usuarios: resolve(__dirname, 'src/pages/usuarios/usuarios.html'),
         ventas: resolve(__dirname, 'src/pages/ventas/ventas.html'),
+        scanMovil: resolve(__dirname, 'src/pages/scan-movil/scan-movil.html'),
       }
     }
   },

@@ -21,14 +21,28 @@ form.addEventListener("submit", async (e) => {
   try {
     const data = await login(username, password);
 
+    // El token no se guarda: vino en una cookie HttpOnly que el navegador ya
+    // tiene y que este código no puede ni leer. Acá queda solo lo que sirve
+    // para decidir qué dibujar.
     localStorage.setItem("auth", "true");
-    localStorage.setItem("token", data.token);
     localStorage.setItem("rol", data.rol);
     localStorage.setItem("username", username);
+    localStorage.setItem("puedeGestionarProductos", String(!!data.puedeGestionarProductos));
+    localStorage.setItem("puedeVerCaja", String(!!data.puedeVerCaja));
+
+    // El admin que crea el instalador entra con una contraseña generada al
+    // azar y anotada en un archivo. Se lo manda a cambiarla antes de dejarlo
+    // usar el sistema: si no, esa contraseña queda puesta para siempre.
+    if (data.debeCambiarPassword) {
+      localStorage.setItem("debeCambiarPassword", "true");
+      window.location.href = "../perfil/perfil.html?cambiar=1";
+      return;
+    }
+    localStorage.removeItem("debeCambiarPassword");
 
     window.location.href = "../home/home.html";
-  } catch {
-    mensaje.textContent = "Usuario o contraseña incorrectos";
+  } catch (err) {
+    mensaje.textContent = (err as Error).message || "Usuario o contraseña incorrectos";
     btnText.classList.remove("hidden");
     btnSpinner.classList.add("hidden");
     btnSubmit.disabled = false;

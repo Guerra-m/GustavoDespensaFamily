@@ -22,6 +22,13 @@ const mensaje = document.getElementById("mensaje-password") as HTMLParagraphElem
 
 let perfilActual: Perfil | null = null;
 
+// Cuando se llega acá porque el sistema obliga a cambiar la contraseña
+// (primer ingreso del admin creado por el instalador), se avisa por qué y no
+// se deja seguir hasta que la cambie.
+const cambioObligatorio =
+  new URLSearchParams(location.search).has("cambiar") ||
+  localStorage.getItem("debeCambiarPassword") === "true";
+
 function mostrarMensaje(texto: string, tipo: "ok" | "error") {
   mensaje.textContent = texto;
   mensaje.className = `mensaje ${tipo}`;
@@ -53,9 +60,21 @@ form.addEventListener("submit", async (e) => {
     await cambiarPassword(perfilActual.id, inputActual.value, inputNueva.value);
     mostrarMensaje("Contraseña actualizada correctamente", "ok");
     form.reset();
+
+    if (cambioObligatorio) {
+      localStorage.removeItem("debeCambiarPassword");
+      setTimeout(() => { window.location.href = "../home/home.html"; }, 1200);
+    }
   } catch (err) {
-    mostrarMensaje("No se pudo cambiar la contraseña. Verificá tu contraseña actual.", "error");
+    mostrarMensaje((err as Error).message || "No se pudo cambiar la contraseña. Verificá tu contraseña actual.", "error");
   }
 });
+
+if (cambioObligatorio) {
+  mostrarMensaje(
+    "Antes de empezar tenés que elegir una contraseña propia. La que te dio el instalador quedó anotada en un archivo de la computadora.",
+    "error");
+  document.getElementById("password-nueva")?.focus();
+}
 
 cargarPerfil();

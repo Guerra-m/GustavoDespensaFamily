@@ -9,15 +9,14 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.Map;
 
 @Service
 public class JwtService {
 
-    // Definido en application.properties (jwt.secret), con override por
-    // variable de entorno JWT_SECRET. Cualquier despliegue real debe setear
-    // esa variable con un valor propio — nunca depender del default de
-    // desarrollo que trae application.properties.
+    // Lo genera SecretoJwt en el primer arranque y vive en config.properties,
+    // dentro de la carpeta de datos: uno distinto por instalacion. Ya no hay
+    // ningun valor por defecto en el repositorio. Se puede pisar con la
+    // variable de entorno JWT_SECRET.
     @Value("${jwt.secret}")
     private String secret;
 
@@ -27,10 +26,13 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String username, String rol) {
+    // El token solo dice QUIEN es. Rol y permisos ya no viajan adentro: los
+    // lee JwtAuthFilter de la base en cada pedido (DF-SEC-002). Antes iban
+    // grabados acá y valían 24 h: borrar a un empleado o quitarle un permiso
+    // no tenía efecto hasta que venciera el token.
+    public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
-                .addClaims(Map.of("rol", rol))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

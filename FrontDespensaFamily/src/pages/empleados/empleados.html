@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empleados | DespensaFamily</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="../../style.css" />
+  <link rel="stylesheet" href="../../components/navbar/navbar.css" />
+  <link rel="stylesheet" href="./empleados.css" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <main class="content">
+    <div class="empleados-container">
+
+      <div class="empleados-header">
+        <h1>Empleados</h1>
+        <button type="button" id="btn-nuevo-empleado">Nuevo empleado</button>
+      </div>
+
+      <!-- ================= GRILLA SEMANAL ================= -->
+      <section class="empleados-grilla-seccion">
+        <div class="empleados-grilla-header">
+          <h2>Días trabajados</h2>
+          <div class="empleados-semana-nav">
+            <button type="button" id="btn-semana-anterior">← Semana anterior</button>
+            <span id="empleados-semana-label"></span>
+            <button type="button" id="btn-semana-siguiente">Semana siguiente →</button>
+          </div>
+        </div>
+        <p class="empleados-ayuda">
+          Tocá un casillero para marcar o desmarcar el día. Sirve para saber
+          cuántos días trabajó cada uno — el pago es aparte y de monto libre.
+        </p>
+        <div class="tabla-scroll">
+          <table id="tabla-grilla">
+            <thead>
+              <tr id="fila-dias-header"></tr>
+            </thead>
+            <tbody id="cuerpo-grilla"></tbody>
+          </table>
+        </div>
+        <p id="grilla-vacio" class="empleados-vacio hidden">
+          Todavía no hay empleados cargados.
+        </p>
+      </section>
+
+      <!-- ================= LISTADO ================= -->
+      <section class="empleados-lista-seccion">
+        <h2>Empleados</h2>
+        <div class="tabla-scroll">
+          <table id="tabla-empleados">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Estado</th>
+                <th>Días este período</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-empleados"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODAL: nuevo empleado ================= -->
+  <div id="modal-empleado" class="modal hidden">
+    <div class="modal-content">
+      <h2>Nuevo empleado</h2>
+      <form id="form-empleado">
+        <fieldset class="form-grid">
+          <label class="campo-ancho">
+            Nombre
+            <input type="text" name="nombre" maxlength="255" required />
+          </label>
+          <label class="campo-ancho">
+            Usuario del sistema (opcional)
+            <input type="text" name="username" maxlength="255" placeholder="Solo si también usa DespensaFamily" />
+          </label>
+        </fieldset>
+        <button type="submit">Guardar</button>
+        <button type="button" id="btn-cancelar-empleado">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: pagar ================= -->
+  <div id="modal-pagar" class="modal hidden">
+    <div class="modal-content">
+      <h2>Pagar a <span id="pagar-nombre"></span></h2>
+      <form id="form-pagar">
+        <fieldset class="form-grid">
+          <label>
+            Monto
+            <input type="number" name="monto" min="0.01" step="0.01" required autofocus />
+          </label>
+          <label>
+            Método de pago
+            <select name="metodoPago" required>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </label>
+          <label class="campo-ancho">
+            Descripción (opcional)
+            <input type="text" name="descripcion" maxlength="500" placeholder="Ej: adelanto de la quincena" />
+          </label>
+        </fieldset>
+        <button type="submit">Registrar pago</button>
+        <button type="button" id="btn-cancelar-pagar">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../../components/navbar/navbar.ts"></script>
+  <script type="module" src="./empleados.ts"></script>
+</body>
+</html>

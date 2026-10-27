@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'" />
+    <title>DespensaFamily</title>
+    <style>
+      /* Pantalla local, sin ningun recurso externo: tiene que dibujarse aunque
+         el servidor todavia no exista. Por eso los estilos van acá adentro y no
+         hay ni una imagen ni una fuente que descargar. */
+      :root {
+        color-scheme: light;
+        --celeste: #0288d1;
+        --fondo: #f4f6f8;
+        --texto: #33404d;
+        --tenue: #7b8794;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        background: var(--fondo);
+        color: var(--texto);
+        font-family: "Segoe UI", system-ui, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .marca {
+        width: 72px;
+        height: 72px;
+        display: grid;
+        place-items: center;
+        border-radius: 20px;
+        background: var(--celeste);
+        color: #fff;
+        font-size: 38px;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: 0 10px 24px rgba(2, 136, 209, 0.28);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+
+      p {
+        margin: -18px 0 0;
+        font-size: 13px;
+        color: var(--tenue);
+      }
+
+      .barra {
+        width: 220px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(2, 136, 209, 0.16);
+        overflow: hidden;
+      }
+
+      /* Indeterminada a proposito: el arranque del servidor no da un porcentaje
+         real, y una barra que miente se nota. */
+      .barra::after {
+        content: "";
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--celeste);
+        animation: recorrer 1.15s ease-in-out infinite;
+      }
+
+      @keyframes recorrer {
+        0% {
+          transform: translateX(-105%);
+        }
+        100% {
+          transform: translateX(255%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .barra::after {
+          animation: none;
+          width: 100%;
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="marca">D</div>
+    <h1>Iniciando DespensaFamily</h1>
+    <p>Preparando la base y el stock. Tarda unos segundos.</p>
+    <div class="barra" role="progressbar" aria-label="Iniciando"></div>
+  </body>
+</html>
